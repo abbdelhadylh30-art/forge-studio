@@ -340,6 +340,102 @@ export const usePFStore = create<EditorState>((set, get) => ({
  *  which would trigger Zustand's getSnapshot-should-be-cached warning. */
 const EMPTY_ISSUES: Issue[] = [];
 
+/* ───────────────────────────────────────────────────────────────────────────
+ * Autosave + recovery (localStorage) — auditor
+ *
+ * Persists the current HTML + project name + change log so a refresh doesn't
+ * lose the audit. History stack is NOT persisted (would balloon localStorage).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+const AUDITOR_STORAGE_KEY = "forge-studio:auditor-state:v1";
+const AUDITOR_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 7 days (audits are shorter-lived than builder projects)
+const AUDITOR_MAX_HTML_BYTES = 800 * 1024; // 800 KB cap — bigger pages risk QuotaExceededError
+
+interface SavedAuditorState {
+  currentHTML: string;
+  projectName: string;
+  changeLog: ChangeLogItem[];
+  timestamp: number;
+}
+
+let auditorSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function auditorAutosave(state: { currentHTML: string; projectName: string; changeLog: ChangeLogItem[] }) {
+  if (typeof window === "undefined") return;
+  if (!state.currentHTML) return;
+  if (state.currentHTML.length > AUDITOR_MAX_HTML_BYTES) return; // skip oversize
+  if (auditorSaveTimer) clearTimeout(auditorSaveTimer);
+  auditorSaveTimer = setTimeout(() => {
+    try {
+      const payload: SavedAuditorState = {
+        currentHTML: state.currentHTML,
+        projectName: state.projectName,
+        changeLog: state.changeLog.slice(-50), // cap changelog
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(AUDITOR_STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      console.warn("Auditor autosave failed:", e);
+    }
+  }, 800);
+}
+
+function loadAuditorSavedState(): SavedAuditorState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(AUDITOR_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedAuditorState;
+    if (Date.now() - parsed.timestamp > AUDITOR_MAX_AGE_MS) {
+      localStorage.removeItem(AUDITOR_STORAGE_KEY);
+      return null;
+    }
+    if (!parsed.currentHTML) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function clearAuditorAutosave() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(AUDITOR_STORAGE_KEY);
+  } catch {
+    /* noop */
+  }
+}
+
+export function peekAuditorAutosave(): { timestamp: number; projectName: string; htmlSize: number; changeCount: number } | null {
+  const s = loadAuditorSavedState();
+  if (!s) return null;
+  return {
+    timestamp: s.timestamp,
+    projectName: s.projectName,
+    htmlSize: s.currentHTML.length,
+    changeCount: s.changeLog.length,
+  };
+}
+
+export function consumeAuditorAutosave(): SavedAuditorState | null {
+  return loadAuditorSavedState();
+}
+
+// Subscribe to auditor state changes for autosave
+usePFStore.subscribe((state, prev) => {
+  if (
+    state.currentHTML !== prev.currentHTML ||
+    state.projectName !== prev.projectName ||
+    state.changeLog !== prev.changeLog
+  ) {
+    auditorAutosave({
+      currentHTML: state.currentHTML,
+      projectName: state.projectName,
+      changeLog: state.changeLog,
+    });
+  }
+});
+
 /** Issues filtered by severity */
 export function useIssuesBySeverity() {
   const issues = usePFStore((s) => s.scoreData?.issues ?? EMPTY_ISSUES);

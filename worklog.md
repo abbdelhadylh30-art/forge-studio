@@ -348,3 +348,26 @@ Stage Summary:
 - Tone: confident & crisp SaaS style — short, concrete, benefit-first. Less feature-listy, more user-friendly. Honest about tool limitations (sim vs real, local vs cloud).
 - Lint: 0 errors, 0 warnings.
 - Verified end-to-end via agent-browser: dashboard loads, auditor loads, score 63→91 with Fix All Safe, bad URL returns friendly error, AI suggest works, all 10 tools open without errors, console clean.
+
+---
+Task ID: 6
+Agent: main
+Task: Apply the most beneficial improvements from the honest evaluation: autosave + recovery, AI copy upgrade (tone presets + 3 variants + preview), make Auto Monitor actually work, honesty warning for URL→builder.
+
+Work Log:
+- AUTOSAVE (Builder): Added debounced localStorage autosave to builder-store.ts. Subscribe listener fires on site/currentPageId changes. 500ms debounce. 30-day TTL. Sanity-checks the saved shape. Added peekBuilderAutosave() (read-only, for dashboard banner) and consumeBuilderAutosave() (read, for recovery). Added clearBuilderAutosave() for the Reset button.
+- AUTOSAVE RECOVERY (Builder): BuilderShell mount effect now: 1) checks for pending auditor→builder transfer, 2) falls back to autosaved site, 3) falls back to default template. Removed the racing "ensure currentPageId is set" effect that was overwriting the recovered currentPageId with the blank site's page ID (root cause: closure captured pre-init stale values). Dashboard shows a "Welcome back — pick up where you left off" banner with site name, page count, time-ago, and Resume/Dismiss buttons when an autosave exists.
+- AUTOSAVE (Auditor): Added debounced localStorage autosave to pf-store.ts. 800ms debounce. 7-day TTL. 800KB HTML cap (avoids QuotaExceededError). Persists currentHTML + projectName + changeLog (capped at 50). AppShell mount effect now: 1) checks for pending builder→auditor transfer, 2) falls back to autosaved audit, 3) falls back to demo page.
+- RESET PROJECT: Added a RotateCcw icon button in Builder TopBar with an AlertDialog confirmation. Clears localStorage and loads a fresh blank site.
+- AI COPY UPGRADE: Rewrote /api/ai-copy route to return 3 variants as a JSON array instead of a single text string. Added 5 tone presets (Confident/Friendly/Bold/Minimal/Playful) with tone-specific system prompts. Added a "variants" parameter (1-3). Fallback returns 3 curated variants per copy type. Updated AISuggestButton in Inspector.tsx to use a Popover with: tone preset chips, 3 variant cards (click to apply), Regenerate button, loading skeletons, warning display. Backwards-compatible with old single-text response.
+- AUTO MONITOR (real, not fake): ToolsModal now uses setInterval to re-audit the iframe every 10 seconds while monitoring is active. Calls runScoring on the live iframe document (real re-audit, not random). Tracks score history (up to 30 entries) with timestamps. Renders a sparkline SVG showing score trend. Shows Min/Max/Last stats. Alerts via toast if score drops below 70. Clear button to wipe history.
+- URL→BUILDER HONESTY WARNING: AuditorShell now detects "complex" fetched HTML (heuristic: >30 inline styles OR >3 script tags OR >80 divs). When user clicks "Edit in builder" on complex HTML, shows an AlertDialog warning that the builder uses a section-based editor and imported HTML goes into a single raw-HTML section. User can Cancel or Continue.
+- DEBUGGING: Found and fixed a subtle race condition where the "ensure currentPageId" useEffect in BuilderShell was capturing stale closure values (pre-init currentPageId="" and blank site) and calling setCurrentPageId(blankPageId), overwriting the autosave recovery. Fix: removed the racing effect entirely — all init paths (transfer/autosave/template) set currentPageId correctly via loadSite/loadFromHTML.
+- TESTS: Updated ai-copy route tests for new variants array response shape. Updated fetch-url route tests for new user-friendly error messages. 140/141 tests pass (1 pre-existing failure: jsdom getBoundingClientRect returns zeros, unrelated to my changes).
+
+Stage Summary:
+- 4 high-impact features shipped: autosave+recovery (builder + auditor), AI copy with tone presets + 3 variants + preview popover, real Auto Monitor with setInterval re-audit + sparkline, URL→builder honesty warning.
+- Lint: 0 errors, 0 warnings.
+- Tests: 140 passing (1 pre-existing failure).
+- Verified end-to-end via agent-browser: dashboard recovery banner shows, builder recovery restores 10-section template, auditor recovery restores audit, AI copy popover generates 3 variants per tone, tone switching regenerates, Auto Monitor re-audits every 10s with sparkline, honesty warning fires on complex HTML.
+- Console clean throughout.

@@ -10,7 +10,7 @@ import {
   LayoutTemplate, Sparkles, Images, Star,
   type LucideIcon, ArrowLeft, Monitor, Tablet, Smartphone,
   Undo2, Redo2, Download, Palette, PanelLeft, PanelRight,
-  ShieldCheck, Search, Plus,
+  ShieldCheck, Search, Plus, RotateCcw,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -28,6 +28,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { THEME_PRESETS } from "@/lib/builder/sections/types";
 import { useState } from "react";
 import { ExportDialog } from "./ExportDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { clearBuilderAutosave, blankSite } from "@/lib/builder/store/builder-store";
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: LucideIcon }> = {
   structure: { label: "Structure", icon: LayoutTemplate },
@@ -40,11 +42,12 @@ export function BuilderTopBar() {
   const {
     site, device, setDevice, undo, redo, canUndo, canRedo,
     applyThemePreset, libraryOpen, setLibraryOpen, inspectorOpen, setInspectorOpen,
-    currentPageId, setCurrentPageId, addPage, exportHTML,
+    currentPageId, setCurrentPageId, addPage, exportHTML, loadSite,
   } = useBuilder();
   const { setView, transferToAuditor } = useForge();
   const [exportOpen, setExportOpen] = useState(false);
   const [addPageOpen, setAddPageOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const [newPageName, setNewPageName] = useState("");
 
   const handleAddPage = () => {
@@ -52,6 +55,12 @@ export function BuilderTopBar() {
     addPage(name);
     setNewPageName("");
     setAddPageOpen(false);
+  };
+
+  const handleResetProject = () => {
+    clearBuilderAutosave();
+    loadSite(blankSite("Untitled page"));
+    setResetOpen(false);
   };
 
   return (
@@ -89,6 +98,14 @@ export function BuilderTopBar() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Add a new page</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50" onClick={() => setResetOpen(true)} aria-label="Reset project">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Reset project (clears autosave)</TooltipContent>
             </Tooltip>
           </div>
 
@@ -231,6 +248,24 @@ export function BuilderTopBar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reset project confirmation */}
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset the project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This clears the current site and the autosaved copy in your browser. You'll start with a fresh blank page. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetProject} className="bg-red-600 hover:bg-red-700 focus:ring-red-600">
+              Reset project
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

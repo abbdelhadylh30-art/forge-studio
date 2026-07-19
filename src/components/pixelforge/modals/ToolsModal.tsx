@@ -27,6 +27,31 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
   const [monitorActive, setMonitorActive] = useState(false);
   const [monitorHistory, setMonitorHistory] = useState<{ date: string; score: number; diff: number }[]>([]);
 
+  // Auto Monitor: re-audit the iframe every 10s while monitoring is active.
+  // This is a REAL re-audit (calls runScoring on the live iframe document),
+  // not a fake timer. Useful for catching score drift while you apply fixes.
+  useEffect(() => {
+    if (!monitorActive) return;
+    const interval = setInterval(() => {
+      const iframe = document.querySelector("iframe[title='preview']") as HTMLIFrameElement | null;
+      const doc = iframe?.contentDocument;
+      if (!doc || !doc.body) return;
+      try {
+        const sd = runScoring({ doc });
+        const prev = monitorHistory[monitorHistory.length - 1];
+        const diff = prev ? sd.score - prev.score : 0;
+        setMonitorHistory((h) => [...h, { date: new Date().toLocaleTimeString(), score: sd.score, diff }].slice(-30));
+        // Alert if score dropped below 70
+        if (sd.score < 70 && (prev?.score ?? 100) >= 70) {
+          onToast(`Score dropped below 70 → ${sd.score}`, "warning");
+        }
+      } catch (e) {
+        console.warn("Monitor re-audit failed:", e);
+      }
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [monitorActive, monitorHistory, onToast]);
+
   const tools: { id: ToolId; label: string; desc: string; icon: LucideIcon; category: string; badge?: string }[] = [
     { id: "pdf", label: "PDF Report", desc: "Print-ready audit summary to share with stakeholders", icon: FileText, category: "Business" },
     { id: "whitelabel", label: "White Label", desc: "Rebrand the auditor with your own name and logo", icon: Tag, category: "Business" },
@@ -177,39 +202,86 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
     }
 
     if (activeTool === "monitor") {
+      const intervalSec = 10; // re-audit every 10 seconds (demo-friendly; in production this would be daily)
+      const handleToggle = () => {
+        if (!monitorActive) {
+          // Starting: capture current score as the baseline
+          const baseline = scoreData?.score ?? 0;
+          setMonitorHistory([{ date: new Date().toLocaleTimeString(), score: baseline, diff: 0 }]);
+          setMonitorActive(true);
+          onToast(`Monitor started — re-auditing every ${intervalSec}s`, "success");
+        } else {
+          setMonitorActive(false);
+          onToast("Monitor stopped", "info");
+        }
+      };
+      const clearHistory = () => {
+        setMonitorHistory([]);
+        onToast("History cleared", "info");
+      };
+      const minScore = Math.min(...monitorHistory.map((h) => h.score), scoreData?.score ?? 0);
+      const maxScore = Math.max(...monitorHistory.map((h) => h.score), scoreData?.score ?? 0);
       return (
         <div>
           <div className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] mb-3">
             <div className={`w-2.5 h-2.5 rounded-full ${monitorActive ? "bg-[var(--pf-success)]" : "bg-[var(--pf-text-dim)]"}`} style={monitorActive ? { animation: "pfPinPulse 2s ease infinite" } : {}} />
             <div className="flex-1">
               <div className="text-xs font-semibold">Auto monitor</div>
-              <div className="text-[10px] text-[var(--pf-text-dim)]">Daily re-audit · Alert if score drops below 70</div>
+              <div className="text-[10px] text-[var(--pf-text-dim)]">
+                Re-audit every {intervalSec}s · Alert if score drops below 70
+              </div>
             </div>
-            <button
-              onClick={() => {
-                setMonitorActive(!monitorActive);
-                if (!monitorActive) {
-                  setMonitorHistory([{ date: new Date().toLocaleDateString(), score: scoreData?.score ?? 0, diff: 0 }]);
-                  onToast("Monitor started — will re-audit daily", "success");
-                } else {
-                  onToast("Monitor stopped", "info");
-                }
-              }}
-              className="pf-btn pf-btn-primary pf-btn-sm"
-            >
+            <button onClick={handleToggle} className="pf-btn pf-btn-primary pf-btn-sm">
               {monitorActive ? "Stop" : "Start"}
             </button>
           </div>
-          {monitorHistory.length > 0 && (
+          {monitorHistory.length > 0 ? (
             <div className="text-[11px] text-[var(--pf-text-dim)]">
-              <div className="font-semibold uppercase tracking-wider text-[10px] mb-1.5">History</div>
-              {monitorHistory.map((h, i) => (
-                <div key={i} className="flex items-center gap-2 py-1.5 border-b border-white/[0.04] last:border-0">
-                  <span className="w-[70px] text-[10px] text-[var(--pf-text-dim)]">{h.date}</span>
-                  <span className="font-bold">{h.score}</span>
-                  {h.diff !== 0 && <span className={`text-[10px] ${h.diff > 0 ? "text-[var(--pf-success)]" : "text-[var(--pf-error)]"}`}>{h.diff > 0 ? "+" : ""}{h.diff}</span>}
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="font-semibold uppercase tracking-wider text-[10px]">History ({monitorHistory.length})</div>
+                <button onClick={clearHistory} className="text-[10px] text-[var(--pf-text-dim)] hover:text-[var(--pf-error)] underline">Clear</button>
+              </div>
+              {/* Sparkline */}
+              {monitorHistory.length >= 2 && (
+                <div className="mb-3 p-2 rounded bg-white/[0.03]">
+                  <svg viewBox="0 0 200 50" className="w-full h-12" preserveAspectRatio="none">
+                    <polyline
+                      points={monitorHistory.map((h, i) => {
+                        const x = (i / (monitorHistory.length - 1)) * 200;
+                        const range = maxScore - minScore || 1;
+                        const y = 45 - ((h.score - minScore) / range) * 40;
+                        return `${x},${y}`;
+                      }).join(" ")}
+                      fill="none"
+                      stroke="var(--pf-accent)"
+                      strokeWidth="1.5"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                  <div className="flex justify-between text-[9px] mt-1">
+                    <span>Min: <span className="text-[var(--pf-error)] font-bold">{minScore}</span></span>
+                    <span>Max: <span className="text-[var(--pf-success)] font-bold">{maxScore}</span></span>
+                    <span>Last: <span className="text-[var(--pf-text-bright)] font-bold">{monitorHistory[monitorHistory.length - 1].score}</span></span>
+                  </div>
                 </div>
-              ))}
+              )}
+              <div className="max-h-[200px] overflow-y-auto pf-scroll">
+                {monitorHistory.slice().reverse().map((h, i) => (
+                  <div key={i} className="flex items-center gap-2 py-1.5 border-b border-white/[0.04] last:border-0">
+                    <span className="w-[80px] text-[10px] text-[var(--pf-text-dim)] tabular-nums">{h.date}</span>
+                    <span className="font-bold tabular-nums">{h.score}</span>
+                    {h.diff !== 0 && (
+                      <span className={`text-[10px] font-semibold ${h.diff > 0 ? "text-[var(--pf-success)]" : "text-[var(--pf-error)]"}`}>
+                        {h.diff > 0 ? "↑" : "↓"} {Math.abs(h.diff)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-[var(--pf-text-dim)] text-xs">
+              Click <span className="font-semibold text-[var(--pf-text)]">Start</span> to begin monitoring. The score will be re-checked every {intervalSec} seconds.
             </div>
           )}
         </div>

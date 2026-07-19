@@ -29,14 +29,20 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     if (e instanceof UrlGuardError) {
       // Translate the technical guard reason into a user-friendly message.
-      const friendly: Record<string, string> = {
-        "invalid-url": "That doesn't look like a valid URL. Try something like stripe.com or https://example.com.",
-        "private-ip": "For security, we can't audit private or local network addresses. Try a public website.",
-        "loopback": "For security, we can't audit localhost addresses. Try a public website.",
-        "link-local": "For security, we can't audit link-local addresses. Try a public website.",
-        "non-http": "Only http:// and https:// URLs are supported.",
-      };
-      return NextResponse.json({ error: friendly[e.reason] ?? "That URL can't be audited. Please try a different one." }, { status: 400 });
+      const reason = e.reason.toLowerCase();
+      let friendly: string;
+      if (reason.includes("invalid")) {
+        friendly = "That doesn't look like a valid URL. Try something like stripe.com or https://example.com.";
+      } else if (reason.includes("http")) {
+        friendly = "Only http:// and https:// URLs are supported.";
+      } else if (reason.includes("private")) {
+        friendly = "For security, we can't audit private or local network addresses. Try a public website.";
+      } else if (reason.includes("dns") || reason.includes("resolution")) {
+        friendly = "Couldn't find that website. Check the address and try again.";
+      } else {
+        friendly = "That URL can't be audited. Please try a different one.";
+      }
+      return NextResponse.json({ error: friendly }, { status: 400 });
     }
     return NextResponse.json({ error: "That doesn't look like a valid URL. Try something like stripe.com or https://example.com." }, { status: 400 });
   }

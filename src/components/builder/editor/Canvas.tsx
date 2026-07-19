@@ -10,21 +10,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, Plus, Copy, MousePointerClick } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useForge } from "@/lib/forge/store";
-import { useEffect } from "react";
 
 export function BuilderCanvas() {
   const page = useCurrentPage();
   const { site, selectedSectionId, selectSection, reorderSections, device } = useBuilder();
-  const { consumeTransfer } = useForge();
-
-  // Consume any pending transfer from the auditor on mount
-  useEffect(() => {
-    const transfer = consumeTransfer();
-    if (transfer && transfer.source === "auditor") {
-      const { loadFromHTML } = useBuilder.getState();
-      loadFromHTML(transfer.html, transfer.name);
-    }
-  }, []);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const handleCanvasClick = (e: React.MouseEvent) => {

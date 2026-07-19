@@ -1,23 +1,55 @@
 "use client";
 
 import { useForge } from "@/lib/forge/store";
-import { useBuilder } from "@/lib/builder/store/builder-store";
+import { useBuilder, peekBuilderAutosave, clearBuilderAutosave } from "@/lib/builder/store/builder-store";
 import { TEMPLATES, buildSiteFromTemplate } from "@/lib/builder/templates/templates";
 import { usePFStore } from "@/lib/pixelforge/store/pf-store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Plus, ShieldCheck, Sparkles, Layout, ArrowRight, Wand2, Megaphone,
-  CheckCircle2, Zap, Eye, MousePointerClick, Layers,
+  CheckCircle2, Zap, Eye, MousePointerClick, Layers, History, X,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface AutosaveInfo {
+  timestamp: number;
+  siteName: string;
+  pageCount: number;
+}
+
+function timeAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
 export function ForgeDashboard() {
   const { setView, transferToAuditor } = useForge();
   const { loadSite, newBlankSite, exportHTML, site: builderSite } = useBuilder();
   const { setHTML: setAuditorHTML, projectName: auditorProjectName } = usePFStore();
   const [hoveredTool, setHoveredTool] = useState<"builder" | "auditor" | null>(null);
+  const [autosave, setAutosave] = useState<AutosaveInfo | null>(null);
+
+  // Check for an autosaved project on mount (and when the dashboard re-gains focus)
+  useEffect(() => {
+    const check = () => setAutosave(peekBuilderAutosave());
+    check();
+    // Re-check when window regains focus (e.g., user came back from another tab)
+    window.addEventListener("focus", check);
+    return () => window.removeEventListener("focus", check);
+  }, []);
+
+  const dismissAutosave = () => {
+    clearBuilderAutosave();
+    setAutosave(null);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 relative overflow-hidden">
@@ -58,6 +90,41 @@ export function ForgeDashboard() {
         </header>
 
         <main className="mx-auto max-w-6xl px-6 pb-24">
+          {/* Autosave recovery banner */}
+          {autosave && (
+            <div
+              className="mt-6 flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-3 backdrop-blur"
+              style={{ animation: "pfFadeInUp 0.3s ease both" }}
+            >
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
+                <History className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-slate-900">
+                  Welcome back — pick up where you left off
+                </div>
+                <div className="text-xs text-slate-600 truncate">
+                  &ldquo;{autosave.siteName}&rdquo; · {autosave.pageCount} page{autosave.pageCount === 1 ? "" : "s"} · saved {timeAgo(autosave.timestamp)}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setView("builder")}
+                className="h-8 gap-1.5 bg-gradient-to-br from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600"
+              >
+                Resume <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+              <button
+                onClick={dismissAutosave}
+                className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-white/60 hover:text-slate-700 transition-colors"
+                aria-label="Dismiss saved project"
+                title="Discard the saved project"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Hero */}
           <section className="pt-16 pb-12 text-center" style={{ animation: "pfFadeInUp 0.5s ease both" }}>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50/80 px-3 py-1 text-xs font-medium text-violet-700 mb-5">

@@ -27,7 +27,7 @@ describe("GET /api/fetch-url — input validation", () => {
     const res = await GET(req);
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toMatch(/missing url/i);
+    expect(body.error).toMatch(/enter a URL/i);
   });
 
   it("returns 400 for a non-URL string", async () => {
@@ -38,7 +38,7 @@ describe("GET /api/fetch-url — input validation", () => {
   it("returns 400 for a non-http protocol", async () => {
     const res = await GET(makeReq("ftp://example.com"));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/http\/https/i);
+    expect((await res.json()).error).toMatch(/http/i);
   });
 });
 
@@ -46,8 +46,7 @@ describe("GET /api/fetch-url — SSRF guard", () => {
   it("rejects a literal private IP (127.0.0.1)", async () => {
     const res = await GET(makeReq("http://127.0.0.1:3000/admin"));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/private IP/i);
-    // fetch must NOT have been called.
+    expect((await res.json()).error).toMatch(/private|local network|localhost/i);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -61,7 +60,7 @@ describe("GET /api/fetch-url — SSRF guard", () => {
     lookupMock.mockResolvedValueOnce([{ address: "10.0.0.1", family: 4 }]);
     const res = await GET(makeReq("https://internal.example.com/"));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/private IP|resolves/i);
+    expect((await res.json()).error).toMatch(/private|local network/i);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -78,7 +77,6 @@ describe("GET /api/fetch-url — fetch behavior", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.html).toContain("<h1>Hi</h1>");
-    // Script must be stripped by the sanitizer.
     expect(body.html).not.toContain("<script");
     expect(body.html).not.toContain("alert(1)");
   });
@@ -98,11 +96,10 @@ describe("GET /api/fetch-url — fetch behavior", () => {
     const res = await GET(makeReq("https://example.com/api"));
     expect(res.status).toBe(415);
     const body = await res.json();
-    expect(body.error).toMatch(/did not return HTML/i);
+    expect(body.error).toMatch(/doesn.t return a web page|not a file or image/i);
   });
 
   it("returns 413 when the response exceeds the 5MB cap", async () => {
-    // Build a response body just over 5MB.
     const huge = "x".repeat(5 * 1024 * 1024 + 100);
     fetchMock.mockResolvedValueOnce(
       new Response(huge, { status: 200, headers: { "content-type": "text/html" } })
@@ -110,6 +107,6 @@ describe("GET /api/fetch-url — fetch behavior", () => {
     const res = await GET(makeReq("https://example.com/huge"));
     expect(res.status).toBe(413);
     const body = await res.json();
-    expect(body.error).toMatch(/too large/i);
+    expect(body.error).toMatch(/too large|5 MB/i);
   });
 });

@@ -1,37 +1,58 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { usePFStore } from "@/lib/pixelforge/store/pf-store";
 import { useForge } from "@/lib/forge/store";
 import { useBuilder } from "@/lib/builder/store/builder-store";
 import { AppShell } from "@/components/pixelforge/editor/AppShell";
-import { ArrowLeft, Layout } from "lucide-react";
+import { ArrowLeft, Layout, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /**
  * Wraps the PixelForge AppShell with:
  * 1. A "Back to Dashboard" + "Edit in builder" header button
- * 2. Logic to consume any pending transfer HTML (from the Builder → Auditor flow)
+ * 2. Honesty warning when "Edit in builder" is clicked on complex fetched HTML
+ *
+ * NOTE: Transfer + autosave recovery are handled inside AppShell's mount
+ * effect (it has direct access to the pf-store, and React fires child effects
+ * before parent effects, so doing it there avoids a race with the demo load).
  */
 export function AuditorShell() {
-  const { setView, consumeTransfer } = useForge();
-  const { setHTML, projectName, currentHTML, setProjectName } = usePFStore();
+  const { setView } = useForge();
+  const { projectName, currentHTML } = usePFStore();
   const { loadFromHTML } = useBuilder();
+  const [editWarnOpen, setEditWarnOpen] = useState(false);
 
-  // Consume pending transfer on mount
-  useEffect(() => {
-    const transfer = consumeTransfer();
-    if (transfer && transfer.source === "builder") {
-      setHTML(transfer.html, { resetHistory: true });
-      setProjectName(transfer.name);
-    }
-  }, []);
+  // Heuristic: detect if the current HTML looks like a "complex fetched" page
+  // (lots of inline styles, external scripts, or non-Forge structure) that
+  // won't translate cleanly into the builder's section model.
+  const isComplexHTML = (html: string): boolean => {
+    if (!html) return false;
+    const inlineStyles = (html.match(/style=/g) || []).length;
+    const scriptTags = (html.match(/<script/g) || []).length;
+    const divCount = (html.match(/<div/g) || []).length;
+    return inlineStyles > 30 || scriptTags > 3 || divCount > 80;
+  };
 
   const handleEditInBuilder = () => {
     if (!currentHTML) return;
+    if (isComplexHTML(currentHTML)) {
+      setEditWarnOpen(true);
+    } else {
+      loadFromHTML(currentHTML, projectName);
+      setView("builder");
+    }
+  };
+
+  const confirmEditInBuilder = () => {
     loadFromHTML(currentHTML, projectName);
     setView("builder");
+    setEditWarnOpen(false);
   };
 
   return (
@@ -70,6 +91,26 @@ export function AuditorShell() {
           </Tooltip>
         </div>
         <AppShell />
+
+        {/* Honesty warning when sending complex fetched HTML to the builder */}
+        <AlertDialog open={editWarnOpen} onOpenChange={setEditWarnOpen}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" /> Heads up — builder works best on Forge-built pages
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This page looks like it was fetched from an external site. The builder uses a section-based editor, so imported HTML gets loaded into a single raw-HTML section — you won't be able to drag-and-drop individual elements from the original page. You can still edit the raw HTML, audit it, and export it.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmEditInBuilder}>
+                Continue to builder
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );

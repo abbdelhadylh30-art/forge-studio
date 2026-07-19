@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePFStore } from "@/lib/pixelforge/store/pf-store";
+import { usePFStore, consumeAuditorAutosave } from "@/lib/pixelforge/store/pf-store";
+import { useForge } from "@/lib/forge/store";
 import { TopBar } from "./TopBar";
 import { DeviceBar } from "./DeviceBar";
 import { LayerPanel } from "./LayerPanel";
@@ -47,11 +48,25 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo, setSelectedSelector]);
 
-  // First mount: auto-load the demo page so the user sees a working audit immediately
+  // First mount: load something for the user to see.
+  // Priority: 1) pending builder→auditor transfer, 2) autosaved audit, 3) demo page.
   useEffect(() => {
-    if (!usePFStore.getState().currentHTML) {
-      setHTML(SAMPLE_PAGE_HTML, { resetHistory: true });
+    if (usePFStore.getState().currentHTML) return; // already loaded
+    const { consumeTransfer } = useForge.getState();
+    const transfer = consumeTransfer();
+    if (transfer && transfer.source === "builder") {
+      setHTML(transfer.html, { resetHistory: true });
+      usePFStore.getState().setProjectName(transfer.name);
+      return;
     }
+    const saved = consumeAuditorAutosave();
+    if (saved && saved.currentHTML) {
+      setHTML(saved.currentHTML, { resetHistory: true });
+      usePFStore.getState().setProjectName(saved.projectName);
+      saved.changeLog.forEach((c) => usePFStore.getState().addChange(c));
+      return;
+    }
+    setHTML(SAMPLE_PAGE_HTML, { resetHistory: true });
   }, []);
 
   return (

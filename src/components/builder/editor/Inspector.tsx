@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Plus, Trash2, ChevronUp, ChevronDown, Copy, Trash, Sparkles,
-  ChevronsUpDown, Wand2, MousePointerClick,
+  ChevronsUpDown, Wand2, MousePointerClick, Check, RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -255,33 +256,164 @@ function AIBadge() {
   return <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-violet-100 px-1 py-px text-[9px] font-semibold uppercase text-violet-600"><Sparkles className="h-2.5 w-2.5" /> AI</span>;
 }
 
+const TONE_OPTIONS = [
+  { id: "confident", label: "Confident", desc: "Crisp, Stripe-style" },
+  { id: "friendly", label: "Friendly", desc: "Warm, Notion-style" },
+  { id: "bold", label: "Bold", desc: "Direct, Nike-style" },
+  { id: "minimal", label: "Minimal", desc: "Understated, Muji-style" },
+  { id: "playful", label: "Playful", desc: "Witty, Mailchimp-style" },
+] as const;
+
+type ToneId = (typeof TONE_OPTIONS)[number]["id"];
+
 function AISuggestButton({ fieldKey, current, onSuggest }: { fieldKey: string; current: string; onSuggest: (s: string) => void }) {
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [tone, setTone] = useState<ToneId>("confident");
+  const [variants, setVariants] = useState<string[]>([]);
+  const [warning, setWarning] = useState<string | null>(null);
   const siteName = useBuilder((s) => s.site.name);
-  const suggest = async () => {
+
+  const fetchVariants = async (selectedTone: ToneId) => {
     setLoading(true);
+    setWarning(null);
     try {
-      const res = await fetch("/api/ai-copy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: fieldKey === "headline" ? "headline" : fieldKey === "subhead" || fieldKey === "subtitle" ? "subhead" : fieldKey === "eyebrow" ? "eyebrow" : fieldKey === "question" ? "faq_question" : fieldKey === "answer" ? "faq_answer" : fieldKey === "quote" ? "testimonial" : "headline", current, context: { siteName } }) });
+      const res = await fetch("/api/ai-copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: fieldKey === "headline" ? "headline"
+            : fieldKey === "subhead" || fieldKey === "subtitle" ? "subhead"
+            : fieldKey === "eyebrow" ? "eyebrow"
+            : fieldKey === "question" ? "faq_question"
+            : fieldKey === "answer" ? "faq_answer"
+            : fieldKey === "quote" ? "testimonial"
+            : "headline",
+          current,
+          tone: selectedTone,
+          variants: 3,
+          context: { siteName },
+        }),
+      });
       if (!res.ok) throw new Error("AI request failed");
       const data = await res.json();
-      if (data.text) onSuggest(data.text);
+      if (data.variants && Array.isArray(data.variants)) {
+        setVariants(data.variants);
+        if (data.warning) setWarning(data.warning);
+      } else if (data.text) {
+        // Backwards-compat with the old single-text response
+        setVariants([data.text]);
+      }
     } catch (err) {
-      // Surface AI failures instead of swallowing silently (KA 3 §4.5).
       console.warn("AI suggest failed:", err);
-    } finally { setLoading(false); }
+      setWarning("Couldn't reach the AI service. Try again in a moment.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next && variants.length === 0) {
+      fetchVariants(tone);
+    }
+  };
+
+  const handleToneChange = (next: ToneId) => {
+    setTone(next);
+    fetchVariants(next);
+  };
+
+  const applyVariant = (v: string) => {
+    onSuggest(v);
+    setOpen(false);
+  };
+
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      className="h-8 shrink-0 px-2 text-xs gap-1"
-      onClick={suggest}
-      disabled={loading}
-      title="Generate a fresh AI suggestion (replaces the current text — use Undo to revert)"
-    >
-      {loading ? <Sparkles className="h-3 w-3 animate-pulse" /> : <Wand2 className="h-3 w-3" />}
-      {loading ? "Thinking…" : "Suggest"}
-    </Button>
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 shrink-0 px-2 text-xs gap-1"
+          title="Generate 3 AI variants — pick one to apply"
+        >
+          <Wand2 className="h-3 w-3" />
+          Suggest
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="end">
+        <div className="border-b border-slate-200 p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+            <span className="text-xs font-semibold">AI suggestions</span>
+            {loading && <span className="ml-auto text-[10px] text-slate-400">Generating…</span>}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {TONE_OPTIONS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => handleToneChange(t.id)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  tone === t.id
+                    ? "bg-violet-100 text-violet-700 border border-violet-300"
+                    : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                }`}
+                title={t.desc}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="max-h-[280px] overflow-y-auto p-2 space-y-1.5 builder-scroll">
+          {variants.length === 0 && !loading && (
+            <div className="text-center py-6 text-xs text-slate-400">No suggestions yet.</div>
+          )}
+          {loading && variants.length === 0 && (
+            <>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-12 rounded-md bg-slate-100 animate-pulse" />
+              ))}
+            </>
+          )}
+          {variants.map((v, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => applyVariant(v)}
+              className="group w-full text-left p-2.5 rounded-md border border-slate-200 bg-white hover:border-violet-400 hover:bg-violet-50/40 transition-colors"
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-[10px] font-bold text-slate-400 mt-0.5">{i + 1}</span>
+                <span className="flex-1 text-xs text-slate-700 leading-relaxed">{v}</span>
+                <Check className="h-3.5 w-3.5 text-violet-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
+              </div>
+            </button>
+          ))}
+          {warning && (
+            <div className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded p-2 leading-relaxed">
+              {warning}
+            </div>
+          )}
+        </div>
+        <div className="border-t border-slate-200 p-2 flex items-center justify-between">
+          <span className="text-[10px] text-slate-400">Click a variant to apply it</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px] gap-1"
+            onClick={() => fetchVariants(tone)}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            Regenerate
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

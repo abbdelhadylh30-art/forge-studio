@@ -17,6 +17,94 @@ function clone<T>(v: T): T {
   return typeof structuredClone === "function" ? structuredClone(v) : JSON.parse(JSON.stringify(v));
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+ * Autosave + recovery (localStorage)
+ *
+ * The builder is a single-user, client-side tool. Without autosave, a single
+ * browser refresh wipes minutes of work. We persist the site to localStorage
+ * on every commit (debounced 500ms) and restore it on the next load.
+ *
+ * We deliberately DON'T persist undoStack/redoStack — that would balloon
+ * localStorage usage for little value. Only the current site state survives.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+const BUILDER_STORAGE_KEY = "forge-studio:builder-site:v1";
+const BUILDER_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+interface SavedBuilderState {
+  site: SiteData;
+  currentPageId: string;
+  timestamp: number;
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function autosave(site: SiteData, currentPageId: string) {
+  if (typeof window === "undefined") return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      const payload: SavedBuilderState = {
+        site: clone(site),
+        currentPageId,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      // localStorage might be full or disabled (private mode). Fail silently —
+      // the app still works, just without persistence.
+      console.warn("Autosave failed:", e);
+    }
+  }, 500);
+}
+
+function loadSavedState(): SavedBuilderState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(BUILDER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedBuilderState;
+    // Discard if older than 30 days
+    if (Date.now() - parsed.timestamp > BUILDER_MAX_AGE_MS) {
+      localStorage.removeItem(BUILDER_STORAGE_KEY);
+      return null;
+    }
+    // Sanity-check the shape
+    if (!parsed.site || !Array.isArray(parsed.site.pages)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Wipe the autosaved state (used by "Reset project" action). */
+export function clearBuilderAutosave() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(BUILDER_STORAGE_KEY);
+  } catch {
+    /* noop */
+  }
+}
+
+/** Read (but don't consume) the autosaved state — used to show a recovery
+ *  hint on the dashboard without auto-loading. */
+export function peekBuilderAutosave(): { timestamp: number; siteName: string; pageCount: number } | null {
+  const s = loadSavedState();
+  if (!s) return null;
+  return {
+    timestamp: s.timestamp,
+    siteName: s.site.name,
+    pageCount: s.site.pages.length,
+  };
+}
+
+/** Load and consume the autosaved state. Returns null if none/expired/invalid. */
+export function consumeBuilderAutosave(): SavedBuilderState | null {
+  const s = loadSavedState();
+  return s;
+}
+
 export function blankSite(name: string): SiteData {
   const homePage: PageData = {
     id: uuid(), name: "Home", slug: "home", path: "/", isHome: true, sections: [],
@@ -281,8 +369,20 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   _commit: (next) => {
     const { site, undoStack } = get();
     set({ site: next, undoStack: [...undoStack, clone(site)].slice(-MAX_HISTORY), redoStack: [] });
+    autosave(next, get().currentPageId);
   },
 }));
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Autosave subscription — fires whenever site or currentPageId changes.
+ * We don't subscribe to selectedSectionId/device/panel toggles (those are
+ * UI state, not project state, and don't warrant a save).
+ * ─────────────────────────────────────────────────────────────────────────── */
+useBuilder.subscribe((state, prev) => {
+  if (state.site !== prev.site || state.currentPageId !== prev.currentPageId) {
+    autosave(state.site, state.currentPageId);
+  }
+});
 
 export function useCurrentPage(): PageData | null {
   return useBuilder((s) => {
