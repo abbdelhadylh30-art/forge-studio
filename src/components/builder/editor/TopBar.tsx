@@ -66,9 +66,9 @@ export function BuilderTopBar() {
   return (
     <>
       <TooltipProvider delayDuration={300}>
-        <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-3 text-slate-900 shadow-sm">
+        <header className="flex h-14 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 text-slate-900 shadow-sm overflow-x-auto builder-scroll">
           {/* Left: brand + page selector */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button onClick={() => setView("dashboard")} className="grid h-8 w-8 place-items-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors" aria-label="Back to Dashboard">
@@ -77,7 +77,7 @@ export function BuilderTopBar() {
               </TooltipTrigger>
               <TooltipContent side="bottom">Back to Dashboard</TooltipContent>
             </Tooltip>
-            <div className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
+            <div className="hidden sm:grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
             <div className="hidden sm:flex items-baseline gap-1.5">
@@ -110,7 +110,7 @@ export function BuilderTopBar() {
           </div>
 
           {/* Right: actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Device toggle */}
             <div className="flex items-center gap-0.5 rounded-md bg-slate-100 p-0.5">
               {([

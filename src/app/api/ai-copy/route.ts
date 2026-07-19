@@ -201,11 +201,14 @@ export async function POST(req: NextRequest) {
     const err = e as { message?: string };
     // Return fallback variants — still 3 distinct options
     const fb = FALLBACKS[typeKey] || FALLBACKS.headline;
+    // Don't leak technical error details to end users — just say we're
+    // showing curated suggestions. The full error is logged server-side.
+    console.warn("[ai-copy] Falling back to curated variants:", err?.message);
     return NextResponse.json(
       {
         variants: fb.slice(0, numVariants),
         tone,
-        warning: `AI service unavailable (${err?.message ?? "unknown error"}). Showing curated fallbacks.`,
+        warning: "Showing curated suggestions — the AI generator is warming up.",
       },
       { status: 200 }
     );

@@ -57,7 +57,7 @@ export function AuditorShell() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="relative">
+      <div>
         {/* Floating transfer controls — appear above the auditor's own top bar */}
         <div className="fixed top-2 left-2 z-[600] flex items-center gap-1.5">
           <Tooltip>

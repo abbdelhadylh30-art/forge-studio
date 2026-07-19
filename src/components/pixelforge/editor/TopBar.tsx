@@ -87,7 +87,7 @@ export function TopBar({ onOpenImport, onOpenCompetitor, onOpenAB, onOpenTools, 
   };
 
   return (
-    <header className="flex items-center gap-2 px-3 py-2 bg-[var(--pf-panel)] border-b border-[var(--pf-border)] z-50 shrink-0">
+    <header className="flex items-center gap-2 px-3 py-2 bg-[var(--pf-panel)] border-b border-[var(--pf-border)] z-50 shrink-0 overflow-x-auto pf-scroll">
       {/* Logo */}
       <div className="flex items-center gap-2 font-extrabold text-[15px] text-[var(--pf-text-bright)] tracking-tight shrink-0">
         <div className="w-[26px] h-[26px] rounded-md flex items-center justify-center shadow-sm" style={{ background: "linear-gradient(135deg,#5c8def,#a78bfa)" }}>
@@ -106,7 +106,7 @@ export function TopBar({ onOpenImport, onOpenCompetitor, onOpenAB, onOpenTools, 
       <div className="w-px h-[22px] bg-[var(--pf-border)] mx-1" />
 
       {/* URL bar */}
-      <div className="flex items-center gap-1.5 flex-1 min-w-[180px] max-w-[480px] mx-1">
+      <div className="flex items-center gap-1.5 flex-1 min-w-[120px] max-w-[480px] mx-1 shrink-1">
         <div className="relative flex-1 flex items-center group">
           <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--pf-text-dim)] pointer-events-none group-focus-within:text-[var(--pf-accent)] transition-colors" />
           <input
@@ -169,7 +169,7 @@ export function TopBar({ onOpenImport, onOpenCompetitor, onOpenAB, onOpenTools, 
       <div className="w-px h-[22px] bg-[var(--pf-border)] mx-1" />
 
       {/* Actions — grouped into logical segments */}
-      <div className="flex items-center gap-1 ml-auto">
+      <div className="flex items-center gap-1 ml-auto shrink-0">
         {/* History segment */}
         <div className="flex items-center gap-0.5 rounded-md bg-white/[0.03] p-0.5">
           <button
