@@ -50,11 +50,11 @@ export function TopBar({ onOpenImport, onOpenCompetitor, onOpenAB, onOpenTools, 
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setHTML(data.html, { resetHistory: true });
-      setUrlBarStatus(`Fetched ${(data.size / 1024).toFixed(1)}KB`, "success");
-      onToast(`Fetched ${data.finalUrl}`, "success");
+      setUrlBarStatus(`Loaded ${(data.size / 1024).toFixed(1)} KB`, "success");
+      onToast(`Auditing ${data.finalUrl}`, "success");
     } catch (e: any) {
-      setUrlBarStatus(`Error: ${e.message}`, "error");
-      onToast(`Fetch failed: ${e.message}`, "error");
+      setUrlBarStatus(e.message || "Couldn't fetch that URL", "error");
+      onToast(e.message || "Couldn't fetch that URL. Check the address and try again.", "error");
     } finally {
       setFetching(false);
     }
@@ -93,7 +93,8 @@ export function TopBar({ onOpenImport, onOpenCompetitor, onOpenAB, onOpenTools, 
         <div className="w-[26px] h-[26px] rounded-md flex items-center justify-center shadow-sm" style={{ background: "linear-gradient(135deg,#5c8def,#a78bfa)" }}>
           <LayoutGrid className="w-4 h-4 text-white" />
         </div>
-        {whitelabelActive ? whitelabelBrand : "PixelForge"}
+        {whitelabelActive ? whitelabelBrand : "Forge Studio"}
+        <span className="text-[10px] text-[var(--pf-text-dim)] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.06]">Auditor</span>
         {projectName && (
           <>
             <span className="text-[var(--pf-text-dim)] font-normal mx-1">/</span>

@@ -27,17 +27,17 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
   const [monitorActive, setMonitorActive] = useState(false);
   const [monitorHistory, setMonitorHistory] = useState<{ date: string; score: number; diff: number }[]>([]);
 
-  const tools: { id: ToolId; label: string; desc: string; icon: LucideIcon; category: string }[] = [
-    { id: "pdf", label: "PDF Report", desc: "Export branded PDF audit report", icon: FileText, category: "Business" },
-    { id: "whitelabel", label: "White Label", desc: "Rebrand PixelForge for clients", icon: Tag, category: "Business" },
-    { id: "platforms", label: "Platform Export", desc: "Shopify / WordPress / Webflow / ClickFunnels", icon: ShoppingBag, category: "Business" },
-    { id: "clients", label: "Client Mode", desc: "Manage audits per client", icon: Users, category: "Business" },
-    { id: "monitor", label: "Auto Monitor", desc: "Schedule re-audits + alerts", icon: Activity, category: "Behemoth" },
-    { id: "heatmap", label: "Heatmap Sim", desc: "Simulate click heatmaps", icon: Flame, category: "Behemoth" },
-    { id: "conversion", label: "Conversion Score", desc: "Probability of conversion", icon: Target, category: "Behemoth" },
-    { id: "team", label: "Team Comments", desc: "Collaborate on the audit", icon: MessageSquare, category: "Behemoth" },
-    { id: "speed", label: "Page Speed Sim", desc: "Simulated load time breakdown", icon: Activity, category: "Conversion" },
-    { id: "abovefold", label: "Above Fold", desc: "Score your above-the-fold content", icon: Target, category: "Conversion" },
+  const tools: { id: ToolId; label: string; desc: string; icon: LucideIcon; category: string; badge?: string }[] = [
+    { id: "pdf", label: "PDF Report", desc: "Print-ready audit summary to share with stakeholders", icon: FileText, category: "Business" },
+    { id: "whitelabel", label: "White Label", desc: "Rebrand the auditor with your own name and logo", icon: Tag, category: "Business" },
+    { id: "platforms", label: "Platform Export", desc: "Wrap HTML for Shopify, WordPress, Webflow, ClickFunnels", icon: ShoppingBag, category: "Business" },
+    { id: "clients", label: "Client Mode", desc: "Group audits by client (local save only)", icon: Users, category: "Business" },
+    { id: "monitor", label: "Auto Monitor", desc: "Re-audit on a timer and track score over time", icon: Activity, category: "Behemoth", badge: "Beta" },
+    { id: "heatmap", label: "Heatmap Sim", desc: "Simulated click hotspots — not real visitor data", icon: Flame, category: "Behemoth", badge: "Sim" },
+    { id: "conversion", label: "Conversion Score", desc: "Heuristic estimate of conversion probability", icon: Target, category: "Behemoth", badge: "Estimate" },
+    { id: "team", label: "Team Comments", desc: "Leave comments on the audit (local only)", icon: MessageSquare, category: "Behemoth" },
+    { id: "speed", label: "Page Speed Sim", desc: "Estimate load time from DOM size and assets", icon: Activity, category: "Conversion", badge: "Sim" },
+    { id: "abovefold", label: "Above Fold", desc: "Score what visitors see before scrolling", icon: Target, category: "Conversion" },
   ];
 
   const renderTool = () => {
@@ -55,7 +55,7 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
                 <FileText className="w-4 h-4 text-white" />
               </div>
               <div>
-                <div className="text-sm font-bold text-[var(--pf-text-bright)]">{whitelabelActive ? whitelabelBrand : "PixelForge"} Audit Report</div>
+                <div className="text-sm font-bold text-[var(--pf-text-bright)]">{whitelabelActive ? whitelabelBrand : "Forge Studio"} Audit Report</div>
                 <div className="text-[11px] text-[var(--pf-text-dim)]">{new Date().toLocaleDateString()}</div>
               </div>
             </div>
@@ -95,7 +95,7 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
           <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] mb-3 cursor-pointer hover:bg-white/[0.06]" onClick={() => setWhitelabel(!whitelabelActive)}>
             <div>
               <div className="text-xs font-semibold">White label mode</div>
-              <div className="text-[10px] text-[var(--pf-text-dim)] mt-0.5">Replace "PixelForge" branding with your own</div>
+              <div className="text-[10px] text-[var(--pf-text-dim)] mt-0.5">Replace "Forge Studio" branding with your own</div>
             </div>
             <div className={`w-10 h-5.5 rounded-full relative transition-colors ${whitelabelActive ? "bg-[var(--pf-success)]" : "bg-[var(--pf-border)]"}`} style={{ width: 40, height: 22 }}>
               <div className="absolute w-4.5 h-4.5 bg-white rounded-full top-0.5 transition-all" style={{
@@ -112,7 +112,7 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
             placeholder="Your Agency"
           />
           <p className="text-[11px] text-[var(--pf-text-dim)] leading-relaxed">
-            When enabled, the top bar shows your brand name instead of "PixelForge". PDF reports also use your brand.
+            When enabled, the top bar shows your brand name instead of "Forge Studio". PDF reports also use your brand.
           </p>
         </div>
       );
@@ -133,9 +133,9 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
               onClick={() => {
                 // Export HTML wrapped for the target platform
                 let wrapped = currentHTML;
-                if (p.fmt === "wordpress") wrapped = `<!-- PixelForge optimized page -->\n${currentHTML}\n<!-- /PixelForge -->`;
-                if (p.fmt === "shopify") wrapped = `{% comment %}PixelForge optimized{% endcomment %}\n${currentHTML}`;
-                if (p.fmt === "clickfunnels") wrapped = `<!-- PixelForge export for ClickFunnels -->\n${currentHTML}`;
+                if (p.fmt === "wordpress") wrapped = `<!-- Forge Studio optimized page -->\n${currentHTML}\n<!-- /Forge Studio -->`;
+                if (p.fmt === "shopify") wrapped = `{% comment %}Forge Studio optimized{% endcomment %}\n${currentHTML}`;
+                if (p.fmt === "clickfunnels") wrapped = `<!-- Forge Studio export for ClickFunnels -->\n${currentHTML}`;
                 if (p.fmt === "webflow") wrapped = `<!-- Paste into Webflow Embed element -->\n${currentHTML}`;
                 const blob = new Blob([wrapped], { type: "text/html" });
                 const url = URL.createObjectURL(blob);

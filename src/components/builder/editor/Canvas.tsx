@@ -175,6 +175,9 @@ function EmptyState() {
             <Plus className="h-4 w-4" /> Browse templates
           </Button>
         </div>
+        <p className="text-[11px] text-slate-400 pt-2">
+          Tip: most landing pages start with a <span className="font-semibold text-slate-500">Navbar → Hero → Features → CTA → Footer</span> flow.
+        </p>
       </div>
     </div>
   );

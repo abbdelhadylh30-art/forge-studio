@@ -35,8 +35,8 @@ export function BuilderInspector() {
         <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-500">
           <MousePointerClick className="h-6 w-6" />
         </div>
-        <p className="text-sm font-semibold">No section selected</p>
-        <p className="text-xs text-slate-500 max-w-[220px]">Click any section in the canvas to edit its content, style, and layout. Drag the handle to reorder.</p>
+        <p className="text-sm font-semibold">Pick a section to edit</p>
+        <p className="text-xs text-slate-500 max-w-[220px]">Click any section in the canvas to tweak its copy, colors, and layout. Hover a section to drag, duplicate, or delete it.</p>
       </div>
     );
   }
@@ -271,9 +271,17 @@ function AISuggestButton({ fieldKey, current, onSuggest }: { fieldKey: string; c
     } finally { setLoading(false); }
   };
   return (
-    <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 px-2 text-xs gap-1" onClick={suggest} disabled={loading}>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-8 shrink-0 px-2 text-xs gap-1"
+      onClick={suggest}
+      disabled={loading}
+      title="Generate a fresh AI suggestion (replaces the current text — use Undo to revert)"
+    >
       {loading ? <Sparkles className="h-3 w-3 animate-pulse" /> : <Wand2 className="h-3 w-3" />}
-      {loading ? "..." : "Suggest"}
+      {loading ? "Thinking…" : "Suggest"}
     </Button>
   );
 }

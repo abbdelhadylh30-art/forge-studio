@@ -68,15 +68,15 @@ export function ForgeDashboard() {
               v1.1 · Build, audit & ship in one place
             </div>
             <h1 className="text-[42px] sm:text-[56px] font-bold tracking-[-0.025em] leading-[1.05]">
-              The all-in-one
+              Build pages that
               <br />
               <span className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-rose-500 bg-clip-text text-transparent">
-                landing page studio
+                actually convert
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-slate-600 leading-relaxed">
-              Build pages with a drag-and-drop editor, audit them across 5 quality categories,
-              apply one-click fixes, and export clean HTML — all in one place.
+              Drag-drop builder. Five-category auditor. One-click fixes.
+              Ship a landing page you'd be proud to share — without code, plugins, or a freelancer.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <Button
@@ -96,7 +96,7 @@ export function ForgeDashboard() {
               </Button>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> No sign-up required</span>
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> No sign-up, no install</span>
               <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Export clean HTML</span>
               <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> 38 one-click fixes</span>
             </div>
@@ -107,7 +107,7 @@ export function ForgeDashboard() {
             <ToolCard
               icon={Layout}
               title="Page Builder"
-              tagline="Drag-drop editor with 12 section types, 5 templates, 7 themes, multi-page, HTML/ZIP export."
+              tagline="Drag-drop sections, swap themes, edit copy inline, and export clean HTML in minutes. No code, no plugins, no setup."
               accent="from-violet-500 to-fuchsia-500"
               glow="shadow-violet-500/20"
               features={["12 section types", "Drag & drop reorder", "7 theme presets", "Multi-page sites", "HTML/ZIP export"]}
@@ -121,14 +121,14 @@ export function ForgeDashboard() {
             <ToolCard
               icon={ShieldCheck}
               title="Page Auditor"
-              tagline="Import any HTML or URL. Get a 0-100 score across SEO, A11y, Content, Structure, Performance. 38 one-click fixes."
+              tagline="Drop in any URL or HTML file. Get a 0–100 score across SEO, accessibility, content, structure, and performance — then fix issues with one click."
               accent="from-cyan-500 to-blue-600"
               glow="shadow-cyan-500/20"
               features={["5-category scoring", "30+ audit checks", "38 quick-fixes", "Fix All Safe button", "Mobile + desktop split"]}
               onPrimary={() => setView("auditor")}
               onSecondary={() => transferToAuditor(exportHTML(), builderSite.name)}
               primaryLabel="Open auditor"
-              secondaryLabel="Audit current builder page"
+              secondaryLabel="Audit my builder page"
               isHovered={hoveredTool === "auditor"}
               onHover={(v) => setHoveredTool(v ? "auditor" : null)}
             />
@@ -136,18 +136,18 @@ export function ForgeDashboard() {
 
           {/* Quick stats */}
           <section className="mb-14 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard label="Section types" value="12" sub="Builder blocks" icon={Layout} color="text-violet-500" bg="bg-violet-50" />
+            <StatCard label="Section types" value="12" sub="Mix and match" icon={Layout} color="text-violet-500" bg="bg-violet-50" />
             <StatCard label="Audit checks" value="30+" sub="Across 5 categories" icon={ShieldCheck} color="text-cyan-500" bg="bg-cyan-50" />
-            <StatCard label="Quick-fixes" value="38" sub="One-click apply" icon={Wand2} color="text-emerald-500" bg="bg-emerald-50" />
-            <StatCard label="Templates" value="5" sub="Pre-built sites" icon={Megaphone} color="text-amber-500" bg="bg-amber-50" />
+            <StatCard label="One-click fixes" value="38" sub="Apply individually or all at once" icon={Wand2} color="text-emerald-500" bg="bg-emerald-50" />
+            <StatCard label="Templates" value="5" sub="Fully editable starting points" icon={Megaphone} color="text-amber-500" bg="bg-amber-50" />
           </section>
 
           {/* Template quick-start */}
           <section id="templates" className="mb-14">
             <div className="mb-5 flex items-end justify-between">
               <div>
-                <h2 className="text-xl font-semibold tracking-tight">Quick start with a template</h2>
-                <p className="mt-1 text-sm text-slate-500">Curated starting points — each fully editable.</p>
+                <h2 className="text-xl font-semibold tracking-tight">Start from a template</h2>
+                <p className="mt-1 text-sm text-slate-500">Each template is fully editable — swap the copy, colors, and sections to make it yours.</p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setView("templates")} className="text-violet-600 hover:text-violet-700 hover:bg-violet-50">
                 See all <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -175,21 +175,21 @@ export function ForgeDashboard() {
           <section id="workflow" className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-8 shadow-sm">
             <div className="mb-7 text-center">
               <div className="text-xs font-semibold uppercase tracking-[0.15em] text-violet-600 mb-1.5">Workflow</div>
-              <h2 className="text-xl font-semibold tracking-tight">How the two tools work together</h2>
+              <h2 className="text-xl font-semibold tracking-tight">Three steps. One tab. Zero friction.</h2>
               <p className="mt-1.5 text-sm text-slate-500">Build a page, audit it, apply fixes, and ship — without leaving the studio.</p>
             </div>
             <div className="grid gap-6 md:grid-cols-3 relative">
               {/* Connecting line on md+ */}
               <div className="hidden md:block absolute top-7 left-[16.66%] right-[16.66%] h-px bg-gradient-to-r from-violet-200 via-fuchsia-200 to-cyan-200" />
-              <WorkflowStep num={1} title="Build" desc="Drag sections into the canvas, edit content inline, apply a theme preset, switch device widths." icon={Layout} accent="from-violet-500 to-fuchsia-500" />
-              <WorkflowStep num={2} title="Audit" desc="Click 'Audit this page' in the builder. The auditor opens with your HTML pre-loaded and scored." icon={ShieldCheck} accent="from-cyan-500 to-blue-600" />
-              <WorkflowStep num={3} title="Fix & ship" desc="Apply one-click fixes, then export the improved HTML. Or send the audited page back to the builder for further editing." icon={Sparkles} accent="from-emerald-500 to-teal-600" />
+              <WorkflowStep num={1} title="Build" desc="Drag sections onto the canvas, edit copy inline, pick a theme, preview at any device width." icon={Layout} accent="from-violet-500 to-fuchsia-500" />
+              <WorkflowStep num={2} title="Audit" desc="Hit 'Audit this page' to send your work to the auditor. Get a score in under a second." icon={ShieldCheck} accent="from-cyan-500 to-blue-600" />
+              <WorkflowStep num={3} title="Fix & ship" desc="Apply safe fixes with one click, then export the improved HTML. Or send it back to the builder for another round." icon={Sparkles} accent="from-emerald-500 to-teal-600" />
             </div>
           </section>
 
           {/* Footer */}
           <footer className="mt-16 text-center text-xs text-slate-400">
-            <p>Forge Studio · Build. Audit. Ship. · A single-user, client-side studio.</p>
+            <p>Forge Studio — Build. Audit. Ship.</p>
           </footer>
         </main>
       </div>

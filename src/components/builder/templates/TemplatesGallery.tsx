@@ -31,8 +31,8 @@ export function TemplatesGallery() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">Builder Templates</h1>
-              <p className="text-xs text-slate-500">{filtered.length} of {TEMPLATES.length} templates</p>
+              <h1 className="text-lg font-semibold tracking-tight">Templates</h1>
+              <p className="text-xs text-slate-500">{filtered.length} of {TEMPLATES.length} ready to use</p>
             </div>
           </div>
           <div className="relative w-64">

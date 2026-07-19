@@ -311,3 +311,40 @@ Stage Summary:
 - 12 UI components enhanced with modern, polished design
 - All enhancements respect prefers-reduced-motion
 - All enhanced views verified via agent-browser end-to-end
+
+---
+Task ID: 5
+Agent: main
+Task: Three things requested: (a) copywriting pass on the tool, (b) user-perspective evaluation — who is this tool for, how helpful, what's missing, (c) check for runtime errors / failures when actually USING the tool (not code/lint errors).
+
+Work Log:
+- Ran agent-browser user-perspective walkthrough: dashboard → builder → auditor → tools modal → URL fetch with bad URLs → Fix All Safe.
+- Findings on runtime errors: 1 console error found ("The result of getSnapshot should be cached to avoid an infinite loop"). All 10 auditor tools open without errors. Demo button works. Fix All Safe improves score 63→91. AI Suggest returns fresh copy. Export works. URL fetch with bad URL previously returned technical "Error: DNS resolution failed" — fixed with friendly copy.
+- Fixed getSnapshot warning: `usePFStore((s) => s.scoreData?.issues ?? [])` was returning a new array literal on every call when issues was undefined. Replaced with stable EMPTY_ISSUES constant in pf-store.ts.
+- Copywriting improvements:
+  * Dashboard hero: "The all-in-one landing page studio" → "Build pages that actually convert" (more benefit-driven, less generic).
+  * Dashboard subhead: shorter, punchier, mentions concrete value ("without code, plugins, or a freelancer").
+  * Dashboard tool cards: taglines rewritten to be benefit-first, less feature-listy. "Audit current builder page" → "Audit my builder page" (less robotic).
+  * Dashboard stats cards: sub-labels clarified ("Mix and match" / "Apply individually or all at once" / "Fully editable starting points").
+  * Dashboard templates heading: "Quick start with a template" → "Start from a template" + clearer subhead about editability.
+  * Dashboard workflow section: "How the two tools work together" → "Three steps. One tab. Zero friction." Step descriptions rewritten to be conversational.
+  * Auditor TopBar: renamed "PixelForge" → "Forge Studio" + added "Auditor" badge pill for clarity (was confusing because dashboard says Forge Studio but auditor said PixelForge).
+  * Auditor URL bar: "Fetched X KB" → "Loaded X KB"; "Fetched {url}" → "Auditing {url}"; "Fetch failed: {err}" → friendly message.
+  * fetch-url API route: ALL error messages rewritten to user-friendly copy. DNS resolution failed → "Couldn't find that website. Check the address and try again." HTTP 404 → "That page doesn't exist (404)." HTTP 403 → "That page is blocked (403) — the site refuses to allow automated access." Timeout → "That site took too long to respond (>8s). Try again or use a different URL." 5MB cap → "That page is too large to audit (over 5 MB). Try a simpler page." Plus a friendly map for url-guard reason codes (private-ip, loopback, etc).
+  * Auditor ScorePanel empty state: clearer call to action mentioning 0-100 score across 5 categories + one-click fixes.
+  * Auditor ScorePanel handleFix toast: "This issue needs a manual fix — see the description" → "This one needs a manual fix — open the issue to see how." "Couldn't apply this fix" → "Already fixed or no element matched — try another issue."
+  * Auditor ScorePanel handleFixAll toast: now handles 0-fix case ("Nothing to fix — your page is already in good shape.") and uses singular/plural ("Applied 1 fix" vs "Applied 5 fixes").
+  * Auditor ToolsModal: ALL 10 tool descriptions rewritten to be honest about what's real vs simulated. Added badges: "Beta" for Auto Monitor, "Sim" for Heatmap Sim + Page Speed Sim, "Estimate" for Conversion Score. Descriptions now clarify "local save only" / "not real visitor data" / "heuristic estimate" / "simulated click hotspots".
+  * Auditor ToolsModal: removed all "PixelForge" references → "Forge Studio" (audit report title, white-label help text, platform export comments).
+  * Builder Inspector empty state: "No section selected" → "Pick a section to edit" + clearer hint about hover-to-drag/duplicate/delete.
+  * Builder Inspector AI Suggest button: added tooltip "Generate a fresh AI suggestion (replaces the current text — use Undo to revert)" so users know it overwrites. Loading state "..." → "Thinking…".
+  * Builder Canvas empty state: added tip "Tip: most landing pages start with a Navbar → Hero → Features → CTA → Footer flow." to guide new users.
+  * Builder TopBar Add Page dialog: description "Give the page a name. You can rename it later from the page selector." → "Pick a clear name — you can rename it later from the page selector."
+  * Templates Gallery: heading "Builder Templates" → "Templates"; subhead "X of Y templates" → "X of Y ready to use".
+
+Stage Summary:
+- Runtime errors: 1 console error fixed (getSnapshot warning). All other flows verified working with 0 errors.
+- Copywriting: 20+ microcopy strings improved across 6 components (Dashboard, TopBar, Inspector, Canvas, ScorePanel, ToolsModal, TemplatesGallery) and 1 API route (fetch-url).
+- Tone: confident & crisp SaaS style — short, concrete, benefit-first. Less feature-listy, more user-friendly. Honest about tool limitations (sim vs real, local vs cloud).
+- Lint: 0 errors, 0 warnings.
+- Verified end-to-end via agent-browser: dashboard loads, auditor loads, score 63→91 with Fix All Safe, bad URL returns friendly error, AI suggest works, all 10 tools open without errors, console clean.

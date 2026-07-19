@@ -45,9 +45,9 @@ export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelPro
         <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[var(--pf-panel-hover)]">
           <Sparkles className="w-7 h-7 opacity-40" />
         </div>
-        <h3 className="text-[15px] font-bold text-[var(--pf-text-bright)]">Score Your Page</h3>
+        <h3 className="text-[15px] font-bold text-[var(--pf-text-bright)]">Score your page</h3>
         <p className="text-[12.5px] leading-relaxed max-w-[260px]">
-          Import an HTML landing page to get an instant quality score and actionable improvement tips.
+          Import an HTML file or paste a URL above. You'll get a 0–100 score across SEO, accessibility, content, structure, and performance — plus one-click fixes.
         </p>
       </div>
     );
@@ -77,7 +77,7 @@ export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelPro
 
   const handleFix = (issue: Issue) => {
     if (!issue.quickFix) {
-      onToast("This issue needs a manual fix — see the description", "warning");
+      onToast("This one needs a manual fix — open the issue to see how.", "warning");
       return;
     }
     const prev = scoreData.score;
@@ -91,9 +91,9 @@ export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelPro
         onImprovement(diff);
         if (diff >= 5) onConfetti();
       }
-      onToast(`Fixed: ${result.change.title}${diff > 0 ? ` (+${diff} pts)` : ""}`, "success");
+      onToast(`Fixed: ${result.change.title}${diff > 0 ? ` · +${diff} pts` : ""}`, "success");
     } else {
-      onToast("Couldn't apply this fix", "warning");
+      onToast("Already fixed or no element matched — try another issue.", "info");
     }
   };
 
@@ -109,7 +109,12 @@ export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelPro
       onImprovement(diff);
       onConfetti();
     }
-    onToast(`Applied ${count} fixes${diff > 0 ? ` (+${diff} pts)` : ""}`, "success");
+    onToast(
+      count === 0
+        ? "Nothing to fix — your page is already in good shape."
+        : `Applied ${count} ${count === 1 ? "fix" : "fixes"}${diff > 0 ? ` · +${diff} pts` : ""}`,
+      "success"
+    );
   };
 
   const score = scoreData.score;

@@ -211,7 +211,7 @@ export function BuilderTopBar() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add a new page</DialogTitle>
-            <DialogDescription>Give the page a name. You can rename it later from the page selector.</DialogDescription>
+            <DialogDescription>Pick a clear name — you can rename it later from the page selector.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label htmlFor="page-name" className="text-xs">Page name</Label>

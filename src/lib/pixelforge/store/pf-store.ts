@@ -336,9 +336,13 @@ export const usePFStore = create<EditorState>((set, get) => ({
   },
 }));
 
+/** Stable empty array — avoids creating a new array literal on every render
+ *  which would trigger Zustand's getSnapshot-should-be-cached warning. */
+const EMPTY_ISSUES: Issue[] = [];
+
 /** Issues filtered by severity */
 export function useIssuesBySeverity() {
-  const issues = usePFStore((s) => s.scoreData?.issues ?? []);
+  const issues = usePFStore((s) => s.scoreData?.issues ?? EMPTY_ISSUES);
   return {
     errors: issues.filter((i) => i.severity === "error"),
     warnings: issues.filter((i) => i.severity === "warning"),
@@ -348,7 +352,7 @@ export function useIssuesBySeverity() {
 
 /** Top 3 highest-priority fixes */
 export function useTop3Fixes(): Issue[] {
-  const issues = usePFStore((s) => s.scoreData?.issues ?? []);
+  const issues = usePFStore((s) => s.scoreData?.issues ?? EMPTY_ISSUES);
   return [...issues]
     .filter((i) => i.pts < i.max)
     .sort((a, b) => b.priority - a.priority)
