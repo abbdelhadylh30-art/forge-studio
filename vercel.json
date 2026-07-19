@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "installCommand": "bun install",
+  "env": {
+    "DATABASE_URL": "file:/tmp/prod.db",
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
+}
