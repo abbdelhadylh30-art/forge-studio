@@ -1,0 +1,122 @@
+// PixelForge v19 — Prisma schema
+// Landing page audit & optimization tool
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  url         String?
+  clientName  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  audits      Audit[]
+  comments    TeamComment[]
+  abVariants  ABVariant[]
+
+  @@index([clientName])
+}
+
+model Audit {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String   // "Initial", "After fix X", etc.
+  url          String?
+  htmlContent  String   // the imported HTML (sanitized)
+  score        Int      // 0-100
+  desktopScore Int
+  mobileScore  Int
+  categories   String   // JSON: {seo, content, a11y, structure, perf} {earned, total}
+  issues       String   // JSON array of Issue
+  isInitial    Boolean  @default(false)
+  isSnapshot   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  quickFixes   QuickFix[]
+  competitorComparisons CompetitorComparison[]
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model QuickFix {
+  id           String   @id @default(cuid())
+  auditId      String
+  audit        Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  fixId        String   // e.g. "fixAltText", "addMetaDescription"
+  issueId      String   // which issue it fixed
+  description  String
+  beforeValue  String?
+  afterValue   String?
+  reverted     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([auditId])
+}
+
+model CompetitorComparison {
+  id              String   @id @default(cuid())
+  auditId         String
+  audit           Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  competitorUrl   String
+  competitorHtml  String
+  competitorScore Int
+  yourScore       Int
+  createdAt       DateTime @default(now())
+
+  @@index([auditId])
+}
+
+model TeamComment {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author      String   @default("Anonymous")
+  text        String
+  selector    String?  // element this comment is anchored to
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model ABVariant {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  variantName String   @default("A")
+  htmlContent String
+  score       Int?
+  isWinner    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model WhitelabelSetting {
+  id            String   @id @default(cuid())
+  brandName     String   @default("PixelForge")
+  brandColor    String   @default("#5c8def")
+  hideBranding  Boolean  @default(false)
+  customLogoUrl String?
+  updatedAt     DateTime @updatedAt
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  company     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([name])
+}

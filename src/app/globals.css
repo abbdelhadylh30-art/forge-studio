@@ -1,0 +1,453 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ═══ PixelForge v19 — Dark dev-tool aesthetic (ported 1:1 from v19 CSS vars) ═══ */
+:root {
+  /* shadcn defaults */
+  --radius: 0.625rem;
+  --background: #0a0c10;
+  --foreground: #e0e4ec;
+  --card: #12151c;
+  --card-foreground: #e0e4ec;
+  --popover: #12151c;
+  --popover-foreground: #e0e4ec;
+  --primary: #5c8def;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1e2a;
+  --secondary-foreground: #e0e4ec;
+  --muted: #1a1e2a;
+  --muted-foreground: #6b7394;
+  --accent: #5c8def;
+  --accent-foreground: #ffffff;
+  --destructive: #ef5c5c;
+  --border: #1e2230;
+  --input: #1e2230;
+  --ring: #5c8def;
+  --chart-1: #5c8def;
+  --chart-2: #3dd68c;
+  --chart-3: #f0b429;
+  --chart-4: #a78bfa;
+  --chart-5: #f472b6;
+  --sidebar: #12151c;
+  --sidebar-foreground: #e0e4ec;
+  --sidebar-primary: #5c8def;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1e2a;
+  --sidebar-accent-foreground: #e0e4ec;
+  --sidebar-border: #1e2230;
+  --sidebar-ring: #5c8def;
+
+  /* PixelForge-specific (from v19 :root) */
+  --pf-bg: #0a0c10;
+  --pf-panel: #12151c;
+  --pf-panel-hover: #1a1e2a;
+  --pf-border: #1e2230;
+  --pf-text: #e0e4ec;
+  --pf-text-dim: #6b7394;
+  --pf-text-bright: #ffffff;
+  --pf-accent: #5c8def;
+  --pf-accent-dim: #3a5f9e;
+  --pf-accent-glow: rgba(92,141,239,0.3);
+  --pf-success: #3dd68c;
+  --pf-success-dim: rgba(61,214,140,0.15);
+  --pf-warning: #f0b429;
+  --pf-warning-dim: rgba(240,180,41,0.15);
+  --pf-error: #ef5c5c;
+  --pf-error-dim: rgba(239,92,92,0.15);
+  --pf-radius: 8px;
+  --pf-radius-lg: 12px;
+  --pf-transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ═══ PixelForge utility classes ═══ */
+.pf-panel { background: var(--pf-panel); border-color: var(--pf-border); }
+.pf-panel-hover:hover { background: var(--pf-panel-hover); }
+.pf-text-dim { color: var(--pf-text-dim); }
+.pf-text-bright { color: var(--pf-text-bright); }
+.pf-accent { color: var(--pf-accent); }
+.pf-success { color: var(--pf-success); }
+.pf-warning { color: var(--pf-warning); }
+.pf-error { color: var(--pf-error); }
+
+.pf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--pf-radius);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: var(--pf-transition);
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+.pf-btn-primary { background: var(--pf-accent); color: #fff; }
+.pf-btn-primary:hover { background: #6f9cf5; box-shadow: 0 0 20px var(--pf-accent-glow); }
+.pf-btn-ghost { background: rgba(255,255,255,0.05); color: var(--pf-text); }
+.pf-btn-ghost:hover { background: rgba(255,255,255,0.1); }
+.pf-btn-success { background: var(--pf-success); color: #0a0c10; font-weight: 600; }
+.pf-btn-success:hover { box-shadow: 0 0 20px rgba(61,214,140,0.4); }
+.pf-btn-sm { padding: 4px 10px; font-size: 11.5px; border-radius: 6px; }
+
+/* Scrollbars (v19 style) */
+.pf-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.pf-scroll::-webkit-scrollbar-track { background: transparent; }
+.pf-scroll::-webkit-scrollbar-thumb { background: var(--pf-border); border-radius: 3px; }
+.pf-scroll::-webkit-scrollbar-thumb:hover { background: var(--pf-text-dim); }
+
+/* Score gauge animation */
+@keyframes pfScorePulse { 0% { transform: scale(1); } 50% { transform: scale(1.06); } 100% { transform: scale(1); } }
+.pf-score-pulse { animation: pfScorePulse 0.35s ease; }
+
+@keyframes pfShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes pfFadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.pf-fade-in-up { animation: pfFadeInUp 0.3s ease both; }
+
+/* Analyzing bar */
+@keyframes pfBarShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.pf-analyzing-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 20;
+  overflow: hidden;
+}
+.pf-analyzing-bar::before {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--pf-accent), #a78bfa, var(--pf-accent));
+  background-size: 200% 100%;
+  animation: pfBarShimmer 1.2s ease infinite;
+}
+
+/* Toast */
+@keyframes pfToastIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pfToastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-8px); } }
+
+/* Pin pulse */
+@keyframes pfPinPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+}
+
+/* Confetti */
+@keyframes pfConfettiFall {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
+}
+
+/* Hide scrollbar but keep scrollable */
+.pf-no-scrollbar { scrollbar-width: none; }
+.pf-no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* iframe device shells (ported from v19) */
+.pf-canvas-frame {
+  position: relative;
+  transition: width 0.4s ease, height 0.4s ease;
+  background: #fff;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.pf-canvas-frame.pf-device-mobile {
+  background: linear-gradient(145deg, #1c1f2a 0%, #141720 40%, #1a1d28 100%) !important;
+  border-radius: 44px !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.09), 0 0 0 2.5px #0a0c10, 0 10px 50px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  overflow: visible !important;
+  padding: 32px 6px 24px;
+}
+.pf-canvas-frame.pf-device-tablet {
+  background: linear-gradient(145deg, #1c1f2a, #141720) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 0 0 2px #0a0c10, 0 8px 40px rgba(0,0,0,0.6) !important;
+  overflow: visible !important;
+  padding: 18px 8px;
+}
+.pf-canvas-frame.pf-device-laptop {
+  border-radius: 8px 8px 0 0 !important;
+  border-bottom: 12px solid #1c1f2a !important;
+  border-left: 8px solid #1c1f2a !important;
+  border-right: 8px solid #1c1f2a !important;
+}
+.pf-canvas-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Phone notch (CSS-only, drawn over the iframe) */
+.pf-phone-notch {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 22px;
+  background: #0a0c10;
+  border-radius: 0 0 18px 18px;
+  z-index: 5;
+  pointer-events: none;
+}
+.pf-phone-notch::before, .pf-phone-notch::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  background: #1c1f2a;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.pf-phone-notch::before { left: 22px; }
+.pf-phone-notch::after { right: 22px; width: 10px; height: 10px; top: 6px; }
+
+/* Guide spotlight */
+@keyframes pfGuidePulse {
+  0%, 100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.55), 0 0 0 0 rgba(92,141,239,0.4); }
+  50% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.55), 0 0 0 8px rgba(92,141,239,0); }
+}
+.pf-guide-spotlight {
+  position: absolute;
+  border-radius: 6px;
+  transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+  z-index: 801;
+  animation: pfGuidePulse 1.5s ease infinite;
+}
+.pf-guide-spotlight::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--pf-accent);
+  border-radius: 8px;
+}
+
+/* Tab underline transition */
+.pf-tab {
+  position: relative;
+  padding: 9px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pf-text-dim);
+  cursor: pointer;
+  transition: var(--pf-transition);
+  border-bottom: 2px solid transparent;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.pf-tab:hover { color: var(--pf-text); }
+.pf-tab.active { color: var(--pf-accent); border-bottom-color: var(--pf-accent); }
+
+/* Edit group accordion */
+.pf-edit-group { border-bottom: 1px solid var(--pf-border); }
+.pf-edit-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--pf-transition);
+}
+.pf-edit-group-header:hover { background: var(--pf-panel-hover); }
+.pf-edit-group-header .gtitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pf-text-dim);
+}
+.pf-edit-group-header .garrow {
+  transition: transform 0.2s ease;
+  color: var(--pf-text-dim);
+  font-size: 10px;
+}
+.pf-edit-group.open .garrow { transform: rotate(180deg); }
+.pf-edit-group-body { padding: 6px 14px 10px; display: none; }
+.pf-edit-group.open .pf-edit-group-body { display: block; }
+
+/* Edit inputs */
+.pf-edit-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pf-text-dim);
+  margin-bottom: 4px;
+}
+.pf-edit-input {
+  width: 100%;
+  padding: 6px 9px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--pf-border);
+  border-radius: 5px;
+  color: var(--pf-text);
+  font-size: 12px;
+  transition: var(--pf-transition);
+  outline: none;
+}
+.pf-edit-input:focus {
+  border-color: var(--pf-accent);
+  box-shadow: 0 0 0 2px var(--pf-accent-glow);
+}
+
+/* Issue pin */
+.pf-issue-pin {
+  position: absolute;
+  z-index: 900;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.pf-issue-pin:hover { transform: scale(1.3); }
+.pf-issue-pin-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  animation: pfPinPulse 2s ease infinite;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.pf-issue-pin-dot.critical { background: var(--pf-error); }
+.pf-issue-pin-dot.important { background: var(--pf-warning); }
+.pf-issue-pin-dot.minor { background: rgba(92,141,239,0.8); }
+
+/* ─── Accessibility: respect prefers-reduced-motion (WCAG 2.3.3) ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .pf-score-pulse,
+  .pf-fade-in-up,
+  .pf-bar-shimmer,
+  .pf-toast-in,
+  .pf-toast-out,
+  .pf-pin-pulse,
+  .pf-guide-pulse,
+  .pf-confetti-fall {
+    animation: none !important;
+  }
+}
+
+/* ─── Enhanced scrollbar (lighter weight, hover feedback) ─── */
+.pf-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pf-border) transparent;
+}
+.pf-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.pf-scroll::-webkit-scrollbar-track { background: transparent; }
+.pf-scroll::-webkit-scrollbar-thumb { background: var(--pf-border); border-radius: 3px; transition: background 0.2s; }
+.pf-scroll:hover::-webkit-scrollbar-thumb { background: var(--pf-text-dim); }
+.pf-scroll::-webkit-scrollbar-thumb:hover { background: var(--pf-text-dim); }
+
+/* ─── Builder canvas scrollbar (light theme) ─── */
+.builder-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.builder-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.builder-scroll::-webkit-scrollbar-track { background: transparent; }
+.builder-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.builder-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ─── Focus-visible ring (keyboard navigation) ─── */
+*:focus-visible {
+  outline: 2px solid var(--pf-accent);
+  outline-offset: 2px;
+}
+
+/* ─── Slide-in animations ─── */
+@keyframes pfSlideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes pfSlideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.pf-slide-in-right { animation: pfSlideInRight 0.3s ease both; }
+.pf-slide-in-left { animation: pfSlideInLeft 0.3s ease both; }
+
+/* ─── Smooth scale on press (button feedback) ─── */
+.pf-press { transition: transform 0.1s ease; }
+.pf-press:active { transform: scale(0.97); }
