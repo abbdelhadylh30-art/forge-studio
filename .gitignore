@@ -36,7 +36,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -48,7 +47,28 @@ dev.log
 dev.out.log
 test
 prompt
-
 server.log
-# Skills directory
+
+# Skills directory (internal tooling, not part of the project)
 /skills/
+
+# Database files (local SQLite — each user gets their own)
+/db/*.db
+/db/*.db-journal
+/db/*.db-wal
+/db/*.db-shm
+
+# User uploads (session-specific)
+/upload/
+
+# Tool results / agent-browser artifacts
+/tool-results/
+
+# Dev script orchestrator (sandbox-internal)
+/.zscripts/
+
+# Download directory (deliverables and screenshots — session-specific)
+/download/
+
+# Prisma generated client (regenerated on install)
+/src/generated/
