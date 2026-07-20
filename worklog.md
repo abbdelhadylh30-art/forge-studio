@@ -422,3 +422,30 @@ Stage Summary:
   1. Connect the GitHub repo to the Vercel project (auto-deploy on push), OR
   2. Generate a new Vercel token with full scope
 - The code is ready and on GitHub. Once deployed, all 4 features will be live.
+
+---
+Task ID: 9
+Agent: main
+Task: Fix scrolling nightmare, mobile cramped layout, theme system, add color/text style controls.
+
+Work Log:
+- Root cause of scrolling nightmare: fixed-width side panels (256px library + 320px inspector = 576px) on mobile caused the entire layout to overflow horizontally, creating competing scroll containers. The overflow-x-auto band-aid on the TopBar didn't fix the underlying layout problem.
+- Root cause of mobile cramped: side panels were always-visible fixed columns, not drawers. On a 390px viewport they consumed all available space.
+- Fix 1 — Mobile drawers: BuilderShell now renders side panels as `hidden md:flex` on desktop (fixed columns) and as `fixed` slide-in drawers on mobile (with backdrop overlay, close button, slideInLeft/slideInRight animations). Canvas takes full width on mobile.
+- Fix 2 — Escape key closes drawers: updated keyboard shortcut handler to close library drawer → inspector drawer → deselect section, in that priority order.
+- Fix 3 — Canvas scroll: changed `overflow-auto` to `overflow-y-auto overflow-x-hidden` to prevent horizontal scroll fighting. Added `px-2 md:px-4` padding so content isn't flush against edges.
+- Fix 4 — TopBar responsive: Builder TopBar now shows on mobile: Back, Library toggle, Device toggle, Inspector toggle, More (⋮) menu, Export. The More menu contains: Add page, Undo, Redo, Theme & colors, Audit this page, Reset project. Desktop keeps the full layout. No more horizontal overflow.
+- Fix 5 — Theme system upgrade: 8 modern presets (was 7) with better contrast: Indigo, Midnight, Emerald, Sunset, Rose, Ocean, Mono, Dark Pro. All accent colors now have white foreground for better contrast.
+- Fix 6 — ThemeDialog: new component with Quick Presets grid (8 visual swatches), 6 custom color pickers (Primary, Accent, Background, Text, Muted, Border), Body font + Heading font dropdowns (8 font families: Inter, Georgia, Helvetica, Courier, System UI, Verdana, Tahoma, Trebuchet MS), Corner Radius slider (0-24px) with preset buttons, Reset to default. Accessible from Theme dropdown (desktop) and More menu (mobile).
+- Fix 7 — Auditor TopBar: `overflow-x-auto` only on mobile (`md:overflow-visible`), so desktop doesn't have unnecessary scroll.
+- Verified locally on mobile (390x844): header is exactly 390px (no overflow), canvas scrolls vertically, drawers slide in/out, More menu opens.
+- Verified on desktop (1440x900): all buttons visible, Theme dialog opens with all controls.
+- Committed and pushed to GitHub (commit 08d8b99).
+- Vercel redeploy still blocked by token scope issue (same as Task 8).
+
+Stage Summary:
+- 4 issues fixed: scrolling, mobile layout, theme system, color/text style controls
+- 7 files modified, 1 new file (ThemeDialog.tsx)
+- Lint: 0 errors
+- Verified locally via agent-browser on both mobile and desktop viewports
+- Pushed to GitHub — user needs to connect GitHub repo to Vercel for auto-deploy, or provide a new Vercel token
