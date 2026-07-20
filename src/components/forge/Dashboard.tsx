@@ -132,7 +132,7 @@ export function ForgeDashboard() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-500 opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-600" />
               </span>
-              v1.1 · Build, audit & ship in one place
+              Free forever · No sign-up required
             </div>
             <h1 className="text-[42px] sm:text-[56px] font-bold tracking-[-0.025em] leading-[1.05]">
               Build pages that

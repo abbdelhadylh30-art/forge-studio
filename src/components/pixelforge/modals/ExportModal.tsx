@@ -2,7 +2,10 @@
 
 import { usePFStore } from "@/lib/pixelforge/store/pf-store";
 import { ModalShell } from "./CompetitorModal";
-import { Download, FileText, FileCode } from "lucide-react";
+import { Download, FileText, FileCode, Mail, Loader2, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface ExportModalProps {
   open: boolean;
@@ -12,6 +15,10 @@ interface ExportModalProps {
 
 export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
   const { currentHTML, scoreData, projectName, changeLog } = usePFStore();
+  const [emailOptIn, setEmailOptIn] = useState(false);
+  const [email, setEmail] = useState("");
+  const [sendingReport, setSendingReport] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
 
   const downloadHTML = async () => {
     if (!currentHTML) return;
@@ -63,6 +70,50 @@ export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
     onToast("Audit report (JSON) downloaded", "success");
   };
 
+  const sendReport = async () => {
+    if (!email.trim() || !email.includes("@")) {
+      onToast("Please enter a valid email address.", "warning");
+      return;
+    }
+    setSendingReport(true);
+    try {
+      const report = {
+        project: projectName,
+        date: new Date().toISOString(),
+        finalScore: scoreData?.score ?? 0,
+        desktopScore: scoreData?.desktopScore ?? 0,
+        mobileScore: scoreData?.mobileScore ?? 0,
+        categories: scoreData?.cats,
+        issues: scoreData?.issues,
+        changesApplied: changeLog.filter((c) => !c.reverted).map((c) => ({ title: c.title, description: c.description, fixId: c.fixId })),
+      };
+      const res = await fetch("/api/send-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          projectName,
+          score: scoreData?.score ?? 0,
+          desktopScore: scoreData?.desktopScore ?? 0,
+          mobileScore: scoreData?.mobileScore ?? 0,
+          issueCount: scoreData?.issues.length ?? 0,
+          fixCount: changeLog.filter((c) => !c.reverted).length,
+          report: JSON.stringify(report),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to queue report.");
+      }
+      setReportSent(true);
+      onToast("Report queued — we'll email it to you shortly.", "success");
+    } catch (e: any) {
+      onToast(`Couldn't queue report: ${e.message}`, "error");
+    } finally {
+      setSendingReport(false);
+    }
+  };
+
   return (
     <ModalShell open={open} onClose={onClose} title="Download Improved Page" icon={Download}>
       <p className="text-[12.5px] text-[var(--pf-text-dim)] mb-4 leading-relaxed">
@@ -83,7 +134,7 @@ export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
       </div>
 
       {scoreData && (
-        <div className="p-3 rounded-lg bg-white/[0.03] border border-[var(--pf-border)]">
+        <div className="p-3 rounded-lg bg-white/[0.03] border border-[var(--pf-border)] mb-3">
           <div className="text-[10px] uppercase tracking-wider text-[var(--pf-text-dim)] mb-1.5">Audit summary</div>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
@@ -104,6 +155,55 @@ export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
           </div>
         </div>
       )}
+
+      {/* Optional email upsell — NOT a gate. User already got their download. */}
+      <div className="rounded-lg border border-[var(--pf-border)] bg-white/[0.02] p-3">
+        {reportSent ? (
+          <div className="flex items-center gap-2 text-[12px] text-[var(--pf-success)]">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>Thanks! We'll email the full report to <strong>{email}</strong> shortly.</span>
+          </div>
+        ) : (
+          <>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={emailOptIn}
+                onChange={(e) => setEmailOptIn(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-[var(--pf-border)] accent-[var(--pf-accent)]"
+              />
+              <div className="flex-1">
+                <div className="text-[12px] font-semibold text-[var(--pf-text)] flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-[var(--pf-accent)]" />
+                  Also email me the audit report
+                </div>
+                <div className="text-[10.5px] text-[var(--pf-text-dim)] mt-0.5 leading-relaxed">
+                  Get a copy of the full score breakdown + fixes list in your inbox. We won't spam you — just this one report.
+                </div>
+              </div>
+            </label>
+            {emailOptIn && (
+              <div className="mt-3 flex gap-1.5">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="h-8 text-xs flex-1 bg-white/[0.04] border-[var(--pf-border)] text-[var(--pf-text)] placeholder:text-[var(--pf-text-dim)]"
+                />
+                <button
+                  onClick={sendReport}
+                  disabled={sendingReport || !email.trim()}
+                  className="flex items-center gap-1.5 px-3 h-8 rounded-md bg-[var(--pf-accent)] text-white text-[11px] font-semibold hover:bg-[#6f9cf5] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                >
+                  {sendingReport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                  {sendingReport ? "Sending…" : "Send"}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </ModalShell>
   );
 }

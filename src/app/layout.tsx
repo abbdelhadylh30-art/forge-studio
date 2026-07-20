@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { FeedbackWidget } from "@/components/forge/FeedbackWidget";
 import "./globals.css";
 
 const inter = Inter({
@@ -49,6 +51,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased bg-background text-foreground`}>
         {children}
+        <FeedbackWidget />
+        <Analytics />
       </body>
     </html>
   );
