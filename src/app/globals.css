@@ -448,6 +448,16 @@
 .pf-slide-in-right { animation: pfSlideInRight 0.3s ease both; }
 .pf-slide-in-left { animation: pfSlideInLeft 0.3s ease both; }
 
+/* Mobile drawer slide-in */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
 /* ─── Smooth scale on press (button feedback) ─── */
 .pf-press { transition: transform 0.1s ease; }
 .pf-press:active { transform: scale(0.97); }

@@ -87,7 +87,7 @@ export function TopBar({ onOpenImport, onOpenCompetitor, onOpenAB, onOpenTools, 
   };
 
   return (
-    <header className="flex items-center gap-2 px-3 py-2 bg-[var(--pf-panel)] border-b border-[var(--pf-border)] z-50 shrink-0 overflow-x-auto pf-scroll">
+    <header className="flex items-center gap-2 px-3 py-2 bg-[var(--pf-panel)] border-b border-[var(--pf-border)] z-50 shrink-0 overflow-x-auto pf-scroll md:overflow-visible">
       {/* Logo */}
       <div className="flex items-center gap-2 font-extrabold text-[15px] text-[var(--pf-text-bright)] tracking-tight shrink-0">
         <div className="w-[26px] h-[26px] rounded-md flex items-center justify-center shadow-sm" style={{ background: "linear-gradient(135deg,#5c8def,#a78bfa)" }}>

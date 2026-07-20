@@ -10,7 +10,7 @@ import { TEMPLATES, buildSiteFromTemplate } from "@/lib/builder/templates/templa
 import { useForge } from "@/lib/forge/store";
 
 export function BuilderShell() {
-  const { libraryOpen, inspectorOpen, undo, redo, selectSection, site, loadSite, currentPageId, setCurrentPageId } = useBuilder();
+  const { libraryOpen, inspectorOpen, undo, redo, selectSection, site, loadSite, currentPageId, setCurrentPageId, setLibraryOpen, setInspectorOpen } = useBuilder();
   const { consumeTransfer } = useForge();
   const didInit = useRef(false);
 
@@ -20,8 +20,6 @@ export function BuilderShell() {
     if (didInit.current) return;
     didInit.current = true;
 
-    // 1. Check for a pending auditor→builder transfer (highest priority —
-    //    the user just clicked "Edit in builder" so that intent wins).
     const transfer = consumeTransfer();
     if (transfer && transfer.source === "auditor") {
       const { loadFromHTML } = useBuilder.getState();
@@ -29,12 +27,9 @@ export function BuilderShell() {
       return;
     }
 
-    // 2. Try to recover the autosaved site.
     const saved = consumeBuilderAutosave();
     if (saved && saved.site.pages.length > 0) {
       loadSite(saved.site);
-      // loadSite sets currentPageId to site.pages[0].id — but the saved
-      // currentPageId might point to a different page. Override if valid.
       const targetPageId = saved.currentPageId && saved.site.pages.some((p) => p.id === saved.currentPageId)
         ? saved.currentPageId
         : saved.site.pages[0].id;
@@ -42,21 +37,11 @@ export function BuilderShell() {
       return;
     }
 
-    // 3. Fall back to the default template so the user sees something.
     if (site.pages.length === 0 || (site.pages.length === 1 && site.pages[0].sections.length === 0)) {
       const saas = TEMPLATES[0];
       if (saas) loadSite(buildSiteFromTemplate(saas));
     }
   }, []);
-
-  // NOTE: We intentionally do NOT have a "ensure currentPageId is set" effect
-  // here. The init effect above handles all three init paths (transfer,
-  // autosave, template) and sets currentPageId in each. A separate "ensure"
-  // effect would race with the init effect — its closure would capture the
-  // pre-init render's stale `currentPageId` (empty string) and `site` (blank
-  // site), and would call setCurrentPageId(blankPageId), overwriting the
-  // recovery. If you need to add a fallback, read from useBuilder.getState()
-  // inside the effect body (not from closure values).
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -67,29 +52,75 @@ export function BuilderShell() {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
       else if (meta && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
-      else if (e.key === "Escape") selectSection(null);
+      else if (e.key === "Escape") {
+        // Close mobile drawers first, then deselect
+        if (libraryOpen) { setLibraryOpen(false); return; }
+        if (inspectorOpen) { setInspectorOpen(false); return; }
+        selectSection(null);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo, selectSection]);
+  }, [undo, redo, selectSection, libraryOpen, inspectorOpen, setLibraryOpen, setInspectorOpen]);
 
   return (
-    <div className="flex h-screen flex-col bg-slate-100">
+    <div className="flex h-screen flex-col bg-slate-100 overflow-hidden">
       <BuilderTopBar />
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
+        {/* Desktop side panels — fixed width, hidden on mobile */}
         <aside
-          className={cn("shrink-0 overflow-hidden border-r border-slate-200 bg-white transition-all duration-300 ease-out", libraryOpen ? "w-64" : "w-0")}
+          className={cn("hidden md:flex shrink-0 overflow-hidden border-r border-slate-200 bg-white transition-all duration-300 ease-out", libraryOpen ? "w-64" : "w-0")}
           aria-hidden={!libraryOpen}
         >
           <div className="h-full w-64"><SectionLibrary /></div>
         </aside>
-        <main className="min-w-0 flex-1"><BuilderCanvas /></main>
+
+        {/* Canvas — always visible, takes full width on mobile */}
+        <main className="min-w-0 flex-1 overflow-hidden"><BuilderCanvas /></main>
+
+        {/* Desktop inspector */}
         <aside
-          className={cn("shrink-0 overflow-hidden border-l border-slate-200 bg-white transition-all duration-300 ease-out", inspectorOpen ? "w-80" : "w-0")}
+          className={cn("hidden md:flex shrink-0 overflow-hidden border-l border-slate-200 bg-white transition-all duration-300 ease-out", inspectorOpen ? "w-80" : "w-0")}
           aria-hidden={!inspectorOpen}
         >
           <div className="h-full w-80"><BuilderInspector /></div>
         </aside>
+
+        {/* Mobile library drawer — slides in from the left */}
+        {libraryOpen && (
+          <>
+            <div
+              className="md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              onClick={() => setLibraryOpen(false)}
+              aria-hidden="true"
+            />
+            <aside className="md:hidden fixed left-0 top-14 bottom-0 z-50 w-[85vw] max-w-xs bg-white shadow-xl" style={{ animation: "slideInLeft 0.25s ease both" }}>
+              <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Section Library</span>
+                <button onClick={() => setLibraryOpen(false)} className="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close library">✕</button>
+              </div>
+              <div className="h-[calc(100%-41px)]"><SectionLibrary /></div>
+            </aside>
+          </>
+        )}
+
+        {/* Mobile inspector drawer — slides in from the right */}
+        {inspectorOpen && (
+          <>
+            <div
+              className="md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              onClick={() => setInspectorOpen(false)}
+              aria-hidden="true"
+            />
+            <aside className="md:hidden fixed right-0 top-14 bottom-0 z-50 w-[85vw] max-w-sm bg-white shadow-xl" style={{ animation: "slideInRight 0.25s ease both" }}>
+              <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inspector</span>
+                <button onClick={() => setInspectorOpen(false)} className="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close inspector">✕</button>
+              </div>
+              <div className="h-[calc(100%-41px)]"><BuilderInspector /></div>
+            </aside>
+          </>
+        )}
       </div>
     </div>
   );

@@ -36,13 +36,13 @@ export function BuilderCanvas() {
   const widthClass = device === "mobile" ? "max-w-[420px]" : device === "tablet" ? "max-w-[820px]" : "max-w-full";
 
   return (
-    <div className="relative h-full overflow-auto bg-slate-100 builder-scroll" onClick={handleCanvasClick}>
+    <div className="relative h-full overflow-y-auto overflow-x-hidden bg-slate-100 builder-scroll" onClick={handleCanvasClick}>
       {/* Subtle dot grid pattern */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.4]"
         style={{ backgroundImage: "radial-gradient(circle, #cbd5e1 1px, transparent 1px)", backgroundSize: "20px 20px" }}
       />
-      <div className={`relative mx-auto ${widthClass} transition-all duration-300`}>
+      <div className={`relative mx-auto ${widthClass} transition-all duration-300 px-2 md:px-4`}>
         <div
           className="min-h-full shadow-xl"
           style={{ background: site.themeTokens.background, fontFamily: site.themeTokens.font, color: site.themeTokens.foreground }}
