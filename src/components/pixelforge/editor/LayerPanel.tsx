@@ -75,7 +75,7 @@ export function LayerPanel() {
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto pf-scroll p-1.5">
+      <div className="flex-1 min-h-0 overflow-y-auto pf-scroll p-1.5">
         {layers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-9 text-center text-[var(--pf-text-dim)] gap-2.5" style={{ animation: "pfFadeInUp 0.3s ease both" }}>
             <Box className="w-10 h-10 opacity-25" />
