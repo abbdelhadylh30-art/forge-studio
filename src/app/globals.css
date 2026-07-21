@@ -45,41 +45,43 @@
 
 /* ═══ PixelForge v19 — Dark dev-tool aesthetic (ported 1:1 from v19 CSS vars) ═══ */
 :root {
-  /* shadcn defaults */
+  /* shadcn defaults — LIGHT by default (builder is light-themed).
+     The auditor uses --pf-* variables directly, not --background, so it
+     keeps its dark look without affecting shadcn components. */
   --radius: 0.625rem;
-  --background: #0a0c10;
-  --foreground: #e0e4ec;
-  --card: #12151c;
-  --card-foreground: #e0e4ec;
-  --popover: #12151c;
-  --popover-foreground: #e0e4ec;
-  --primary: #5c8def;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #6366f1;
   --primary-foreground: #ffffff;
-  --secondary: #1a1e2a;
-  --secondary-foreground: #e0e4ec;
-  --muted: #1a1e2a;
-  --muted-foreground: #6b7394;
-  --accent: #5c8def;
-  --accent-foreground: #ffffff;
-  --destructive: #ef5c5c;
-  --border: #1e2230;
-  --input: #1e2230;
-  --ring: #5c8def;
-  --chart-1: #5c8def;
-  --chart-2: #3dd68c;
-  --chart-3: #f0b429;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #6366f1;
+  --chart-1: #6366f1;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
   --chart-4: #a78bfa;
-  --chart-5: #f472b6;
-  --sidebar: #12151c;
-  --sidebar-foreground: #e0e4ec;
-  --sidebar-primary: #5c8def;
+  --chart-5: #ec4899;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #6366f1;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1e2a;
-  --sidebar-accent-foreground: #e0e4ec;
-  --sidebar-border: #1e2230;
-  --sidebar-ring: #5c8def;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #6366f1;
 
-  /* PixelForge-specific (from v19 :root) */
+  /* PixelForge-specific (auditor dark theme) — unchanged */
   --pf-bg: #0a0c10;
   --pf-panel: #12151c;
   --pf-panel-hover: #1a1e2a;

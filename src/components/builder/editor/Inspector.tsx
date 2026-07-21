@@ -72,7 +72,7 @@ export function BuilderInspector() {
           </div>
         </div>
       </div>
-      <ScrollArea className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto builder-scroll">
         <div className="p-3">
           {groupKeys.length === 1 ? (
             // Single group — render flat
@@ -92,7 +92,7 @@ export function BuilderInspector() {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

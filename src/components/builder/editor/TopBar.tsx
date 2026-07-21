@@ -5,6 +5,8 @@ import { useForge } from "@/lib/forge/store";
 import { SECTION_TYPES } from "@/lib/builder/sections/registry";
 import type { SectionKind } from "@/lib/builder/sections/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
+// Note: we use native overflow-y-auto for the section library because
+// shadcn's ScrollArea has issues with flexbox min-height in nested layouts.
 import { cn } from "@/lib/utils";
 import {
   LayoutTemplate, Sparkles, Images, Star,
@@ -245,13 +247,13 @@ export function BuilderTopBar() {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Send this page to the Auditor for scoring</TooltipContent>
               </Tooltip>
-              <Button variant="default" size="sm" className="h-8 ml-1 gap-1.5 bg-slate-900 hover:bg-slate-700" onClick={() => setExportOpen(true)}>
+              <Button variant="default" size="sm" className="h-8 ml-1 gap-1.5 bg-slate-900 text-white hover:bg-slate-700" onClick={() => setExportOpen(true)}>
                 <Download className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
 
             {/* Mobile: export only (audit is in the more menu) */}
-            <Button variant="default" size="icon" className="sm:hidden h-8 w-8 bg-slate-900 hover:bg-slate-700" onClick={() => setExportOpen(true)} aria-label="Export">
+            <Button variant="default" size="icon" className="sm:hidden h-8 w-8 bg-slate-900 text-white hover:bg-slate-700" onClick={() => setExportOpen(true)} aria-label="Export">
               <Download className="h-4 w-4" />
             </Button>
           </div>
@@ -336,7 +338,7 @@ export function SectionLibrary() {
           />
         </div>
       </div>
-      <ScrollArea className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto builder-scroll">
         <div className="space-y-4 p-3">
           {categories.map((cat) => {
             const types = filteredTypes.filter((t) => t.category === cat);
@@ -376,7 +378,7 @@ export function SectionLibrary() {
             <div className="py-8 text-center text-xs text-slate-400">No sections match "{query}"</div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

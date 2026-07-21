@@ -20,30 +20,20 @@ export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
   const [sendingReport, setSendingReport] = useState(false);
   const [reportSent, setReportSent] = useState(false);
 
-  const downloadHTML = async () => {
+  const downloadHTML = () => {
     if (!currentHTML) return;
-    try {
-      const res = await fetch("/api/export-html", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          html: currentHTML,
-          filename: `${projectName.toLowerCase().replace(/\s+/g, "-")}-improved.html`,
-        }),
-      });
-      if (!res.ok) throw new Error("Export failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${projectName.toLowerCase().replace(/\s+/g, "-")}-improved.html`;
-      a.click();
-      URL.revokeObjectURL(url);
-      onToast("Improved HTML downloaded", "success");
-      onClose();
-    } catch (e: any) {
-      onToast(`Export failed: ${e.message}`, "error");
-    }
+    // Generate the download client-side — no API needed.
+    // The HTML is already in memory; we just wrap it in a Blob and trigger
+    // a download. This is faster (no network round-trip) and works offline.
+    const blob = new Blob([currentHTML], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${projectName.toLowerCase().replace(/\s+/g, "-")}-improved.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    onToast("Improved HTML downloaded", "success");
+    onClose();
   };
 
   const downloadJSON = () => {
