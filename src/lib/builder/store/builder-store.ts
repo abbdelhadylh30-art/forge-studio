@@ -10,6 +10,7 @@ import type { PageData, SectionInstance, SectionKind, SiteData, ThemeTokens } fr
 import { createSection, getSectionType } from "../sections/registry";
 import { DEFAULT_THEME } from "../sections/types";
 import { renderSiteHTML } from "../sections/renderer";
+import { useSaveStatus } from "./save-status";
 
 const MAX_HISTORY = 50;
 
@@ -41,6 +42,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function autosave(site: SiteData, currentPageId: string) {
   if (typeof window === "undefined") return;
+  useSaveStatus.getState().setSaving();
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
@@ -50,10 +52,12 @@ function autosave(site: SiteData, currentPageId: string) {
         timestamp: Date.now(),
       };
       localStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringify(payload));
+      useSaveStatus.getState().setSaved();
     } catch (e) {
       // localStorage might be full or disabled (private mode). Fail silently —
       // the app still works, just without persistence.
       console.warn("Autosave failed:", e);
+      useSaveStatus.getState().setError();
     }
   }, 500);
 }
@@ -167,6 +171,14 @@ interface BuilderState {
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+
+  /** Clipboard for copy/paste of sections (cross-page). */
+  clipboard: SectionInstance | null;
+  copySection: (id: string) => void;
+  pasteSection: (afterId?: string) => void;
+
+  /** Toggle section visibility (hidden sections are omitted from export). */
+  toggleSectionVisibility: (id: string) => void;
 
   _commit: (next: SiteData) => void;
 }
@@ -370,6 +382,52 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     const { site, undoStack } = get();
     set({ site: next, undoStack: [...undoStack, clone(site)].slice(-MAX_HISTORY), redoStack: [] });
     autosave(next, get().currentPageId);
+  },
+
+  clipboard: null,
+
+  copySection: (id) => {
+    const s = get().site;
+    const pageId = get().currentPageId || s.pages[0]?.id;
+    const page = s.pages.find((p) => p.id === pageId);
+    const sec = page?.sections.find((x) => x.id === id);
+    if (!sec) return;
+    set({ clipboard: clone(sec) });
+  },
+
+  pasteSection: (afterId) => {
+    const { clipboard, site, currentPageId } = get();
+    if (!clipboard) return;
+    const pageId = currentPageId || site.pages[0]?.id;
+    const page = site.pages.find((p) => p.id === pageId);
+    if (!page) return;
+    const copy: SectionInstance = { ...clone(clipboard), id: uuid() };
+    const newSections = [...page.sections];
+    if (afterId) {
+      const idx = newSections.findIndex((s) => s.id === afterId);
+      if (idx === -1) newSections.push(copy);
+      else newSections.splice(idx + 1, 0, copy);
+    } else {
+      newSections.push(copy);
+    }
+    const newSite: SiteData = { ...site, pages: site.pages.map((p) => (p.id === page.id ? { ...p, sections: newSections } : p)) };
+    get()._commit(newSite);
+    set({ selectedSectionId: copy.id });
+  },
+
+  toggleSectionVisibility: (id) => {
+    const s = get().site;
+    const pageId = get().currentPageId || s.pages[0]?.id;
+    const page = s.pages.find((p) => p.id === pageId);
+    if (!page) return;
+    const newSite: SiteData = {
+      ...s,
+      pages: s.pages.map((p) => p.id === page.id ? {
+        ...p,
+        sections: p.sections.map((sec) => sec.id === id ? { ...sec, config: { ...sec.config, __hidden: !sec.config.__hidden } } : sec),
+      } : p),
+    };
+    get()._commit(newSite);
   },
 }));
 

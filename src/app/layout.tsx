@@ -11,30 +11,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Forge Studio — Build. Audit. Ship.",
-    template: "%s · Forge Studio",
-  },
-  description:
-    "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and ship landing pages in one place.",
+  title: { default: "Forge Studio — Build. Audit. Ship.", template: "%s · Forge Studio" },
+  description: "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and ship landing pages in one place.",
   keywords: ["landing page", "page builder", "audit", "SEO", "accessibility", "no-code", "Forge Studio"],
   authors: [{ name: "Forge Studio" }],
   applicationName: "Forge Studio",
-  openGraph: {
-    title: "Forge Studio — Build. Audit. Ship.",
-    description: "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes.",
-    type: "website",
-    siteName: "Forge Studio",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Forge Studio",
-    description: "Build. Audit. Ship. The all-in-one landing page studio.",
-  },
-  icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-  },
+  openGraph: { title: "Forge Studio — Build. Audit. Ship.", description: "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes.", type: "website", siteName: "Forge Studio" },
+  twitter: { card: "summary_large_image", title: "Forge Studio", description: "Build. Audit. Ship. The all-in-one landing page studio." },
+  icons: { icon: "/icon.svg", shortcut: "/icon.svg" },
 };
 
 export const viewport: Viewport = {
@@ -49,6 +33,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
       <body className={`${inter.variable} antialiased bg-background text-foreground`}>
         {children}
         <FeedbackWidget />

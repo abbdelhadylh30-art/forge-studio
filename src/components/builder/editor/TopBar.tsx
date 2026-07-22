@@ -31,6 +31,8 @@ import { THEME_PRESETS } from "@/lib/builder/sections/types";
 import { useState } from "react";
 import { ExportDialog } from "./ExportDialog";
 import { ThemeDialog } from "./ThemeDialog";
+import { SaveStatusBadge } from "./SaveStatusBadge";
+import { LayerPanel } from "./LayerPanel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { clearBuilderAutosave, blankSite } from "@/lib/builder/store/builder-store";
 
@@ -234,6 +236,11 @@ export function BuilderTopBar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Save status — desktop only */}
+            <div className="hidden md:flex items-center mr-1">
+              <SaveStatusBadge />
+            </div>
+
             {/* Desktop: Audit + Export */}
             <div className="hidden sm:flex items-center gap-1">
               <div className="mx-1 h-6 w-px bg-slate-200" />
@@ -311,6 +318,21 @@ export function BuilderTopBar() {
 }
 
 export function SectionLibrary() {
+  const [tab, setTab] = useState<"layers" | "library">("layers");
+  return (
+    <div className="flex h-full flex-col bg-white text-slate-900">
+      <div className="flex shrink-0 border-b border-slate-200">
+        <button type="button" onClick={() => setTab("layers")} className={cn("flex-1 px-3 py-2 text-xs font-semibold transition-colors", tab === "layers" ? "border-b-2 border-violet-500 text-violet-600" : "text-slate-500 hover:text-slate-700")}>Layers</button>
+        <button type="button" onClick={() => setTab("library")} className={cn("flex-1 px-3 py-2 text-xs font-semibold transition-colors", tab === "library" ? "border-b-2 border-violet-500 text-violet-600" : "text-slate-500 hover:text-slate-700")}>Library</button>
+      </div>
+      <div className="min-h-0 flex-1">
+        {tab === "layers" ? <LayerPanel /> : <LibraryContent />}
+      </div>
+    </div>
+  );
+}
+
+function LibraryContent() {
   const addSection = useBuilder((s) => s.addSection);
   const categories = Object.keys(CATEGORY_LABELS);
   const [query, setQuery] = useState("");
@@ -325,17 +347,12 @@ export function SectionLibrary() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Section library</div>
-            <div className="mt-0.5 text-[11px] text-slate-400">Click to add to the current page</div>
+            <div className="mt-0.5 text-[11px] text-slate-400">Click or drag onto canvas</div>
           </div>
         </div>
         <div className="relative mt-2.5">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search sections…"
-            className="h-8 pl-8 text-xs"
-          />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search sections…" className="h-8 pl-8 text-xs" />
         </div>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto builder-scroll">
@@ -354,19 +371,9 @@ export function SectionLibrary() {
                   {types.map((t) => {
                     const Icon = t.icon;
                     return (
-                      <button
-                        key={t.kind}
-                        type="button"
-                        onClick={() => addSection(t.kind as SectionKind)}
-                        className="group flex items-start gap-2 rounded-md border border-slate-200 bg-white p-2 text-left transition-all hover:border-violet-400 hover:shadow-sm active:scale-[0.98]"
-                      >
-                        <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 transition-colors group-hover:bg-violet-100 group-hover:text-violet-600">
-                          <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold">{t.label}</div>
-                          <div className="line-clamp-2 text-[10px] text-slate-500">{t.description}</div>
-                        </div>
+                      <button key={t.kind} type="button" draggable onDragStart={(e) => { e.dataTransfer.setData("application/x-section-kind", t.kind); e.dataTransfer.effectAllowed = "copy"; }} onClick={() => addSection(t.kind as SectionKind)} className="group flex items-start gap-2 rounded-md border border-slate-200 bg-white p-2 text-left transition-all hover:border-violet-400 hover:shadow-sm active:scale-[0.98] cursor-grab">
+                        <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 transition-colors group-hover:bg-violet-100 group-hover:text-violet-600"><Icon className="h-3.5 w-3.5" /></div>
+                        <div className="min-w-0 flex-1"><div className="text-xs font-semibold">{t.label}</div><div className="line-clamp-2 text-[10px] text-slate-500">{t.description}</div></div>
                       </button>
                     );
                   })}
@@ -374,9 +381,7 @@ export function SectionLibrary() {
               </div>
             );
           })}
-          {filteredTypes.length === 0 && (
-            <div className="py-8 text-center text-xs text-slate-400">No sections match "{query}"</div>
-          )}
+          {filteredTypes.length === 0 && (<div className="py-8 text-center text-xs text-slate-400">No sections match "{query}"</div>)}
         </div>
       </div>
     </div>

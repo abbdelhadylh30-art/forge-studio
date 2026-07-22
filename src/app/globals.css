@@ -463,3 +463,9 @@
 /* ─── Smooth scale on press (button feedback) ─── */
 .pf-press { transition: transform 0.1s ease; }
 .pf-press:active { transform: scale(0.97); }
+
+/* ─── Ticker animation for Announcement bar ─── */
+@keyframes lfTicker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-20%); }
+}

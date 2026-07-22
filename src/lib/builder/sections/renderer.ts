@@ -77,6 +77,13 @@ function renderSection(section: SectionInstance, theme: ThemeTokens): string {
     case "cta": return renderCta(c, theme);
     case "newsletter": return renderNewsletter(c, theme);
     case "footer": return renderFooter(c, theme);
+    case "announcement": return renderAnnouncement(c, theme);
+    case "problem": return renderProblem(c, theme);
+    case "solution": return renderSolution(c, theme);
+    case "video": return renderVideo(c, theme);
+    case "comparison": return renderComparison(c, theme);
+    case "guarantee": return renderGuarantee(c, theme);
+    case "contactform": return renderContactForm(c, theme);
     default: return "";
   }
 }
@@ -166,4 +173,53 @@ function renderNewsletter(c: any, t: ThemeTokens): string {
 function renderFooter(c: any, t: ThemeTokens): string {
   const cols = (c.columns || []).map((col: any) => `<div><h4 class="mb-3 text-xs font-semibold uppercase tracking-wider" style="color:${t.foreground}">${escapeHtml(col.title)}</h4><ul class="flex flex-col gap-2">${(col.links || []).map((l: any) => `<li><a href="${escapeHtml(l.href)}" class="text-sm" style="color:${t.mutedFg}">${escapeHtml(l.label)}</a></li>`).join("")}</ul></div>`).join("\n");
   return `<footer class="border-t px-6 py-12" style="background:${t.background};border-color:${t.border}"><div class="mx-auto max-w-6xl"><div class="grid gap-8 md:grid-cols-4"><div><div class="flex items-center gap-2"><div style="display:grid;place-items:center;width:1.75rem;height:1.75rem;border-radius:.375rem;background:${t.primary};color:${t.primaryFg};font-weight:700">${escapeHtml(c.brand?.[0]?.toUpperCase() ?? "A")}</div><span class="font-semibold" style="color:${t.foreground}">${escapeHtml(c.brand)}</span></div>${c.tagline ? `<p class="mt-3 text-sm" style="color:${t.mutedFg};max-width:24rem">${escapeHtml(c.tagline)}</p>` : ""}</div>${cols}</div>${c.copyright ? `<div class="mt-10 border-t pt-6 text-center text-xs" style="border-color:${t.border};color:${t.mutedFg}">${escapeHtml(c.copyright)}</div>` : ""}</div></footer>`;
+}
+
+// Phase 2A: String renderers for new sections
+
+function renderAnnouncement(c: any, t: ThemeTokens): string {
+  const bg = c.bgColor || t.primary;
+  const fg = c.textColor || t.primaryFg;
+  if (c.variant === "ticker") {
+    const items = Array(5).fill(`<span class="mx-8 text-sm font-medium">${escapeHtml(c.message)} ${c.linkLabel ? `<a href="${escapeHtml(c.linkHref)}" class="underline ml-2">${escapeHtml(c.linkLabel)}</a>` : ""}</span>`).join("");
+    return `<div class="overflow-hidden py-2" style="background:${bg};color:${fg}"><div style="display:inline-block;white-space:nowrap;animation:lfTicker 20s linear infinite">${items}</div></div>`;
+  }
+  return `<div class="flex items-center justify-center gap-3 py-2 px-6 text-center" style="background:${bg};color:${fg}"><span class="text-sm font-medium">${escapeHtml(c.message)}</span>${c.linkLabel ? `<a href="${escapeHtml(c.linkHref)}" class="text-sm font-semibold underline ml-2">${escapeHtml(c.linkLabel)} →</a>` : ""}</div>`;
+}
+
+function renderProblem(c: any, t: ThemeTokens): string {
+  const items = (c.items || []).map((item: any) => `<div class="rounded-xl border p-6" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(item.title)}</h3>${item.description ? `<p class="text-sm" style="color:${t.mutedFg}">${escapeHtml(item.description)}</p>` : ""}</div>`).join("\n");
+  return `<section class="px-6 py-24" style="background:${t.muted}"><div class="mx-auto max-w-4xl"><div class="mb-12 text-center">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${t.accent}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-4 md:grid-cols-3">${items}</div></div></section>`;
+}
+
+function renderSolution(c: any, t: ThemeTokens): string {
+  const items = (c.items || []).map((item: any) => `<div class="rounded-xl border p-6" style="border-color:${t.border};background:${t.muted};border-radius:${t.radius}"><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(item.title)}</h3>${item.description ? `<p class="text-sm" style="color:${t.mutedFg}">${escapeHtml(item.description)}</p>` : ""}</div>`).join("\n");
+  return `<section class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-4xl"><div class="mb-12 text-center">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${t.accent}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-4 md:grid-cols-3">${items}</div></div></section>`;
+}
+
+function getVideoEmbedUrl(url: string): string {
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  return url;
+}
+
+function renderVideo(c: any, t: ThemeTokens): string {
+  const embed = c.videoUrl ? getVideoEmbedUrl(c.videoUrl) : "";
+  const inner = `<div class="overflow-hidden rounded-xl shadow-xl" style="border-radius:${t.radius}"><div class="relative aspect-video" style="background:${t.muted}">${embed ? `<iframe src="${escapeHtml(embed)}" class="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="${escapeHtml(c.title || "Video")}"></iframe>` : ""}</div></div>`;
+  return `<section class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-4xl">${(c.title || c.subtitle) ? `<div class="mb-8 text-center">${c.title ? `<h2 class="mb-3 text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div>` : ""}${inner}</div></section>`;
+}
+
+function renderComparison(c: any, t: ThemeTokens): string {
+  const rows = (c.features || []).map((f: any, i: number) => `<tr style="border-top:1px solid ${t.border};background:${i % 2 === 0 ? t.background : "transparent"}"><td class="px-4 py-3 text-sm" style="color:${t.foreground}">${escapeHtml(f.label)}</td><td class="px-4 py-3 text-center text-sm font-semibold" style="color:${t.accent}">${escapeHtml(f.you)}</td><td class="px-4 py-3 text-center text-sm" style="color:${t.mutedFg}">${escapeHtml(f.competitor)}</td></tr>`).join("");
+  return `<section class="px-6 py-24" style="background:${t.muted}"><div class="mx-auto max-w-3xl"><div class="mb-10 text-center">${c.title ? `<h2 class="text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="overflow-hidden rounded-xl border" style="border-color:${t.border};border-radius:${t.radius}"><table class="w-full"><thead><tr style="background:${t.background}"><th class="px-4 py-3 text-left text-sm font-semibold" style="color:${t.foreground}">Feature</th><th class="px-4 py-3 text-center text-sm font-semibold" style="color:${t.accent}">${escapeHtml(c.youName || "You")}</th><th class="px-4 py-3 text-center text-sm font-semibold" style="color:${t.mutedFg}">${escapeHtml(c.competitorName || "Others")}</th></tr></thead><tbody>${rows}</tbody></table></div></div></section>`;
+}
+
+function renderGuarantee(c: any, t: ThemeTokens): string {
+  return `<section class="px-6 py-12" style="background:${t.muted}"><div class="mx-auto max-w-3xl"><div class="flex flex-col items-center gap-6 rounded-2xl border-2 border-dashed p-8 text-center sm:flex-row sm:text-left" style="border-color:${t.accent};border-radius:${t.radius}"><div style="display:grid;place-items:center;width:4rem;height:4rem;border-radius:9999px;background:${t.accent};color:${t.accentFg}"><span style="font-size:2rem">🛡</span></div><div class="flex-1"><div class="mb-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style="background:${t.accent};color:${t.accentFg}">${escapeHtml(c.badge)}</div><h3 class="text-xl font-bold" style="color:${t.foreground}">${escapeHtml(c.title)}</h3>${c.description ? `<p class="mt-2 text-sm" style="color:${t.mutedFg}">${escapeHtml(c.description)}</p>` : ""}</div></div></div></section>`;
+}
+
+function renderContactForm(c: any, t: ThemeTokens): string {
+  return `<section class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-2xl">${(c.title || c.subtitle) ? `<div class="mb-8 text-center">${c.title ? `<h2 class="mb-3 text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div>` : ""}<div class="rounded-xl border p-8" style="border-color:${t.border};border-radius:${t.radius}"><form class="flex flex-col gap-4" onsubmit="event.preventDefault()"><div><label class="mb-1 block text-xs font-medium" style="color:${t.foreground}">${escapeHtml(c.nameLabel || "Name")}</label><input type="text" class="w-full rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}" /></div><div><label class="mb-1 block text-xs font-medium" style="color:${t.foreground}">${escapeHtml(c.emailLabel || "Email")}</label><input type="email" class="w-full rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}" /></div><div><label class="mb-1 block text-xs font-medium" style="color:${t.foreground}">${escapeHtml(c.messageLabel || "Message")}</label><textarea rows="4" class="w-full rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}"></textarea></div><button type="submit" class="inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(c.buttonLabel || "Send")}</button></form></div></div></section>`;
 }

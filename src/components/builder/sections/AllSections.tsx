@@ -5,10 +5,11 @@
 
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, Check, AlertCircle, Lightbulb, Video, ShieldCheck } from "lucide-react";
 import type { ThemeTokens } from "@/lib/builder/sections/types";
 import { resolveIcon } from "@/lib/builder/sections/theme-utils";
+import { InlineText } from "./InlineText";
 
 type Theme = ThemeTokens;
 
@@ -32,24 +33,105 @@ export function Navbar({ config, theme }: { config: any; theme: Theme }) {
 
 export function Hero({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
-  const isSplit = c.variant !== "centered";
+  const variant = c.variant ?? "centered";
+  const isSplit = variant === "split-left" || variant === "split-right";
   const align = c.align ?? (isSplit ? "left" : "center");
   const textBlock = (
     <div className={`flex flex-col gap-5 ${align === "center" ? "items-center text-center" : "items-start text-left"}`}>
-      {c.eyebrow && <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: theme.muted, color: theme.mutedFg }}>{c.eyebrow}</span>}
-      <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.headline}</h1>
-      {c.subhead && <p className="max-w-2xl text-base sm:text-lg" style={{ color: theme.mutedFg }}>{c.subhead}</p>}
+      {c.eyebrow && <InlineText fieldKey="eyebrow" value={c.eyebrow} as="span" className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: theme.muted, color: theme.mutedFg }} placeholder="Eyebrow…" />}
+      <InlineText fieldKey="headline" value={c.headline ?? ""} as="h1" className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }} placeholder="Your headline…" />
+      <InlineText fieldKey="subhead" value={c.subhead ?? ""} as="p" multiline className="max-w-2xl text-base sm:text-lg" style={{ color: theme.mutedFg }} placeholder="Your subhead…" />
       <div className={`mt-2 flex flex-wrap gap-3 ${align === "center" ? "justify-center" : ""}`}>
-        {c.primaryCtaLabel && <a href={c.primaryCtaHref} className="inline-flex items-center gap-1 rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: theme.primary, color: theme.primaryFg }}>{c.primaryCtaLabel}</a>}
-        {c.secondaryCtaLabel && <a href={c.secondaryCtaHref} className="inline-flex items-center gap-1 rounded-md border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: theme.border, color: theme.foreground, background: "transparent" }}>{c.secondaryCtaLabel}</a>}
+        <a href={c.primaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: theme.primary, color: theme.primaryFg }}>
+          <InlineText fieldKey="primaryCtaLabel" value={c.primaryCtaLabel ?? ""} as="span" placeholder="Start free" />
+        </a>
+        <a href={c.secondaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: theme.border, color: theme.foreground, background: "transparent" }}>
+          <InlineText fieldKey="secondaryCtaLabel" value={c.secondaryCtaLabel ?? ""} as="span" placeholder="Watch demo" />
+        </a>
       </div>
     </div>
   );
+
+  if (variant === "fullscreen") {
+    return (
+      <section className="relative grid min-h-screen place-items-center px-6 py-24" style={{ background: c.imageUrl ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${c.imageUrl}) center/cover` : theme.background }}>
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="flex flex-col items-center gap-5">
+            {c.eyebrow && <InlineText fieldKey="eyebrow" value={c.eyebrow} as="span" className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }} placeholder="Eyebrow…" />}
+            <InlineText fieldKey="headline" value={c.headline ?? ""} as="h1" className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style={{ color: c.imageUrl ? "#fff" : theme.foreground, fontFamily: theme.fontHeading }} placeholder="Your headline…" />
+            <InlineText fieldKey="subhead" value={c.subhead ?? ""} as="p" multiline className="max-w-2xl text-base sm:text-lg" style={{ color: c.imageUrl ? "rgba(255,255,255,0.85)" : theme.mutedFg }} placeholder="Your subhead…" />
+            <div className="mt-2 flex flex-wrap justify-center gap-3">
+              <a href={c.primaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: theme.accent, color: theme.accentFg }}><InlineText fieldKey="primaryCtaLabel" value={c.primaryCtaLabel ?? ""} as="span" placeholder="Start free" /></a>
+              <a href={c.secondaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "rgba(255,255,255,0.3)", color: "#fff", background: "transparent" }}><InlineText fieldKey="secondaryCtaLabel" value={c.secondaryCtaLabel ?? ""} as="span" placeholder="Watch demo" /></a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (variant === "gradient") {
+    return (
+      <section className="px-6 py-24" style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 100%)` }}>
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="flex flex-col items-center gap-5">
+            {c.eyebrow && <InlineText fieldKey="eyebrow" value={c.eyebrow} as="span" className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }} placeholder="Eyebrow…" />}
+            <InlineText fieldKey="headline" value={c.headline ?? ""} as="h1" className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style={{ color: "#fff", fontFamily: theme.fontHeading }} placeholder="Your headline…" />
+            <InlineText fieldKey="subhead" value={c.subhead ?? ""} as="p" multiline className="max-w-2xl text-base sm:text-lg" style={{ color: "rgba(255,255,255,0.85)" }} placeholder="Your subhead…" />
+            <div className="mt-2 flex flex-wrap justify-center gap-3">
+              <a href={c.primaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: "#fff", color: theme.primary }}><InlineText fieldKey="primaryCtaLabel" value={c.primaryCtaLabel ?? ""} as="span" placeholder="Start free" /></a>
+              <a href={c.secondaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "rgba(255,255,255,0.3)", color: "#fff", background: "transparent" }}><InlineText fieldKey="secondaryCtaLabel" value={c.secondaryCtaLabel ?? ""} as="span" placeholder="Watch demo" /></a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (variant === "card") {
+    return (
+      <section className="px-6 py-24" style={{ background: theme.muted }}>
+        <div className="mx-auto max-w-2xl">
+          <div className="rounded-2xl border p-8 text-center shadow-xl sm:p-12" style={{ background: theme.background, borderColor: theme.border, borderRadius: theme.radius }}>
+            <div className="flex flex-col items-center gap-5">
+              {c.eyebrow && <InlineText fieldKey="eyebrow" value={c.eyebrow} as="span" className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: theme.muted, color: theme.mutedFg }} placeholder="Eyebrow…" />}
+              <InlineText fieldKey="headline" value={c.headline ?? ""} as="h1" className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }} placeholder="Your headline…" />
+              <InlineText fieldKey="subhead" value={c.subhead ?? ""} as="p" multiline className="max-w-xl text-base" style={{ color: theme.mutedFg }} placeholder="Your subhead…" />
+              <div className="mt-2 flex flex-wrap justify-center gap-3">
+                <a href={c.primaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: theme.primary, color: theme.primaryFg }}><InlineText fieldKey="primaryCtaLabel" value={c.primaryCtaLabel ?? ""} as="span" placeholder="Start free" /></a>
+                <a href={c.secondaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: theme.border, color: theme.foreground, background: "transparent" }}><InlineText fieldKey="secondaryCtaLabel" value={c.secondaryCtaLabel ?? ""} as="span" placeholder="Watch demo" /></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (variant === "minimalist") {
+    return (
+      <section className="px-6 py-32" style={{ background: theme.background }}>
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="flex flex-col items-center gap-4">
+            {c.eyebrow && <InlineText fieldKey="eyebrow" value={c.eyebrow} as="span" className="text-xs font-medium uppercase tracking-widest" style={{ color: theme.mutedFg }} placeholder="Eyebrow…" />}
+            <InlineText fieldKey="headline" value={c.headline ?? ""} as="h1" className="text-3xl font-medium leading-tight tracking-tight sm:text-4xl lg:text-5xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }} placeholder="Your headline…" />
+            <InlineText fieldKey="subhead" value={c.subhead ?? ""} as="p" multiline className="max-w-xl text-base" style={{ color: theme.mutedFg }} placeholder="Your subhead…" />
+            <div className="mt-4">
+              <a href={c.primaryCtaHref ?? "#"} className="text-sm font-semibold underline" style={{ color: theme.accent }}>
+                <InlineText fieldKey="primaryCtaLabel" value={c.primaryCtaLabel ?? ""} as="span" placeholder="Get started →" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
       <div className="mx-auto max-w-6xl">
         {isSplit ? (
-          <div className={`grid items-center gap-12 md:grid-cols-2 ${c.variant === "split-right" ? "md:[&>*:first-child]:order-2" : ""}`}>
+          <div className={`grid items-center gap-12 md:grid-cols-2 ${variant === "split-right" ? "md:[&>*:first-child]:order-2" : ""}`}>
             {textBlock}
             {c.imageUrl ? <img src={c.imageUrl} alt="" className="w-full rounded-xl shadow-xl" style={{ borderRadius: theme.radius }} /> : <div className="grid aspect-video w-full place-items-center rounded-xl" style={{ background: theme.muted, borderRadius: theme.radius }}><span className="text-sm" style={{ color: theme.mutedFg }}>Image placeholder</span></div>}
           </div>
@@ -309,5 +391,226 @@ export function Footer({ config, theme }: { config: any; theme: Theme }) {
         {c.copyright && <div className="mt-10 border-t pt-6 text-center text-xs" style={{ borderColor: theme.border, color: theme.mutedFg }}>{c.copyright}</div>}
       </div>
     </footer>
+  );
+}
+
+// Phase 2A: 7 new section types
+
+export function Announcement({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  const bg = c.bgColor || theme.primary;
+  const fg = c.textColor || theme.primaryFg;
+  if (c.variant === "ticker") {
+    return (
+      <div className="overflow-hidden py-2" style={{ background: bg, color: fg }}>
+        <div className="whitespace-nowrap" style={{ animation: "lfTicker 20s linear infinite", display: "inline-block" }}>
+          {Array(5).fill(c.message).map((m, i) => (
+            <span key={i} className="mx-8 text-sm font-medium">{m} {c.linkLabel && <a href={c.linkHref} className="underline ml-2">{c.linkLabel}</a>}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (c.variant === "countdown") {
+    return <CountdownAnnouncement c={c} bg={bg} fg={fg} />;
+  }
+  return (
+    <div className="flex items-center justify-center gap-3 py-2 px-6 text-center" style={{ background: bg, color: fg }}>
+      <span className="text-sm font-medium">{c.message}</span>
+      {c.linkLabel && <a href={c.linkHref} className="text-sm font-semibold underline ml-2">{c.linkLabel} →</a>}
+    </div>
+  );
+}
+
+function CountdownAnnouncement({ c, bg, fg }: { c: any; bg: string; fg: string }) {
+  const target = new Date(c.countdownDate).getTime();
+  const [remaining, setRemaining] = useState(() => Math.max(0, target - Date.now()));
+  useEffect(() => {
+    const interval = setInterval(() => setRemaining(Math.max(0, target - Date.now())), 1000);
+    return () => clearInterval(interval);
+  }, [target]);
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  const mins = Math.floor((remaining % 3600000) / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  return (
+    <div className="flex items-center justify-center gap-4 py-2 px-6 text-center" style={{ background: bg, color: fg }}>
+      <span className="text-sm font-medium">{c.message}</span>
+      <div className="flex gap-2 font-mono text-sm font-bold">
+        <span>{String(days).padStart(2, "0")}d</span>
+        <span>{String(hours).padStart(2, "0")}h</span>
+        <span>{String(mins).padStart(2, "0")}m</span>
+        <span>{String(secs).padStart(2, "0")}s</span>
+      </div>
+    </div>
+  );
+}
+
+export function Problem({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  return (
+    <section className="px-6 py-16 sm:py-24" style={{ background: theme.muted }}>
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-12 text-center">
+          {c.eyebrow && <p className="mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: theme.accent }}>{c.eyebrow}</p>}
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>
+          {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {c.items?.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border p-6" style={{ borderColor: theme.border, background: theme.background, borderRadius: theme.radius }}>
+              <div className="mb-3 grid h-10 w-10 place-items-center rounded-full" style={{ background: "#fee2e2", color: "#dc2626" }}><AlertCircle className="h-5 w-5" /></div>
+              <h3 className="mb-2 text-lg font-semibold" style={{ color: theme.foreground }}>{item.title}</h3>
+              {item.description && <p className="text-sm" style={{ color: theme.mutedFg }}>{item.description}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function Solution({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  return (
+    <section className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-12 text-center">
+          {c.eyebrow && <p className="mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: theme.accent }}>{c.eyebrow}</p>}
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>
+          {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {c.items?.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border p-6" style={{ borderColor: theme.border, background: theme.muted, borderRadius: theme.radius }}>
+              <div className="mb-3 grid h-10 w-10 place-items-center rounded-full" style={{ background: "#d1fae5", color: "#059669" }}><Lightbulb className="h-5 w-5" /></div>
+              <h3 className="mb-2 text-lg font-semibold" style={{ color: theme.foreground }}>{item.title}</h3>
+              {item.description && <p className="text-sm" style={{ color: theme.mutedFg }}>{item.description}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function VideoSection({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  const [playing, setPlaying] = useState(false);
+  const getEmbedUrl = (url: string) => {
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`;
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+    return url;
+  };
+  const inner = (
+    <div className="overflow-hidden rounded-xl shadow-xl" style={{ borderRadius: theme.radius }}>
+      <div className="relative aspect-video" style={{ background: theme.muted }}>
+        {playing ? (
+          <iframe src={getEmbedUrl(c.videoUrl)} className="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen title={c.title || "Video"} />
+        ) : (
+          <button type="button" onClick={() => setPlaying(true)} className="group h-full w-full" aria-label="Play video">
+            {c.thumbnailUrl ? <img src={c.thumbnailUrl} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center" style={{ background: theme.muted }}><Video className="h-16 w-16" style={{ color: theme.mutedFg }} /></div>}
+            <div className="absolute inset-0 grid place-items-center bg-black/30 transition-opacity group-hover:bg-black/40">
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-white/90 shadow-lg transition-transform group-hover:scale-110">
+                <svg className="h-7 w-7 ml-1" viewBox="0 0 24 24" fill="currentColor" style={{ color: theme.primary }}><path d="M8 5v14l11-7z" /></svg>
+              </div>
+            </div>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+  if (c.variant === "split-left") {
+    return (
+      <section className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+        <div className="mx-auto max-w-6xl grid items-center gap-12 md:grid-cols-2">
+          <div>
+            {c.title && <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
+            {c.subtitle && <p className="text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+          </div>
+          {inner}
+        </div>
+      </section>
+    );
+  }
+  if (c.variant === "full") {
+    return (<section className="px-0 py-0" style={{ background: theme.background }}><div className="w-full">{inner}</div></section>);
+  }
+  return (
+    <section className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+      <div className="mx-auto max-w-4xl">
+        {(c.title || c.subtitle) && (<div className="mb-8 text-center">{c.title && <h2 className="mb-3 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}{c.subtitle && <p className="text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}</div>)}
+        {inner}
+      </div>
+    </section>
+  );
+}
+
+export function Comparison({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  return (
+    <section className="px-6 py-16 sm:py-24" style={{ background: theme.muted }}>
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-10 text-center">
+          {c.title && <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
+          {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+        </div>
+        <div className="overflow-hidden rounded-xl border" style={{ borderColor: theme.border, borderRadius: theme.radius }}>
+          <table className="w-full">
+            <thead><tr style={{ background: theme.background }}><th className="px-4 py-3 text-left text-sm font-semibold" style={{ color: theme.foreground }}>Feature</th><th className="px-4 py-3 text-center text-sm font-semibold" style={{ color: theme.accent }}>{c.youName || "You"}</th><th className="px-4 py-3 text-center text-sm font-semibold" style={{ color: theme.mutedFg }}>{c.competitorName || "Others"}</th></tr></thead>
+            <tbody>
+              {c.features?.map((f: any, i: number) => (
+                <tr key={i} style={{ borderTop: `1px solid ${theme.border}`, background: i % 2 === 0 ? theme.background : "transparent" }}>
+                  <td className="px-4 py-3 text-sm" style={{ color: theme.foreground }}>{f.label}</td>
+                  <td className="px-4 py-3 text-center text-sm font-semibold" style={{ color: theme.accent }}>{f.you}</td>
+                  <td className="px-4 py-3 text-center text-sm" style={{ color: theme.mutedFg }}>{f.competitor}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function Guarantee({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  const IconComponent = resolveIcon(c.icon || "ShieldCheck") as React.ComponentType<{ className?: string }>;
+  return (
+    <section className="px-6 py-12" style={{ background: theme.muted }}>
+      <div className="mx-auto max-w-3xl">
+        <div className="flex flex-col items-center gap-6 rounded-2xl border-2 border-dashed p-8 text-center sm:flex-row sm:text-left" style={{ borderColor: theme.accent, borderRadius: theme.radius }}>
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full" style={{ background: theme.accent, color: theme.accentFg }}><IconComponent className="h-8 w-8" /></div>
+          <div className="flex-1">
+            <div className="mb-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ background: theme.accent, color: theme.accentFg }}>{c.badge}</div>
+            <h3 className="text-xl font-bold" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h3>
+            {c.description && <p className="mt-2 text-sm" style={{ color: theme.mutedFg }}>{c.description}</p>}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ContactForm({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  const formEl = (
+    <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
+      <div><label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{c.nameLabel || "Name"}</label><input type="text" className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }} /></div>
+      <div><label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{c.emailLabel || "Email"}</label><input type="email" className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }} /></div>
+      <div><label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{c.messageLabel || "Message"}</label><textarea rows={4} className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }} /></div>
+      <button type="submit" className="inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: theme.primary, color: theme.primaryFg }}>{c.buttonLabel || "Send"}</button>
+    </form>
+  );
+  return (
+    <section className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+      <div className="mx-auto max-w-2xl">
+        {(c.title || c.subtitle) && (<div className="mb-8 text-center">{c.title && <h2 className="mb-3 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}{c.subtitle && <p className="text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}</div>)}
+        <div className="rounded-xl border p-6 sm:p-8" style={{ borderColor: theme.border, borderRadius: theme.radius }}>{formEl}</div>
+      </div>
+    </section>
   );
 }

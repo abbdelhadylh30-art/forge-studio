@@ -23,7 +23,6 @@ export interface FieldSchema {
   min?: number;
   max?: number;
   step?: number;
-  aiSuggest?: boolean;
   group?: string;
 }
 
@@ -91,6 +90,11 @@ export const DEFAULT_THEME: ThemeTokens = {
 
 export const FONT_OPTIONS = [
   { name: "Inter (Default)", value: "Inter, system-ui, sans-serif" },
+  { name: "Plus Jakarta Sans", value: "'Plus Jakarta Sans', system-ui, sans-serif" },
+  { name: "Poppins", value: "Poppins, system-ui, sans-serif" },
+  { name: "DM Sans", value: "'DM Sans', system-ui, sans-serif" },
+  { name: "Playfair Display (Serif)", value: "'Playfair Display', Georgia, serif" },
+  { name: "Noto Sans Arabic", value: "'Noto Sans Arabic', system-ui, sans-serif" },
   { name: "Georgia (Serif)", value: "Georgia, 'Times New Roman', serif" },
   { name: "Helvetica (Clean)", value: "Helvetica, Arial, sans-serif" },
   { name: "Courier (Mono)", value: "'Courier New', monospace" },
@@ -98,6 +102,11 @@ export const FONT_OPTIONS = [
   { name: "Verdana (Wide)", value: "Verdana, Geneva, sans-serif" },
   { name: "Tahoma (Compact)", value: "Tahoma, sans-serif" },
   { name: "Trebuchet MS (Friendly)", value: "'Trebuchet MS', sans-serif" },
+];
+
+/** Google Fonts that need to be loaded via <link> in the document head. */
+export const GOOGLE_FONTS = [
+  "Inter", "Plus Jakarta Sans", "Poppins", "DM Sans", "Playfair Display", "Noto Sans Arabic",
 ];
 
 export const THEME_PRESETS: { name: string; tokens: ThemeTokens }[] = [
