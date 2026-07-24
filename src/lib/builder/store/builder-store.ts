@@ -103,10 +103,35 @@ export function peekBuilderAutosave(): { timestamp: number; siteName: string; pa
   };
 }
 
-/** Load and consume the autosaved state. Returns null if none/expired/invalid. */
-export function consumeBuilderAutosave(): SavedBuilderState | null {
-  const s = loadSavedState();
-  return s;
+/** Read (but do not delete) the autosaved state. Returns null if none/expired/invalid. */
+export function readBuilderAutosave(): SavedBuilderState | null {
+  return loadSavedState();
+}
+
+/* ─── Version history persistence ─── */
+const VERSIONS_STORAGE_KEY = "forge-studio:versions:v1";
+const MAX_VERSIONS = 5;
+
+function loadVersionsFromStorage(): { id: string; name: string; timestamp: number; site: SiteData }[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(VERSIONS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(0, MAX_VERSIONS);
+  } catch {
+    return [];
+  }
+}
+
+function saveVersionsToStorage(versions: { id: string; name: string; timestamp: number; site: SiteData }[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(VERSIONS_STORAGE_KEY, JSON.stringify(versions.slice(0, MAX_VERSIONS)));
+  } catch {
+    // localStorage might be full — fail silently
+  }
 }
 
 export function blankSite(name: string): SiteData {
@@ -206,11 +231,13 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   previewMode: false,
   setPreviewMode: (b) => set({ previewMode: b, selectedSectionId: null }),
 
-  versions: [],
+  versions: loadVersionsFromStorage(),
   saveVersion: (name) => {
     const { site, versions } = get();
     const v = { id: uuid(), name: name || `Version ${versions.length + 1}`, timestamp: Date.now(), site: clone(site) };
-    set({ versions: [...versions, v].slice(-20) }); // keep last 20
+    const next = [...versions, v].slice(-5); // keep last 5 (each is a full SiteData clone)
+    set({ versions: next });
+    saveVersionsToStorage(next);
   },
   restoreVersion: (id) => {
     const { versions } = get();
@@ -219,7 +246,10 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     get()._commit(clone(v.site));
   },
   deleteVersion: (id) => {
-    set((s) => ({ versions: s.versions.filter((v) => v.id !== id) }));
+    const { versions } = get();
+    const next = versions.filter((v) => v.id !== id);
+    set({ versions: next });
+    saveVersionsToStorage(next);
   },
 
   inspectorOpen: true,
@@ -381,9 +411,13 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     const { site, currentPageId } = get();
     const page = site.pages.find((p) => p.id === (currentPageId || site.pages[0]?.id)) ?? site.pages[0];
     if (!page) return "";
-    // If the page has a raw HTML payload (transferred from auditor), return it as-is.
+    // If the page has ONLY a raw HTML section (transferred from auditor)
+    // and no other sections, return the raw HTML as-is. If the user has
+    // added Forge sections around it, render everything together.
     const rawSection = page.sections.find((s) => (s.config as any)?.__rawHTML);
-    if (rawSection) return (rawSection.config as any).__rawHTML as string;
+    if (rawSection && page.sections.length === 1) {
+      return (rawSection.config as any).__rawHTML as string;
+    }
     return renderSiteHTML(site, page);
   },
 

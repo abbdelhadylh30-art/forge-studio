@@ -760,7 +760,7 @@ function runScoringImpl({ doc, viewportWidth = 1280 }: ScoringInput): ScoreData 
       const totalResources = extStylesheets.length + extScripts.length;
       let renderBlocking = extStylesheets.length;
       extScripts.forEach((s) => {
-        if (!s.async && !s.defer && !(s.getAttribute("type") || "").includes("module")) renderBlocking++;
+        if (!(s as HTMLScriptElement).async && !(s as HTMLScriptElement).defer && !(s.getAttribute("type") || "").includes("module")) renderBlocking++;
       });
       if (totalResources <= 3) {
         fullPoints("perf", 3);
@@ -835,16 +835,16 @@ function runScoringImpl({ doc, viewportWidth = 1280 }: ScoringInput): ScoreData 
 
       // 5f. Hero Image Preload / LCP (3 pts)
       const heroImg = (() => {
-        let candidate: { el: HTMLImageElement; area: number } | null = null;
+        const result: { value: { el: Element; area: number } | null } = { value: null };
         imgs.forEach((img) => {
           const r = (img as HTMLImageElement).getBoundingClientRect();
           if (r.top < 600 && r.width > 100 && r.height > 80) {
-            if (!candidate || r.width * r.height > candidate.area) {
-              candidate = { el: img, area: r.width * r.height };
+            if (!result.value || r.width * r.height > result.value.area) {
+              result.value = { el: img as Element, area: r.width * r.height };
             }
           }
         });
-        return candidate ? candidate.el : null;
+        return result.value ? result.value.el : null;
       })();
       if (!heroImg) {
         fullPoints("perf", 3);
@@ -891,7 +891,7 @@ function runScoringImpl({ doc, viewportWidth = 1280 }: ScoringInput): ScoreData 
       if (extScripts.length === 0) {
         fullPoints("perf", 2);
       } else {
-        const blocking = Array.from(extScripts).filter((s) => !s.async && !s.defer && !(s.getAttribute("type") || "").includes("module"));
+        const blocking = Array.from(extScripts).filter((s) => !(s as HTMLScriptElement).async && !(s as HTMLScriptElement).defer && !(s.getAttribute("type") || "").includes("module"));
         if (blocking.length === 0) {
           fullPoints("perf", 2);
         } else {

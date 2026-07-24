@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useBuilder } from "@/lib/builder/store/builder-store";
 import { useForge } from "@/lib/forge/store";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Search, Eye, Download, Palette, ShieldCheck, Plus, Copy, RotateCcw, Save, History } from "lucide-react";
 import { THEME_PRESETS } from "@/lib/builder/sections/types";
 import { SECTION_TYPES } from "@/lib/builder/sections/registry";
@@ -65,8 +64,8 @@ export function CommandPalette() {
     { id: "copy", label: "Copy selected section", hint: "Ctrl+C", icon: Copy, action: () => { if (builder.selectedSectionId) builder.copySection(builder.selectedSectionId); setOpen(false); }, group: "Edit" },
     { id: "paste", label: "Paste section", hint: "Ctrl+V", icon: Copy, action: () => { builder.pasteSection(builder.selectedSectionId ?? undefined); setOpen(false); }, group: "Edit" },
     { id: "audit", label: "Audit this page", hint: "Send to auditor", icon: ShieldCheck, action: () => { forge.transferToAuditor(builder.exportHTML(), builder.site.name); setOpen(false); }, group: "Audit" },
-    { id: "export", label: "Export site", hint: "HTML / JSON / ZIP", icon: Download, action: () => { document.querySelector<HTMLButtonElement>("[aria-label='Export']")?.click(); setOpen(false); }, group: "Export" },
-    { id: "save-version", label: "Save version snapshot", hint: "Name this state", icon: Save, action: () => { const name = prompt("Version name:"); if (name) builder.saveVersion(name); setOpen(false); }, group: "Versions" },
+    { id: "export", label: "Quick export HTML", hint: "Download instantly", icon: Download, action: () => { const html = builder.exportHTML(); if (html) { const blob = new Blob([html], { type: "text/html" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${builder.site.slug || "site"}.html`; a.click(); URL.revokeObjectURL(url); } setOpen(false); }, group: "Export" },
+    { id: "save-version", label: "Save version snapshot", hint: "Quick snapshot", icon: Save, action: () => { builder.saveVersion(`Snapshot ${new Date().toLocaleString()}`); setOpen(false); }, group: "Versions" },
     { id: "dashboard", label: "Back to dashboard", icon: Plus, action: () => { forge.setView("dashboard"); setOpen(false); }, group: "Navigation" },
     ...THEME_PRESETS.map((p) => ({
       id: `theme-${p.name}`,
@@ -111,6 +110,7 @@ export function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden" onKeyDown={handleKeyDown}>
+        <DialogTitle className="sr-only">Command Palette</DialogTitle>
         <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
           <Search className="h-4 w-4 text-slate-400" />
           <input

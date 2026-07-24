@@ -108,7 +108,7 @@ export function EditPanel({ onToast }: EditPanelProps) {
     const el = elementRef.current;
     if (!el) return;
     // Mutate the live DOM node's inline style before serializing.
-    (el.style as Record<string, string>)[prop] = value;
+    (el.style as unknown as Record<string, string>)[prop] = value;
     setComputedStyle((s) => ({ ...s, [prop]: value }));
     syncHTML();
   };

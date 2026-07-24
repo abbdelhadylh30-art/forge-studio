@@ -56,7 +56,7 @@ export function LayerPanel() {
             const isHidden = (sec.config as Record<string, unknown>)?.__hidden === true;
             const label = getSectionLabel(sec);
             return (
-              <div key={sec.id} onClick={() => handleJump(sec.id)} className={cn("group/layer mb-1 flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 transition-all", isSelected ? "border-violet-300 bg-violet-50" : "border-transparent hover:border-slate-200 hover:bg-slate-50", isHidden && "opacity-50")}>
+              <div key={sec.id} role="button" tabIndex={0} onClick={() => handleJump(sec.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleJump(sec.id); } }} className={cn("group/layer mb-1 flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 transition-all focus:outline-none focus:ring-2 focus:ring-violet-300", isSelected ? "border-violet-300 bg-violet-50" : "border-transparent hover:border-slate-200 hover:bg-slate-50", isHidden && "opacity-50")}>
                 <span className="grid h-5 w-5 shrink-0 place-items-center rounded text-[10px] font-bold text-slate-400">{idx + 1}</span>
                 {Icon && <div className="grid h-6 w-6 shrink-0 place-items-center rounded bg-slate-100 text-slate-500"><Icon className="h-3 w-3" /></div>}
                 <div className="min-w-0 flex-1"><div className="truncate text-xs font-medium">{type?.label ?? sec.kind}</div><div className="truncate text-[10px] text-slate-400">{label}</div></div>

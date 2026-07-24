@@ -1,6 +1,6 @@
 "use client";
 
-import { useBuilder, consumeBuilderAutosave } from "@/lib/builder/store/builder-store";
+import { useBuilder, readBuilderAutosave } from "@/lib/builder/store/builder-store";
 import { BuilderTopBar, SectionLibrary } from "./TopBar";
 import { BuilderCanvas } from "./Canvas";
 import { BuilderInspector } from "./Inspector";
@@ -25,7 +25,7 @@ export function BuilderShell() {
       loadFromHTML(transfer.html, transfer.name);
       return;
     }
-    const saved = consumeBuilderAutosave();
+    const saved = readBuilderAutosave();
     if (saved && saved.site.pages.length > 0) {
       loadSite(saved.site);
       const targetPageId = saved.currentPageId && saved.site.pages.some((p) => p.id === saved.currentPageId) ? saved.currentPageId : saved.site.pages[0].id;

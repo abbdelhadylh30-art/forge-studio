@@ -8,7 +8,9 @@ import type { PageData, SectionInstance, SiteData, ThemeTokens } from "./types";
 
 export function renderSiteHTML(site: SiteData, page: PageData): string {
   const css = extractCss(site.themeTokens);
-  const body = page.sections.map((s) => renderSection(s, site.themeTokens)).join("\n");
+  // Filter out hidden sections — they should not appear in exported HTML.
+  const visibleSections = page.sections.filter((s) => !(s.config as Record<string, unknown>)?.__hidden);
+  const body = visibleSections.map((s) => renderSection(s, site.themeTokens)).join("\n");
   const title = page.seo?.title || `${site.name} — ${page.name}`;
   const description = page.seo?.description || site.description || "";
   return `<!DOCTYPE html>

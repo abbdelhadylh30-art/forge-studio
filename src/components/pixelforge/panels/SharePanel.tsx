@@ -133,7 +133,7 @@ export function SharePanel({ onToast }: SharePanelProps) {
     <div>
       <div className="p-4 text-center">
         <canvas
-          ref={(c) => c && drawShareCard(c)}
+          ref={(c: HTMLCanvasElement | null) => { if (c) drawShareCard(c); }}
           className="w-full rounded-xl border border-[var(--pf-border)] shadow-lg"
           style={{ maxWidth: 500, margin: "0 auto", display: "block" }}
         />

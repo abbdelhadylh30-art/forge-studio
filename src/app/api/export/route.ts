@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   ];
   const zipBytes = buildZip(files);
   const safeSlug = sanitizeFilename(site.slug || "site", "site");
-  return new NextResponse(zipBytes, {
+  return new NextResponse(zipBytes as BodyInit, {
     headers: {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="${safeSlug}.zip"`,

@@ -1,6 +1,6 @@
 /**
  * Forge Studio — Builder: Section Registry
- * 12 section types with schemas + default configs.
+ * 19 section types with schemas + default configs.
  */
 
 import {
@@ -343,7 +343,7 @@ export const SECTION_TYPES: SectionType[] = [
       { key: "thumbnailUrl", label: "Thumbnail URL (optional)", type: "image" },
       { key: "variant", label: "Layout", type: "select", options: [{ label: "Centered", value: "centered" }, { label: "Split left", value: "split-left" }, { label: "Full width", value: "full" }] },
     ],
-    defaultConfig: () => ({ title: "See it in action", subtitle: "Watch a 2-minute demo.", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: "", variant: "centered" }),
+    defaultConfig: () => ({ title: "See it in action", subtitle: "Watch a 2-minute demo.", videoUrl: "https://www.youtube.com/watch?v=M7lc1UVf-VE", thumbnailUrl: "", variant: "centered" }),
   },
   {
     kind: "comparison", label: "Comparison", description: "Side-by-side feature comparison table",
@@ -383,7 +383,7 @@ export const SECTION_TYPES: SectionType[] = [
     defaultConfig: () => ({ title: "Get in touch", subtitle: "Have a question? We'll get back to you within 24 hours.", nameLabel: "Name", emailLabel: "Email", messageLabel: "Message", buttonLabel: "Send message", variant: "centered" }),
   },
   {
-    kind: "legal", label: "Legal", description: "Privacy policy, terms, or refund policy with templated content",
+    kind: "legal", label: "Legal", description: "Privacy policy, terms, or refund policy (not legal advice — review with a lawyer)",
     icon: ShieldCheck, category: "structure",
     schema: [
       { key: "title", label: "Title", type: "text", placeholder: "Privacy Policy" },
@@ -398,7 +398,7 @@ export const SECTION_TYPES: SectionType[] = [
     defaultConfig: () => ({
       title: "Privacy Policy", lastUpdated: "2026-07-24", variant: "privacy",
       companyName: "Acme Inc.", contactEmail: "legal@acme.com",
-      content: "This Privacy Policy describes how {{company}} (\"we\", \"us\", or \"our\") collects, uses, and shares your information when you use our website or services.\n\n1. Information We Collect\nWe collect information you provide directly to us, such as your name and email address.\n\n2. How We Use Your Information\nWe use your information to provide, improve, and personalize our services.\n\n3. Sharing Your Information\nWe do not sell your personal information to third parties.\n\n4. Contact Us\nIf you have questions about this policy, email us at {{email}}.",
+      content: "**Note: This is a template, not legal advice. Have a lawyer review before publishing.**\n\nThis Privacy Policy describes how {{company}} (\"we\", \"us\", or \"our\") collects, uses, and shares your information when you use our website or services.\n\n1. Information We Collect\nWe collect information you provide directly to us, such as your name and email address.\n\n2. How We Use Your Information\nWe use your information to provide, improve, and personalize our services.\n\n3. Sharing Your Information\nWe do not sell your personal information to third parties.\n\n4. Contact Us\nIf you have questions about this policy, email us at {{email}}.",
     }),
   },
 ];

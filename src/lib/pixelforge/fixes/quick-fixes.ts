@@ -148,7 +148,7 @@ const fixMultipleH1: FixFn = ({ doc, syncHTML }) => {
     const h2 = doc.createElement("h2");
     // Move child nodes (preserves inner HTML: links, spans, images) — do NOT
     // set textContent first, that would destroy the children we're about to move.
-    while (h1s[i].firstChild) h2.appendChild(h1s[i].firstChild);
+    while (h1s[i].firstChild) h2.appendChild(h1s[i].firstChild as Node);
     // Copy attrs except tag
     for (const attr of Array.from(h1s[i].attributes)) {
       h2.setAttribute(attr.name, attr.value);
@@ -679,7 +679,7 @@ const fixExternalResources: FixFn = ({ doc, syncHTML }) => {
   const scripts = doc.querySelectorAll("script[src]");
   let fixed = 0;
   scripts.forEach((s) => {
-    if (!s.async && !s.defer) {
+    if (!(s as HTMLScriptElement).async && !(s as HTMLScriptElement).defer) {
       s.setAttribute("defer", "");
       fixed++;
     }
@@ -809,7 +809,7 @@ const fixScriptDefer: FixFn = ({ doc, syncHTML }) => {
   const scripts = doc.querySelectorAll("script[src]");
   let fixed = 0;
   scripts.forEach((s) => {
-    if (!s.async && !s.defer) {
+    if (!(s as HTMLScriptElement).async && !(s as HTMLScriptElement).defer) {
       s.setAttribute("defer", "");
       fixed++;
     }

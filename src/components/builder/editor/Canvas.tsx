@@ -1,6 +1,7 @@
 "use client";
 
 import { useBuilder, useCurrentPage } from "@/lib/builder/store/builder-store";
+import { getSectionType } from "@/lib/builder/sections/registry";
 import { SectionRenderer } from "../sections/SectionRenderer";
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -18,7 +19,7 @@ export function BuilderCanvas() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const handleCanvasClick = (e: React.MouseEvent) => { if (e.target === e.currentTarget) selectSection(null); };
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); const kind = e.dataTransfer.getData("application/x-section-kind"); if (!kind) return; addSection(kind as SectionKind); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); const kind = e.dataTransfer.getData("application/x-section-kind"); if (!kind || !getSectionType(kind as SectionKind)) return; addSection(kind as SectionKind); };
 
   if (!page) {
     return (<div className="grid h-full place-items-center bg-slate-100"><div className="text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-slate-200 text-slate-400"><MousePointerClick className="h-6 w-6" /></div><p className="mt-3 text-sm font-medium text-slate-600">No page selected</p><p className="mt-1 text-xs text-slate-400">Add a page from the top bar to get started.</p></div></div>);

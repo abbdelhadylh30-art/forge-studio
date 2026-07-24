@@ -129,7 +129,7 @@ export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelPro
   const grouped: SeverityFilter = {
     errors: issues.filter((i) => i.severity === "error"),
     warnings: issues.filter((i) => i.severity === "warning"),
-    info: issues.filter((i) => i.severity === "info" || i.severity === "good"),
+    info: issues.filter((i) => i.severity !== "error" && i.severity !== "warning"),
   };
   const filteredIssues = severityFilter === "all" ? issues : grouped[severityFilter];
 

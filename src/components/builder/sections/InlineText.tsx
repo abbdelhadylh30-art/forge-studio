@@ -17,7 +17,6 @@ interface InlineTextProps {
   style?: React.CSSProperties;
   placeholder?: string;
   multiline?: boolean;
-  onInput?: (v: string) => void;
 }
 
 export function InlineText({
@@ -28,7 +27,6 @@ export function InlineText({
   style,
   placeholder,
   multiline = false,
-  onInput,
 }: InlineTextProps) {
   const ctx = useContext(SectionEditContext);
   const [editing, setEditing] = useState(false);
@@ -83,6 +81,7 @@ export function InlineText({
         ref={ref as React.Ref<any>}
         contentEditable
         suppressContentEditableWarning
+        aria-multiline={multiline ? "true" : undefined}
         onBlur={commit}
         onKeyDown={handleKeyDown}
         className={className}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useBuilder, useSelectedSection } from "@/lib/builder/store/builder-store";
-import { getSectionType } from "@/lib/builder/sections/registry";
+import { getSectionType, uid } from "@/lib/builder/sections/registry";
 import type { FieldSchema } from "@/lib/builder/sections/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -111,7 +111,7 @@ function renderField(field: FieldSchema, value: any, onChange: (v: any) => void,
     case "text": return <Input id={fieldId} value={value ?? ""} placeholder={field.placeholder} onChange={(e) => onChange(e.target.value)} className="h-8 text-sm" />;
     case "textarea": return <Textarea id={fieldId} value={value ?? ""} placeholder={field.placeholder} onChange={(e) => onChange(e.target.value)} rows={3} className="text-sm" />;
     case "color": return (<div className="flex items-center gap-2"><div className="relative"><input type="color" value={value ?? "#000000"} onChange={(e) => onChange(e.target.value)} className="h-8 w-10 cursor-pointer rounded border border-slate-200 p-1" /></div><Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="h-8 text-sm font-mono" /></div>);
-    case "number": return <Input type="number" value={value ?? 0} min={field.min} max={field.max} step={field.step} onChange={(e) => onChange(Number(e.target.value))} className="h-8 text-sm" />;
+    case "number": return <Input type="number" value={value ?? ""} min={field.min} max={field.max} step={field.step} onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))} className="h-8 text-sm" />;
     case "boolean": return (<div className="flex items-center gap-2 py-1"><Switch id={fieldId} checked={!!value} onCheckedChange={onChange} /><span className="text-xs text-slate-500">{value ? "Enabled" : "Disabled"}</span></div>);
     case "select": return (<Select value={String(value ?? "")} onValueChange={onChange}><SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select…" /></SelectTrigger><SelectContent>{field.options?.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent></Select>);
     case "image": return (<div className="space-y-1.5"><Input value={value ?? ""} placeholder="https://…" onChange={(e) => onChange(e.target.value)} className="h-8 text-sm" />{value && (<div className="relative h-16 w-full overflow-hidden rounded border border-slate-200 bg-slate-50"><img src={value} alt="" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} /></div>)}</div>);
@@ -130,7 +130,7 @@ function ListFieldEditor({ field, sectionId }: { field: FieldSchema; sectionId: 
   const items = Array.isArray(value) ? value : [];
   const maxItems = field.maxItems ?? 20;
   const updateItem = (idx: number, key: string, v: any) => update(sectionId, { [field.key]: items.map((it, i) => (i === idx ? { ...it, [key]: v } : it)) });
-  const addItem = () => { const newItem: Record<string, any> = {}; field.itemSchema?.forEach((f) => { newItem[f.key] = f.type === "boolean" ? false : f.type === "list" ? [] : ""; }); update(sectionId, { [field.key]: [...items, newItem] }); };
+  const addItem = () => { const newItem: Record<string, any> = { __listId: uid() }; field.itemSchema?.forEach((f) => { newItem[f.key] = f.type === "boolean" ? false : f.type === "list" ? [] : ""; }); update(sectionId, { [field.key]: [...items, newItem] }); };
   const removeItem = (idx: number) => update(sectionId, { [field.key]: items.filter((_, i) => i !== idx) });
   const moveItem = (idx: number, dir: -1 | 1) => { const target = idx + dir; if (target < 0 || target >= items.length) return; const next = [...items]; [next[idx], next[target]] = [next[target], next[idx]]; update(sectionId, { [field.key]: next }); };
   return (
@@ -139,7 +139,7 @@ function ListFieldEditor({ field, sectionId }: { field: FieldSchema; sectionId: 
       <Separator />
       <div className="space-y-2">
         {items.map((item, idx) => (
-          <div key={idx} className="space-y-2 rounded-md border border-slate-200 bg-slate-50/60 p-2" style={{ animation: "pfFadeInUp 0.2s ease both" }}>
+          <div key={item.__listId || `item-${idx}`} className="space-y-2 rounded-md border border-slate-200 bg-slate-50/60 p-2" style={{ animation: "pfFadeInUp 0.2s ease both" }}>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Item {idx + 1}</span>
               <div className="flex gap-0.5">
