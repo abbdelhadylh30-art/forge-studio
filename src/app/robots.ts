@@ -1,17 +1,12 @@
-import { NextRequest } from "next/server";
+import type { MetadataRoute } from "next";
 
-export async function GET(req: NextRequest) {
-  const origin = req.nextUrl.origin;
-  const body = `User-agent: *
-Allow: /
-Disallow: /api/
-
-Sitemap: ${origin}/sitemap.xml
-`;
-  return new Response(body, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "public, max-age=86400",
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: ["/api/"],
     },
-  });
+    sitemap: "/sitemap.xml",
+  };
 }
