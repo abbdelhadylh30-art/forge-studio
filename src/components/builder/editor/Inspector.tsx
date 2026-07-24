@@ -119,12 +119,18 @@ function renderField(field: FieldSchema, value: any, onChange: (v: any) => void,
   }
 }
 
+// Stable empty array reference — prevents infinite re-renders in Zustand
+// selectors when the value is undefined (e.g., nested lists with composite
+// sectionIds that don't match any real section).
+const EMPTY_ARRAY: readonly any[] = Object.freeze([]);
+
 function ListFieldEditor({ field, sectionId }: { field: FieldSchema; sectionId: string }) {
   const value = useBuilder((s) => {
     const pageId = s.currentPageId || s.site.pages[0]?.id;
     const page = s.site.pages.find((p) => p.id === pageId);
     const sec = page?.sections.find((x) => x.id === sectionId);
-    return (sec?.config?.[field.key] as any[]) ?? [];
+    const v = sec?.config?.[field.key] as any[];
+    return Array.isArray(v) ? v : EMPTY_ARRAY;
   });
   const update = useBuilder((s) => s.updateSectionConfig);
   const items = Array.isArray(value) ? value : [];
