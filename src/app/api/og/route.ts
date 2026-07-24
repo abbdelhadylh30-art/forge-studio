@@ -4,7 +4,6 @@
  */
 
 import { NextRequest } from "next/server";
-import sharp from "sharp";
 
 const W = 1200, H = 630;
 
@@ -32,6 +31,7 @@ export async function GET(req: NextRequest) {
 </svg>`;
 
   try {
+    const { default: sharp } = await import("sharp");
     const png = await sharp(Buffer.from(svg)).png().toBuffer();
     return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400, immutable" } });
   } catch (e) {

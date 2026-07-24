@@ -8,7 +8,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sanitizeFilename } from "@/lib/security/sanitize";
 import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
-import sharp from "sharp";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
@@ -32,6 +31,7 @@ export async function POST(req: NextRequest) {
     if (file.size > MAX_FILE_SIZE) return NextResponse.json({ error: "File too large (5 MB max)." }, { status: 413 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const { default: sharp } = await import("sharp");
     const processed = await sharp(buffer).rotate().resize(2000, 2000, { fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
     const baseName = sanitizeFilename(file.name.replace(/\.[^.]+$/, ""), "upload");
     const fileName = `${baseName}-${Date.now()}.webp`;
