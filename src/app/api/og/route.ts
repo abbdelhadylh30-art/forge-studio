@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const png = await sharp(Buffer.from(svg)).png().toBuffer();
-    return new Response(png, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400, immutable" } });
+    return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400, immutable" } });
   } catch (e) {
     console.error("[og] Error:", e);
     return new Response("Error generating image", { status: 500 });
