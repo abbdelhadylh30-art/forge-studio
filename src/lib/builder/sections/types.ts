@@ -8,7 +8,9 @@ import type { LucideIcon } from "lucide-react";
 
 export type SectionKind =
   | "navbar" | "hero" | "logocloud" | "features" | "stats" | "gallery"
-  | "testimonials" | "pricing" | "faq" | "cta" | "newsletter" | "footer";
+  | "testimonials" | "pricing" | "faq" | "cta" | "newsletter" | "footer"
+  | "announcement" | "problem" | "solution" | "video" | "comparison"
+  | "guarantee" | "contactform" | "legal";
 
 export interface FieldSchema {
   key: string;

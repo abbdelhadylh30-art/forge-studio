@@ -12,7 +12,7 @@ import {
   LayoutTemplate, Sparkles, Images, Star,
   type LucideIcon, ArrowLeft, Monitor, Tablet, Smartphone,
   Undo2, Redo2, Download, Palette, PanelLeft, PanelRight,
-  ShieldCheck, Search, Plus, RotateCcw, MoreVertical,
+  ShieldCheck, Search, Plus, RotateCcw, MoreVertical, Eye, History, Command as CommandIcon,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -33,6 +33,7 @@ import { ExportDialog } from "./ExportDialog";
 import { ThemeDialog } from "./ThemeDialog";
 import { SaveStatusBadge } from "./SaveStatusBadge";
 import { LayerPanel } from "./LayerPanel";
+import { VersionHistoryDialog } from "./VersionHistoryDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { clearBuilderAutosave, blankSite } from "@/lib/builder/store/builder-store";
 
@@ -54,6 +55,9 @@ export function BuilderTopBar() {
   const [addPageOpen, setAddPageOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const previewMode = useBuilder((s) => s.previewMode);
+  const setPreviewMode = useBuilder((s) => s.setPreviewMode);
   const [newPageName, setNewPageName] = useState("");
 
   const handleAddPage = () => {
@@ -241,6 +245,28 @@ export function BuilderTopBar() {
               <SaveStatusBadge />
             </div>
 
+            {/* Preview + Version History — desktop only */}
+            <div className="hidden md:flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs" onClick={() => setPreviewMode(!previewMode)} aria-pressed={previewMode}>
+                    <Eye className="h-3.5 w-3.5" />
+                    <span className="hidden lg:inline">{previewMode ? "Exit preview" : "Preview"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Preview mode (Ctrl+P)</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs" onClick={() => setVersionHistoryOpen(true)}>
+                    <History className="h-3.5 w-3.5" />
+                    <span className="hidden lg:inline">Versions</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Version history</TooltipContent>
+              </Tooltip>
+            </div>
+
             {/* Desktop: Audit + Export */}
             <div className="hidden sm:flex items-center gap-1">
               <div className="mx-1 h-6 w-px bg-slate-200" />
@@ -269,6 +295,7 @@ export function BuilderTopBar() {
 
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
       <ThemeDialog open={themeDialogOpen} onOpenChange={setThemeDialogOpen} />
+      <VersionHistoryDialog open={versionHistoryOpen} onOpenChange={setVersionHistoryOpen} />
 
       {/* Add Page dialog (replaces browser prompt()) */}
       <Dialog open={addPageOpen} onOpenChange={setAddPageOpen}>

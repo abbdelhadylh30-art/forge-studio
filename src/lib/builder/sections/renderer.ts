@@ -84,6 +84,7 @@ function renderSection(section: SectionInstance, theme: ThemeTokens): string {
     case "comparison": return renderComparison(c, theme);
     case "guarantee": return renderGuarantee(c, theme);
     case "contactform": return renderContactForm(c, theme);
+    case "legal": return renderLegal(c, theme);
     default: return "";
   }
 }
@@ -222,4 +223,11 @@ function renderGuarantee(c: any, t: ThemeTokens): string {
 
 function renderContactForm(c: any, t: ThemeTokens): string {
   return `<section class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-2xl">${(c.title || c.subtitle) ? `<div class="mb-8 text-center">${c.title ? `<h2 class="mb-3 text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div>` : ""}<div class="rounded-xl border p-8" style="border-color:${t.border};border-radius:${t.radius}"><form class="flex flex-col gap-4" onsubmit="event.preventDefault()"><div><label class="mb-1 block text-xs font-medium" style="color:${t.foreground}">${escapeHtml(c.nameLabel || "Name")}</label><input type="text" class="w-full rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}" /></div><div><label class="mb-1 block text-xs font-medium" style="color:${t.foreground}">${escapeHtml(c.emailLabel || "Email")}</label><input type="email" class="w-full rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}" /></div><div><label class="mb-1 block text-xs font-medium" style="color:${t.foreground}">${escapeHtml(c.messageLabel || "Message")}</label><textarea rows="4" class="w-full rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}"></textarea></div><button type="submit" class="inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(c.buttonLabel || "Send")}</button></form></div></div></section>`;
+}
+
+function renderLegal(c: any, t: ThemeTokens): string {
+  const replacePlaceholders = (text: string) => text.replace(/\{\{company\}\}/g, c.companyName || "the Company").replace(/\{\{email\}\}/g, c.contactEmail || "support@example.com").replace(/\{\{date\}\}/g, c.lastUpdated || new Date().toISOString().split("T")[0]);
+  const paragraphs = (c.content || "").split("\n").filter(Boolean).map(replacePlaceholders);
+  const paraHtml = paragraphs.map((p: string) => `<p class="text-sm leading-relaxed" style="color:${t.foreground}">${escapeHtml(p)}</p>`).join("\n");
+  return `<section class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-3xl"><div class="mb-8">${c.title ? `<h1 class="mb-2 text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h1>` : ""}${c.lastUpdated ? `<p class="text-sm" style="color:${t.mutedFg}">Last updated: ${escapeHtml(c.lastUpdated)}</p>` : ""}</div><div class="space-y-4">${paraHtml}</div>${c.contactEmail ? `<div class="mt-10 border-t pt-6" style="border-color:${t.border}"><p class="text-sm" style="color:${t.mutedFg}">Questions? Email us at <a href="mailto:${escapeHtml(c.contactEmail)}" class="font-semibold underline" style="color:${t.accent}">${escapeHtml(c.contactEmail)}</a></p></div>` : ""}</div></section>`;
 }

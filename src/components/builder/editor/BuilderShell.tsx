@@ -4,13 +4,15 @@ import { useBuilder, consumeBuilderAutosave } from "@/lib/builder/store/builder-
 import { BuilderTopBar, SectionLibrary } from "./TopBar";
 import { BuilderCanvas } from "./Canvas";
 import { BuilderInspector } from "./Inspector";
+import { CommandPalette } from "./CommandPalette";
+import { PreviewModeBanner } from "./PreviewModeBanner";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
 import { TEMPLATES, buildSiteFromTemplate } from "@/lib/builder/templates/templates";
 import { useForge } from "@/lib/forge/store";
 
 export function BuilderShell() {
-  const { libraryOpen, inspectorOpen, undo, redo, selectSection, site, loadSite, currentPageId, setCurrentPageId, setLibraryOpen, setInspectorOpen, selectedSectionId, copySection, pasteSection } = useBuilder();
+  const { libraryOpen, inspectorOpen, undo, redo, selectSection, site, loadSite, currentPageId, setCurrentPageId, setLibraryOpen, setInspectorOpen, selectedSectionId, copySection, pasteSection, previewMode, setPreviewMode } = useBuilder();
   const { consumeTransfer } = useForge();
   const didInit = useRef(false);
 
@@ -46,7 +48,9 @@ export function BuilderShell() {
       else if (meta && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
       else if (meta && e.key.toLowerCase() === "c" && selectedSectionId) { e.preventDefault(); copySection(selectedSectionId); }
       else if (meta && e.key.toLowerCase() === "v") { e.preventDefault(); pasteSection(selectedSectionId ?? undefined); }
+      else if (meta && e.key.toLowerCase() === "p") { e.preventDefault(); setPreviewMode(!previewMode); }
       else if (e.key === "Escape") {
+        if (previewMode) { setPreviewMode(false); return; }
         if (libraryOpen) { setLibraryOpen(false); return; }
         if (inspectorOpen) { setInspectorOpen(false); return; }
         selectSection(null);
@@ -54,7 +58,18 @@ export function BuilderShell() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo, selectSection, libraryOpen, inspectorOpen, setLibraryOpen, setInspectorOpen, selectedSectionId, copySection, pasteSection]);
+  }, [undo, redo, selectSection, libraryOpen, inspectorOpen, setLibraryOpen, setInspectorOpen, selectedSectionId, copySection, pasteSection, previewMode, setPreviewMode]);
+
+  // Preview mode: hide all chrome, show only the canvas full-width
+  if (previewMode) {
+    return (
+      <div className="flex h-screen flex-col bg-white overflow-hidden">
+        <PreviewModeBanner />
+        <main className="flex-1 overflow-hidden pt-7"><BuilderCanvas /></main>
+        <CommandPalette />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col bg-slate-100 overflow-hidden">
@@ -92,6 +107,7 @@ export function BuilderShell() {
           </>
         )}
       </div>
+      <CommandPalette />
     </div>
   );
 }

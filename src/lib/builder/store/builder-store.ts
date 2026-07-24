@@ -134,6 +134,16 @@ interface BuilderState {
   device: DeviceMode;
   setDevice: (d: DeviceMode) => void;
 
+  /** Preview mode hides all editor chrome — shows the page as it'll look when published. */
+  previewMode: boolean;
+  setPreviewMode: (b: boolean) => void;
+
+  /** Named version snapshots (Phase 4). */
+  versions: { id: string; name: string; timestamp: number; site: SiteData }[];
+  saveVersion: (name: string) => void;
+  restoreVersion: (id: string) => void;
+  deleteVersion: (id: string) => void;
+
   inspectorOpen: boolean;
   libraryOpen: boolean;
   setInspectorOpen: (b: boolean) => void;
@@ -192,6 +202,25 @@ export const useBuilder = create<BuilderState>((set, get) => ({
 
   device: "desktop",
   setDevice: (d) => set({ device: d }),
+
+  previewMode: false,
+  setPreviewMode: (b) => set({ previewMode: b, selectedSectionId: null }),
+
+  versions: [],
+  saveVersion: (name) => {
+    const { site, versions } = get();
+    const v = { id: uuid(), name: name || `Version ${versions.length + 1}`, timestamp: Date.now(), site: clone(site) };
+    set({ versions: [...versions, v].slice(-20) }); // keep last 20
+  },
+  restoreVersion: (id) => {
+    const { versions } = get();
+    const v = versions.find((x) => x.id === id);
+    if (!v) return;
+    get()._commit(clone(v.site));
+  },
+  deleteVersion: (id) => {
+    set((s) => ({ versions: s.versions.filter((v) => v.id !== id) }));
+  },
 
   inspectorOpen: true,
   libraryOpen: true,

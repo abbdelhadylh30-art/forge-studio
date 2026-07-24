@@ -614,3 +614,34 @@ export function ContactForm({ config, theme }: { config: any; theme: Theme }) {
     </section>
   );
 }
+
+export function Legal({ config, theme }: { config: any; theme: Theme }) {
+  const c = config;
+  const replacePlaceholders = (text: string) => {
+    return text
+      .replace(/\{\{company\}\}/g, c.companyName || "the Company")
+      .replace(/\{\{email\}\}/g, c.contactEmail || "support@example.com")
+      .replace(/\{\{date\}\}/g, c.lastUpdated || new Date().toISOString().split("T")[0]);
+  };
+  const paragraphs = (c.content || "").split("\n").filter(Boolean).map(replacePlaceholders);
+  return (
+    <section className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8">
+          {c.title && <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h1>}
+          {c.lastUpdated && <p className="text-sm" style={{ color: theme.mutedFg }}>Last updated: {c.lastUpdated}</p>}
+        </div>
+        <div className="space-y-4">
+          {paragraphs.map((p: string, i: number) => (
+            <p key={i} className="text-sm leading-relaxed" style={{ color: theme.foreground }}>{p}</p>
+          ))}
+        </div>
+        {c.contactEmail && (
+          <div className="mt-10 border-t pt-6" style={{ borderColor: theme.border }}>
+            <p className="text-sm" style={{ color: theme.mutedFg }}>Questions? Email us at <a href={`mailto:${c.contactEmail}`} className="font-semibold underline" style={{ color: theme.accent }}>{c.contactEmail}</a></p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

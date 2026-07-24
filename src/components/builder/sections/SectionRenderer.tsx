@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { themeToInlineStyle } from "@/lib/builder/sections/theme-utils";
 import type { SectionInstance, ThemeTokens } from "@/lib/builder/sections/types";
 import { useBuilder } from "@/lib/builder/store/builder-store";
-import { Navbar, Hero, LogoCloud, Features, Stats, Gallery, Testimonials, Pricing, Faq, Cta, Newsletter, Footer, Announcement, Problem, Solution, VideoSection, Comparison, Guarantee, ContactForm } from "./AllSections";
+import { Navbar, Hero, LogoCloud, Features, Stats, Gallery, Testimonials, Pricing, Faq, Cta, Newsletter, Footer, Announcement, Problem, Solution, VideoSection, Comparison, Guarantee, ContactForm, Legal } from "./AllSections";
 import { SectionEditContext } from "./InlineText";
 
 export function SectionRenderer({ section, theme, editable, selected, onSelect }: {
@@ -57,6 +57,7 @@ export function SectionRenderer({ section, theme, editable, selected, onSelect }
       case "comparison": return <Comparison config={section.config} theme={theme} />;
       case "guarantee": return <Guarantee config={section.config} theme={theme} />;
       case "contactform": return <ContactForm config={section.config} theme={theme} />;
+      case "legal": return <Legal config={section.config} theme={theme} />;
       default: return <div className="p-8 text-center" style={{ color: theme.mutedFg }}>Unknown section: {section.kind}</div>;
     }
   })();

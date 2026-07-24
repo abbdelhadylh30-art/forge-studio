@@ -382,6 +382,25 @@ export const SECTION_TYPES: SectionType[] = [
     ],
     defaultConfig: () => ({ title: "Get in touch", subtitle: "Have a question? We'll get back to you within 24 hours.", nameLabel: "Name", emailLabel: "Email", messageLabel: "Message", buttonLabel: "Send message", variant: "centered" }),
   },
+  {
+    kind: "legal", label: "Legal", description: "Privacy policy, terms, or refund policy with templated content",
+    icon: ShieldCheck, category: "structure",
+    schema: [
+      { key: "title", label: "Title", type: "text", placeholder: "Privacy Policy" },
+      { key: "lastUpdated", label: "Last updated date", type: "text", placeholder: "2026-07-24" },
+      { key: "variant", label: "Type", type: "select", options: [
+        { label: "Privacy Policy", value: "privacy" }, { label: "Terms of Service", value: "terms" }, { label: "Refund Policy", value: "refund" }, { label: "Custom", value: "custom" },
+      ]},
+      { key: "companyName", label: "Company name (used in placeholders)", type: "text", placeholder: "Acme Inc." },
+      { key: "contactEmail", label: "Contact email", type: "text", placeholder: "legal@acme.com" },
+      { key: "content", label: "Body content (supports {{company}}, {{email}}, {{date}} placeholders)", type: "textarea" },
+    ],
+    defaultConfig: () => ({
+      title: "Privacy Policy", lastUpdated: "2026-07-24", variant: "privacy",
+      companyName: "Acme Inc.", contactEmail: "legal@acme.com",
+      content: "This Privacy Policy describes how {{company}} (\"we\", \"us\", or \"our\") collects, uses, and shares your information when you use our website or services.\n\n1. Information We Collect\nWe collect information you provide directly to us, such as your name and email address.\n\n2. How We Use Your Information\nWe use your information to provide, improve, and personalize our services.\n\n3. Sharing Your Information\nWe do not sell your personal information to third parties.\n\n4. Contact Us\nIf you have questions about this policy, email us at {{email}}.",
+    }),
+  },
 ];
 
 export const SECTION_MAP: Record<SectionKind, SectionType> = SECTION_TYPES.reduce((acc, t) => {
