@@ -20,7 +20,20 @@ export function renderSiteHTML(site: SiteData, page: PageData): string {
   const js = extractJs();
   // Filter out hidden sections — they should not appear in exported HTML.
   const visibleSections = page.sections.filter((s) => !(s.config as Record<string, unknown>)?.__hidden);
-  const body = visibleSections.map((s) => renderSection(s, site.themeTokens)).join("\n");
+  // Build body with wave dividers between sections that have different backgrounds
+  const bodyParts: string[] = [];
+  for (let i = 0; i < visibleSections.length; i++) {
+    bodyParts.push(renderSection(visibleSections[i], site.themeTokens));
+    // Add wave divider between sections if the next section exists
+    if (i < visibleSections.length - 1) {
+      const nextBg = getSectionBackground(visibleSections[i + 1], site.themeTokens);
+      const curBg = getSectionBackground(visibleSections[i], site.themeTokens);
+      if (nextBg !== curBg) {
+        bodyParts.push(renderWaveDivider(nextBg));
+      }
+    }
+  }
+  const body = bodyParts.join("\n");
   const title = page.seo?.title || `${site.name} — ${page.name}`;
   const description = page.seo?.description || site.description || "";
   return `<!DOCTYPE html>
@@ -47,6 +60,8 @@ export function renderSiteHTML(site: SiteData, page: PageData): string {
   <div class="lf-blob lf-blob-2"></div>
   <div class="lf-blob lf-blob-3"></div>
 </div>
+<!-- Noise texture overlay — prevents "digital smoothness", adds tactility -->
+<div class="lf-noise"></div>
 ${body}
 <!-- Forge Studio scroll animations + interactions -->
 <script>${js}</script>
@@ -98,9 +113,7 @@ header.lf-scrolled{box-shadow:0 1px 3px rgba(0,0,0,0.05),0 10px 30px -10px rgba(
 .lf-card{background:color-mix(in srgb,var(--lf-bg) 80%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid color-mix(in srgb,var(--lf-border) 50%,transparent);transition:transform .3s cubic-bezier(0.4,0,0.2,1),box-shadow .3s ease}
 .lf-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px -12px rgba(0,0,0,0.12),0 8px 16px -4px rgba(0,0,0,0.06)}
 
-/* ─── Hero image float ─── */
-.lf-hero-img{transform:perspective(1000px) rotateY(-2deg) rotateX(1deg);transition:transform .6s ease}
-.lf-hero-img:hover{transform:perspective(1000px) rotateY(0) rotateX(0)}
+/* ─── Hero image mouse-tracking 3D tilt (see also below) ─── */
 
 /* ─── Scroll entrance animations ─── */
 .lf-reveal{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(0.4,0,0.2,1),transform .6s cubic-bezier(0.4,0,0.2,1)}
@@ -122,21 +135,39 @@ header.lf-scrolled{box-shadow:0 1px 3px rgba(0,0,0,0.05),0 10px 30px -10px rgba(
 /* ─── Smooth link underline ─── */
 .lf-link{position:relative}
 .lf-link::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:var(--lf-accent);transition:width .3s ease}
-.lf-link:hover::after{width:100%}`;
+.lf-link:hover::after{width:100%}
+
+/* ─── Noise texture overlay ─── */
+.lf-noise{position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ─── Section wave dividers ─── */
+.lf-divider{position:relative;height:60px;overflow:hidden}
+.lf-divider svg{position:absolute;bottom:0;left:0;width:100%;height:100%}
+.lf-divider-top{margin-bottom:-1px}
+.lf-divider-bottom{margin-top:-1px;transform:rotate(180deg)}
+
+/* ─── Hero image mouse-tracking 3D tilt ─── */
+.lf-hero-tilt{perspective:1000px}
+.lf-hero-img{transform-style:preserve-3d;transition:transform .4s cubic-bezier(0.4,0,0.2,1);will-change:transform}
+
+/* ─── Stat count-up ─── */
+.lf-stat-value{font-variant-numeric:tabular-nums}`;
 }
 
 function extractJs(): string {
-  // Scroll-triggered reveal animations + navbar scroll shadow.
-  // Uses Intersection Observer — no dependencies, ~1KB.
+  // Scroll-triggered reveal animations + navbar scroll shadow +
+  // mouse-tracking 3D tilt on hero image + count-up on stats.
+  // Uses Intersection Observer — no dependencies, ~2KB.
   return `(function(){
-  // Navbar scroll shadow
+  // ─── Navbar scroll shadow ───
   var header = document.querySelector('header');
   if(header){
     var onScroll = function(){ if(window.scrollY > 10){ header.classList.add('lf-scrolled'); } else { header.classList.remove('lf-scrolled'); } };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
   }
-  // Scroll reveal — add .lf-reveal to elements, .lf-visible when in viewport
+
+  // ─── Scroll reveal ───
   var reveals = document.querySelectorAll('.lf-reveal, .lf-reveal-stagger');
   if(reveals.length && 'IntersectionObserver' in window){
     var io = new IntersectionObserver(function(entries){
@@ -146,14 +177,97 @@ function extractJs(): string {
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
     reveals.forEach(function(el){ io.observe(el); });
   } else {
-    // Fallback: just show everything
     reveals.forEach(function(el){ el.classList.add('lf-visible'); });
+  }
+
+  // ─── Mouse-tracking 3D tilt on hero image ───
+  var tiltContainer = document.querySelector('.lf-hero-tilt');
+  var tiltImg = document.querySelector('.lf-hero-img');
+  if(tiltContainer && tiltImg && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    var maxTilt = 8; // max degrees
+    tiltContainer.addEventListener('mousemove', function(e){
+      var rect = tiltContainer.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      var rotateY = ((x / rect.width) - 0.5) * 2 * maxTilt;
+      var rotateX = -((y / rect.height) - 0.5) * 2 * maxTilt;
+      tiltImg.style.transform = 'perspective(1000px) rotateY(' + rotateY + 'deg) rotateX(' + rotateX + 'deg)';
+    });
+    tiltContainer.addEventListener('mouseleave', function(){
+      tiltImg.style.transform = 'perspective(1000px) rotateY(-2deg) rotateX(1deg)';
+    });
+  }
+
+  // ─── Stat count-up animation ───
+  var stats = document.querySelectorAll('.lf-stat-value[data-count]');
+  if(stats.length && 'IntersectionObserver' in window){
+    var statIo = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(!e.isIntersecting) return;
+        statIo.unobserve(e.target);
+        var el = e.target;
+        var target = el.getAttribute('data-count');
+        var prefix = el.getAttribute('data-prefix') || '';
+        var suffix = el.getAttribute('data-suffix') || '';
+        // If target is not a pure number, just show it (e.g. "4.9/5", "Custom")
+        var num = parseFloat(target);
+        if(isNaN(num) || target.length > 6){ el.textContent = target; return; }
+        var duration = 1500;
+        var startTime = null;
+        function animate(ts){
+          if(!startTime) startTime = ts;
+          var progress = Math.min((ts - startTime) / duration, 1);
+          // Ease out cubic
+          var eased = 1 - Math.pow(1 - progress, 3);
+          var current = num * eased;
+          // Format: if target had decimals, preserve them
+          var decimals = (target.split('.')[1] || '').length;
+          el.textContent = prefix + current.toFixed(decimals) + suffix;
+          if(progress < 1) requestAnimationFrame(animate);
+        }
+        if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+          el.textContent = target;
+        } else {
+          el.textContent = '0';
+          requestAnimationFrame(animate);
+        }
+      });
+    }, { threshold: 0.5 });
+    stats.forEach(function(el){ statIo.observe(el); });
   }
 })();`;
 }
 
 function escapeHtml(s: unknown): string {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/** Get the background color a section will use, for wave divider color matching. */
+function getSectionBackground(section: SectionInstance, t: ThemeTokens): string {
+  const c = section.config as any;
+  // Sections that use muted background
+  const mutedSections = ["stats", "testimonials", "newsletter", "problem", "comparison", "guarantee"];
+  if (mutedSections.includes(section.kind)) return t.muted;
+  // CTA uses its variant background
+  if (section.kind === "cta") {
+    if (c.variant === "gradient") return `linear-gradient(135deg, ${t.primary} 0%, ${t.accent} 100%)`;
+    if (c.variant === "muted") return t.muted;
+    return t.primary;
+  }
+  // Announcement uses custom bg
+  if (section.kind === "announcement") return c.bgColor || t.primary;
+  // Hero variants
+  if (section.kind === "hero" && c.variant === "gradient") return `linear-gradient(135deg, ${t.primary} 0%, ${t.accent} 100%)`;
+  if (section.kind === "hero" && c.variant === "card") return t.muted;
+  // Default: theme background
+  return t.background;
+}
+
+/** Render a wave SVG divider in the color of the NEXT section. */
+function renderWaveDivider(nextBg: string): string {
+  // If it's a gradient, just use a flat color (gradients can't be in SVG fill easily)
+  const bg = nextBg.startsWith("linear-gradient") ? "var(--lf-bg)" : nextBg;
+  return `<div class="lf-divider lf-divider-bottom" style="background:transparent"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,30 C480,60 960,0 1440,30 L1440,60 L0,60 Z" fill="${bg}"/></svg></div>`;
 }
 
 function renderSection(section: SectionInstance, theme: ThemeTokens): string {
@@ -210,7 +324,7 @@ function renderHero(c: any, t: ThemeTokens): string {
   </div>`;
   return `<section class="px-6 py-20 sm:py-32" style="background:${t.background}">
     <div class="mx-auto max-w-6xl">
-      ${isSplit ? `<div class="grid items-center gap-12 md:grid-cols-2">${text}${c.imageUrl ? `<div class="lf-reveal"><img src="${escapeHtml(c.imageUrl)}" alt="" class="lf-hero-img w-full rounded-xl shadow-2xl" style="border-radius:${t.radius}" /></div>` : `<div class="lf-reveal grid aspect-video w-full place-items-center rounded-xl shadow-xl" style="background:${t.muted};border-radius:${t.radius}"><span class="text-sm" style="color:${t.mutedFg}">Image placeholder</span></div>`}</div>` : `<div class="flex flex-col items-center text-center">${text}</div>`}
+      ${isSplit ? `<div class="grid items-center gap-12 md:grid-cols-2">${text}${c.imageUrl ? `<div class="lf-reveal lf-hero-tilt"><img src="${escapeHtml(c.imageUrl)}" alt="" class="lf-hero-img w-full rounded-xl shadow-2xl" style="border-radius:${t.radius}" /></div>` : `<div class="lf-reveal grid aspect-video w-full place-items-center rounded-xl shadow-xl" style="background:${t.muted};border-radius:${t.radius}"><span class="text-sm" style="color:${t.mutedFg}">Image placeholder</span></div>`}</div>` : `<div class="flex flex-col items-center text-center">${text}</div>`}
     </div>
   </section>`;
 }
@@ -227,8 +341,24 @@ function renderFeatures(c: any, t: ThemeTokens): string {
 }
 
 function renderStats(c: any, t: ThemeTokens): string {
-  const stats = (c.stats || []).map((s: any) => `<div class="text-center"><div class="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl" style="color:${t.foreground}">${escapeHtml(s.value)}</div><div class="mt-2 text-sm font-medium" style="color:${t.mutedFg}">${escapeHtml(s.label)}</div></div>`).join("\n");
-  return `<section class="px-6 py-12" style="background:${t.muted}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-10 text-center text-2xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid grid-cols-2 gap-8 sm:grid-cols-4">${stats}</div></div></section>`;
+  const stats = (c.stats || []).map((s: any) => {
+    // Parse the value into a numeric part + prefix/suffix for count-up animation
+    // e.g. "10K+" → data-count="10" data-suffix="K+"
+    //      "47%" → data-count="47" data-suffix="%"
+    //      "4.9/5" → data-count="4.9" data-suffix="/5"
+    //      "5 min" → data-count="5" data-suffix=" min"
+    const val = String(s.value || "");
+    const match = val.match(/^([¥$€£]?)([\d.]+)(.*)$/);
+    let countAttr = "";
+    if (match) {
+      const prefix = match[1];
+      const num = match[2];
+      const suffix = match[3];
+      countAttr = ` data-count="${escapeHtml(num)}" data-prefix="${escapeHtml(prefix)}" data-suffix="${escapeHtml(suffix)}"`;
+    }
+    return `<div class="text-center lf-reveal"><div class="lf-stat-value text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl" style="color:${t.foreground};font-weight:600"${countAttr}>${escapeHtml(s.value)}</div><div class="mt-2 text-sm font-medium" style="color:${t.mutedFg}">${escapeHtml(s.label)}</div></div>`;
+  }).join("\n");
+  return `<section class="px-6 py-16 sm:py-24" style="background:${t.muted}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-12 text-center text-2xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid grid-cols-2 gap-8 sm:grid-cols-4">${stats}</div></div></section>`;
 }
 
 function renderGallery(c: any, t: ThemeTokens): string {
