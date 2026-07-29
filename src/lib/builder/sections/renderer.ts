@@ -1,7 +1,15 @@
 /**
  * Forge Studio — Builder: HTML Renderer
- * Server-side pure-string templating. Produces clean, dependency-free HTML
- * that can be exported as a standalone file OR sent to the auditor for scoring.
+ * Server-side pure-string templating. Produces clean HTML that can be
+ * exported as a standalone file OR sent to the auditor for scoring.
+ *
+ * Uses the Tailwind v4 browser bundle (@tailwindcss/browser) to generate
+ * all utility classes at runtime. This ensures the exported HTML looks
+ * pixel-identical to the editor preview — every Tailwind class the
+ * components use is available, no hand-maintained CSS subset to drift.
+ *
+ * The theme tokens (--lf-* variables) are still inlined so sections that
+ * reference them via inline styles keep working.
  */
 
 import type { PageData, SectionInstance, SiteData, ThemeTokens } from "./types";
@@ -21,6 +29,9 @@ export function renderSiteHTML(site: SiteData, page: PageData): string {
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}" />
 <meta name="generator" content="Forge Studio" />
+<!-- Tailwind v4 browser bundle — scans the DOM and generates all utility classes used -->
+<script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+<!-- Forge Studio theme tokens + base styles -->
 <style>\n${css}\n</style>
 </head>
 <body>
@@ -30,6 +41,8 @@ ${body}
 }
 
 function extractCss(t: ThemeTokens): string {
+  // Only theme tokens + base resets — all utility classes come from the
+  // Tailwind browser bundle now.
   return `:root{--lf-primary:${t.primary};--lf-primary-fg:${t.primaryFg};--lf-accent:${t.accent};--lf-accent-fg:${t.accentFg};--lf-bg:${t.background};--lf-fg:${t.foreground};--lf-muted:${t.muted};--lf-muted-fg:${t.mutedFg};--lf-border:${t.border};--lf-font:${t.font};--lf-font-heading:${t.fontHeading};--lf-radius:${t.radius}}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -37,27 +50,7 @@ body{font-family:var(--lf-font);color:var(--lf-fg);background:var(--lf-bg);line-
 a{color:inherit;text-decoration:none}
 img{max-width:100%;height:auto;display:block}
 button{font:inherit;cursor:pointer;border:none;background:none}
-.lf-section{width:100%}
-.mx-auto{margin-left:auto;margin-right:auto}
-.max-w-6xl{max-width:72rem}.max-w-5xl{max-width:64rem}.max-w-3xl{max-width:48rem}.max-w-2xl{max-width:42rem}.max-w-md{max-width:28rem}
-.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-12{padding-top:3rem;padding-bottom:3rem}.py-16{padding-top:4rem;padding-bottom:4rem}.py-24{padding-top:6rem;padding-bottom:6rem}
-.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mb-10{margin-bottom:2.5rem}.mb-12{margin-bottom:3rem}
-.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.mt-auto{margin-top:auto}
-.text-center{text-align:center}.text-sm{font-size:.875rem}.text-xs{font-size:.75rem}.text-base{font-size:1rem}.text-lg{font-size:1.125rem}.text-xl{font-size:1.25rem}.text-2xl{font-size:1.5rem}.text-3xl{font-size:1.875rem}.text-4xl{font-size:2.25rem}.text-5xl{font-size:3rem}
-.font-bold{font-weight:700}.font-semibold{font-weight:600}.font-medium{font-weight:500}
-.uppercase{text-transform:uppercase}.tracking-tight{letter-spacing:-.025em}.tracking-wider{letter-spacing:.05em}.leading-tight{line-height:1.2}.leading-relaxed{line-height:1.7}
-.rounded-md{border-radius:calc(var(--lf-radius) - 4px)}.rounded-xl{border-radius:var(--lf-radius)}.rounded-2xl{border-radius:calc(var(--lf-radius) + 4px)}.rounded-full{border-radius:9999px}
-.border{border:1px solid var(--lf-border)}.border-t{border-top:1px solid var(--lf-border)}.border-b{border-bottom:1px solid var(--lf-border)}
-.inline-flex{display:inline-flex}.flex{display:flex}.grid{display:grid}.hidden{display:none}
-.items-center{align-items:center}.items-start{align-items:flex-start}.items-baseline{align-items:baseline}.justify-between{justify-content:space-between}.justify-center{justify-content:center}
-.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}
-.gap-1{gap:.25rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.gap-10{gap:2.5rem}.gap-12{gap:3rem}
-.grid-cols-2{grid-template-columns:repeat(2,1fr)}.grid-cols-3{grid-template-columns:repeat(3,1fr)}.grid-cols-4{grid-template-columns:repeat(4,1fr)}
-.shadow-sm{box-shadow:0 1px 2px rgba(0,0,0,.05)}.shadow-lg{box-shadow:0 10px 30px -10px rgba(0,0,0,.15)}.shadow-xl{box-shadow:0 20px 40px -10px rgba(0,0,0,.2)}
-.transition-all{transition:all .2s ease}.hover\\:scale-105:hover{transform:scale(1.05)}.hover\\:opacity-70:hover{opacity:.7}
-.opacity-70{opacity:.7}.aspect-video{aspect-ratio:16/9}.object-cover{object-fit:cover}.overflow-hidden{overflow:hidden}
-.relative{position:relative}.sticky{position:sticky}.top-0{top:0}.z-30{z-index:30}
-@media(max-width:768px){.md\\:grid-cols-2,.md\\:grid-cols-3,.lg\\:grid-cols-3,.lg\\:grid-cols-4{grid-template-columns:1fr}.text-5xl{font-size:2.25rem}.text-4xl{font-size:1.75rem}.hidden{display:block}}`;
+.lf-section{width:100%}`;
 }
 
 function escapeHtml(s: unknown): string {
