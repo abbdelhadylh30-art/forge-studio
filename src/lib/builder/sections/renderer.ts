@@ -29,12 +29,16 @@ export function renderSiteHTML(site: SiteData, page: PageData): string {
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}" />
 <meta name="generator" content="Forge Studio" />
+<!-- Google Fonts — matches the fonts available in the editor -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <!-- Tailwind v4 browser bundle — scans the DOM and generates all utility classes used -->
 <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
 <!-- Forge Studio theme tokens + base styles -->
 <style>\n${css}\n</style>
 </head>
-<body>
+<body class="antialiased">
 ${body}
 </body>
 </html>`;
@@ -42,15 +46,22 @@ ${body}
 
 function extractCss(t: ThemeTokens): string {
   // Only theme tokens + base resets — all utility classes come from the
-  // Tailwind browser bundle now.
+  // Tailwind browser bundle now. We add heading font + a few polish rules.
   return `:root{--lf-primary:${t.primary};--lf-primary-fg:${t.primaryFg};--lf-accent:${t.accent};--lf-accent-fg:${t.accentFg};--lf-bg:${t.background};--lf-fg:${t.foreground};--lf-muted:${t.muted};--lf-muted-fg:${t.mutedFg};--lf-border:${t.border};--lf-font:${t.font};--lf-font-heading:${t.fontHeading};--lf-radius:${t.radius}}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:var(--lf-font);color:var(--lf-fg);background:var(--lf-bg);line-height:1.5;-webkit-font-smoothing:antialiased}
+body{font-family:var(--lf-font);color:var(--lf-fg);background:var(--lf-bg);line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 a{color:inherit;text-decoration:none}
 img{max-width:100%;height:auto;display:block}
 button{font:inherit;cursor:pointer;border:none;background:none}
-.lf-section{width:100%}`;
+.lf-section{width:100%}
+/* Apply heading font to all h1-h4 */
+h1,h2,h3,h4{font-family:var(--lf-font-heading)}
+/* Smooth transitions on interactive elements */
+a,button{transition:all .2s ease}
+/* Details/summary arrow removal for FAQ */
+summary::-webkit-details-marker{display:none}
+summary{list-style:none}`;
 }
 
 function escapeHtml(s: unknown): string {
@@ -102,16 +113,16 @@ function renderHero(c: any, t: ThemeTokens): string {
   const isSplit = c.variant !== "centered";
   const text = `<div class="flex flex-col gap-5 ${c.align === "center" ? "items-center text-center" : "items-start text-left"}">
     ${c.eyebrow ? `<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style="background:${t.muted};color:${t.mutedFg}">${escapeHtml(c.eyebrow)}</span>` : ""}
-    <h1 class="text-4xl font-bold leading-tight tracking-tight" style="color:${t.foreground};font-size:3rem">${escapeHtml(c.headline)}</h1>
-    ${c.subhead ? `<p class="text-base" style="color:${t.mutedFg};max-width:42rem">${escapeHtml(c.subhead)}</p>` : ""}
+    <h1 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style="color:${t.foreground}">${escapeHtml(c.headline)}</h1>
+    ${c.subhead ? `<p class="max-w-2xl text-base sm:text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subhead)}</p>` : ""}
     <div class="mt-2 flex flex-wrap gap-3 ${c.align === "center" ? "justify-center" : ""}">
-      ${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}
-      ${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="inline-flex items-center rounded-md border px-5 py-2.5 text-sm font-semibold" style="border-color:${t.border};color:${t.foreground}">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}
+      ${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}
+      ${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="inline-flex items-center rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors hover:opacity-80" style="border-color:${t.border};color:${t.foreground};background:transparent">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}
     </div>
   </div>`;
-  return `<section class="px-6 py-24" style="background:${t.background}">
+  return `<section class="px-6 py-16 sm:py-24" style="background:${t.background}">
     <div class="mx-auto max-w-6xl">
-      ${isSplit ? `<div class="grid items-center gap-12 md:grid-cols-2">${text}${c.imageUrl ? `<img src="${escapeHtml(c.imageUrl)}" alt="" class="w-full rounded-xl shadow-xl" />` : `<div class="aspect-video w-full rounded-xl" style="background:${t.muted};display:grid;place-items:center"><span style="color:${t.mutedFg}">Image placeholder</span></div>`}</div>` : `<div class="flex flex-col items-center text-center">${text}</div>`}
+      ${isSplit ? `<div class="grid items-center gap-12 md:grid-cols-2">${text}${c.imageUrl ? `<img src="${escapeHtml(c.imageUrl)}" alt="" class="w-full rounded-xl shadow-xl" style="border-radius:${t.radius}" />` : `<div class="grid aspect-video w-full place-items-center rounded-xl" style="background:${t.muted};border-radius:${t.radius}"><span class="text-sm" style="color:${t.mutedFg}">Image placeholder</span></div>`}</div>` : `<div class="flex flex-col items-center text-center">${text}</div>`}
     </div>
   </section>`;
 }
@@ -122,23 +133,24 @@ function renderLogoCloud(c: any, t: ThemeTokens): string {
 }
 
 function renderFeatures(c: any, t: ThemeTokens): string {
-  const items = (c.items || []).map((it: any) => `<div class="rounded-xl border p-6" style="border-color:${t.border};background:${t.background}"><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(it.title)}</h3>${it.description ? `<p class="text-sm" style="color:${t.mutedFg}">${escapeHtml(it.description)}</p>` : ""}</div>`).join("\n");
-  return `<section id="features" class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="mx-auto mb-12 max-w-2xl text-center">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${t.accent}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">${items}</div></div></section>`;
+  const cols = Number(c.columns ?? 3);
+  const items = (c.items || []).map((it: any) => `<div class="group rounded-xl border p-6 transition-all hover:shadow-lg" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(it.title)}</h3>${it.description ? `<p class="text-sm" style="color:${t.mutedFg}">${escapeHtml(it.description)}</p>` : ""}</div>`).join("\n");
+  return `<section id="features" class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="mx-auto mb-12 max-w-2xl text-center">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${t.accent}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(${cols === 4 ? "240" : "280"}px,1fr))">${items}</div></div></section>`;
 }
 
 function renderStats(c: any, t: ThemeTokens): string {
-  const stats = (c.stats || []).map((s: any) => `<div class="text-center"><div class="text-3xl font-bold tracking-tight" style="color:${t.foreground};font-size:2.5rem">${escapeHtml(s.value)}</div><div class="mt-2 text-sm font-medium" style="color:${t.mutedFg}">${escapeHtml(s.label)}</div></div>`).join("\n");
+  const stats = (c.stats || []).map((s: any) => `<div class="text-center"><div class="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl" style="color:${t.foreground}">${escapeHtml(s.value)}</div><div class="mt-2 text-sm font-medium" style="color:${t.mutedFg}">${escapeHtml(s.label)}</div></div>`).join("\n");
   return `<section class="px-6 py-12" style="background:${t.muted}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-10 text-center text-2xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid grid-cols-2 gap-8 sm:grid-cols-4">${stats}</div></div></section>`;
 }
 
 function renderGallery(c: any, t: ThemeTokens): string {
   const images = (c.images || []).map((img: any) => `<figure class="overflow-hidden rounded-xl" style="border-radius:${t.radius}"><div class="relative overflow-hidden" style="aspect-ratio:4/3;background:${t.muted}"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.caption ?? "")}" class="w-full h-full object-cover" /></div>${img.caption ? `<figcaption class="mt-2 text-sm" style="color:${t.mutedFg}">${escapeHtml(img.caption)}</figcaption>` : ""}</figure>`).join("\n");
-  return `<section id="work" class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-10 text-center text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${images}</div></div></section>`;
+  return `<section id="work" class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-10 text-center text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${images}</div></div></section>`;
 }
 
 function renderTestimonials(c: any, t: ThemeTokens): string {
-  const items = (c.items || []).map((it: any) => `<figure class="flex flex-col gap-4 rounded-xl border p-6" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><blockquote class="text-base leading-relaxed" style="color:${t.foreground}">&ldquo;${escapeHtml(it.quote)}&rdquo;</blockquote><figcaption class="mt-auto flex items-center gap-3">${it.avatar ? `<img src="${escapeHtml(it.avatar)}" alt="${escapeHtml(it.name)}" class="rounded-full" style="width:2.5rem;height:2.5rem;object-fit:cover" />` : `<div style="display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:9999px;background:${t.primary};color:${t.primaryFg};font-weight:700">${escapeHtml(it.name?.[0]?.toUpperCase())}</div>`}<div><div class="text-sm font-semibold" style="color:${t.foreground}">${escapeHtml(it.name)}</div>${it.role ? `<div class="text-xs" style="color:${t.mutedFg}">${escapeHtml(it.role)}</div>` : ""}</div></figcaption></figure>`).join("\n");
-  return `<section id="testimonials" class="px-6 py-24" style="background:${t.muted}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-12 text-center text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid gap-6 md:grid-cols-3">${items}</div></div></section>`;
+  const items = (c.items || []).map((it: any) => `<figure class="flex flex-col gap-4 rounded-xl border p-6 shadow-sm transition-all hover:shadow-lg" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><blockquote class="text-base leading-relaxed" style="color:${t.foreground}">&ldquo;${escapeHtml(it.quote)}&rdquo;</blockquote><figcaption class="mt-auto flex items-center gap-3">${it.avatar ? `<img src="${escapeHtml(it.avatar)}" alt="${escapeHtml(it.name)}" class="h-10 w-10 rounded-full object-cover" />` : `<div class="grid h-10 w-10 place-items-center rounded-full text-sm font-bold" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(it.name?.[0]?.toUpperCase())}</div>`}<div><div class="text-sm font-semibold" style="color:${t.foreground}">${escapeHtml(it.name)}</div>${it.role ? `<div class="text-xs" style="color:${t.mutedFg}">${escapeHtml(it.role)}</div>` : ""}</div></figcaption></figure>`).join("\n");
+  return `<section id="testimonials" class="px-6 py-16 sm:py-24" style="background:${t.muted}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-12 text-center text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid gap-6 md:grid-cols-3">${items}</div></div></section>`;
 }
 
 function renderPricing(c: any, t: ThemeTokens): string {
@@ -147,23 +159,23 @@ function renderPricing(c: any, t: ThemeTokens): string {
     const highlight = tier.highlighted;
     return `<div class="relative flex flex-col rounded-xl border p-6" style="border-color:${highlight ? t.accent : t.border};background:${t.background};border-radius:${t.radius}${highlight ? `;box-shadow:0 10px 30px -10px ${t.accent}40;transform:scale(1.02)` : ""}">${highlight ? `<div style="position:absolute;top:-.75rem;left:50%;transform:translateX(-50%);background:${t.accent};color:${t.accentFg};padding:.25rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:600;text-transform:uppercase">Most popular</div>` : ""}<h3 class="text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(tier.name)}</h3>${tier.description ? `<p class="mt-1 text-sm" style="color:${t.mutedFg}">${escapeHtml(tier.description)}</p>` : ""}<div class="mt-4 flex items-baseline gap-1"><span class="text-4xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.currency)}${escapeHtml(tier.price)}</span><span class="text-sm" style="color:${t.mutedFg}">${escapeHtml(c.period)}</span></div><ul class="mt-6 flex flex-1 flex-col gap-2">${features}</ul>${tier.ctaLabel ? `<a href="${escapeHtml(tier.ctaHref)}" class="mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold" style="background:${highlight ? t.accent : t.primary};color:${highlight ? t.accentFg : t.primaryFg}">${escapeHtml(tier.ctaLabel)}</a>` : ""}</div>`;
   }).join("\n");
-  return `<section id="pricing" class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="mx-auto mb-12 max-w-2xl text-center">${c.title ? `<h2 class="text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-6 md:grid-cols-3">${tiers}</div></div></section>`;
+  return `<section id="pricing" class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="mx-auto mb-12 max-w-2xl text-center">${c.title ? `<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-6 md:grid-cols-3">${tiers}</div></div></section>`;
 }
 
 function renderFaq(c: any, t: ThemeTokens): string {
   const items = (c.items || []).map((it: any, i: number) => `<details class="overflow-hidden rounded-xl border" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"${i === 0 ? " open" : ""}><summary class="flex w-full items-center justify-between gap-4 px-5 py-4 font-semibold" style="color:${t.foreground};list-style:none;cursor:pointer">${escapeHtml(it.question)}<span style="color:${t.mutedFg}">▾</span></summary><p class="px-5 pb-4 text-sm leading-relaxed" style="color:${t.mutedFg}">${escapeHtml(it.answer)}</p></details>`).join("\n");
-  return `<section id="faq" class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-3xl"><div class="mb-10 text-center">${c.title ? `<h2 class="text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="flex flex-col gap-3">${items}</div></div></section>`;
+  return `<section id="faq" class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-3xl"><div class="mb-10 text-center">${c.title ? `<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="flex flex-col gap-3">${items}</div></div></section>`;
 }
 
 function renderCta(c: any, t: ThemeTokens): string {
   const bg = c.variant === "gradient" ? `linear-gradient(135deg, ${t.primary} 0%, ${t.accent} 100%)` : c.variant === "muted" ? t.muted : t.primary;
   const fg = c.variant === "muted" ? t.foreground : t.primaryFg;
   const mutedFg = c.variant === "muted" ? t.mutedFg : "rgba(255,255,255,0.85)";
-  return `<section class="px-6 py-24" style="background:${t.background}"><div class="mx-auto max-w-5xl"><div class="rounded-2xl px-8 py-16 text-center" style="background:${bg};color:${fg};border-radius:${t.radius}">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${mutedFg}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight" style="color:${fg}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mx-auto mt-4 max-w-2xl text-base" style="color:${mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}${(c.primaryCtaLabel || c.secondaryCtaLabel) ? `<div class="mt-8 flex flex-wrap justify-center gap-3">${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold" style="background:${t.background};color:${t.foreground}">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="inline-flex items-center rounded-md border px-5 py-2.5 text-sm font-semibold" style="border-color:rgba(255,255,255,.3);color:${fg}">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}</div>` : ""}</div></div></section>`;
+  return `<section class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-5xl"><div class="rounded-2xl px-8 py-12 text-center sm:px-16 sm:py-16" style="background:${bg};color:${fg};border-radius:${t.radius}">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${mutedFg}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${fg}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mx-auto mt-4 max-w-2xl text-base sm:text-lg" style="color:${mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}${(c.primaryCtaLabel || c.secondaryCtaLabel) ? `<div class="mt-8 flex flex-wrap justify-center gap-3">${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style="background:${t.background};color:${t.foreground}">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="inline-flex items-center rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors hover:opacity-80" style="border-color:rgba(255,255,255,.3);color:${fg};background:transparent">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}</div>` : ""}</div></div></section>`;
 }
 
 function renderNewsletter(c: any, t: ThemeTokens): string {
-  return `<section id="waitlist" class="px-6 py-24" style="background:${t.muted}"><div class="mx-auto max-w-2xl text-center"><h2 class="text-3xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-base" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}<form class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" onsubmit="event.preventDefault();this.querySelector('button').textContent='Subscribed ✓'"><input type="email" placeholder="${escapeHtml(c.placeholder ?? "you@email.com")}" class="flex-1 rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}" /><button type="submit" class="inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(c.buttonLabel ?? "Subscribe")}</button></form>${c.footnote ? `<p class="mt-4 text-xs" style="color:${t.mutedFg}">${escapeHtml(c.footnote)}</p>` : ""}</div></section>`;
+  return `<section id="waitlist" class="px-6 py-16 sm:py-24" style="background:${t.muted}"><div class="mx-auto max-w-2xl text-center"><h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-base sm:text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}<form class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" onsubmit="event.preventDefault();this.querySelector('button').textContent='Subscribed ✓'"><input type="email" placeholder="${escapeHtml(c.placeholder ?? "you@email.com")}" class="flex-1 rounded-md border px-4 py-2.5 text-sm" style="border-color:${t.border};background:${t.background};color:${t.foreground}" /><button type="submit" class="inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(c.buttonLabel ?? "Subscribe")}</button></form>${c.footnote ? `<p class="mt-4 text-xs" style="color:${t.mutedFg}">${escapeHtml(c.footnote)}</p>` : ""}</div></section>`;
 }
 
 function renderFooter(c: any, t: ThemeTokens): string {

@@ -20,7 +20,7 @@ describe("renderSiteHTML", () => {
     expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
     expect(html).toContain("<html");
     expect(html).toContain("<head>");
-    expect(html).toContain("<body>");
+    expect(html).toContain("<body");
   });
 
   it("escapes the site name in the title (XSS defense)", () => {
