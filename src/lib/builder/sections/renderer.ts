@@ -45,21 +45,20 @@ ${body}
 }
 
 function extractCss(t: ThemeTokens): string {
-  // Only theme tokens + base resets — all utility classes come from the
-  // Tailwind browser bundle now. We add heading font + a few polish rules.
+  // Theme tokens + base styles only.
+  // DO NOT add *{margin:0;padding:0} — Tailwind v4 uses @layer for all
+  // utilities, and unlayered CSS overrides layered CSS regardless of
+  // specificity. A bare *{padding:0} would override every .px-5, .py-4,
+  // etc. class, breaking all spacing. Tailwind's preflight already handles
+  // the CSS reset.
   return `:root{--lf-primary:${t.primary};--lf-primary-fg:${t.primaryFg};--lf-accent:${t.accent};--lf-accent-fg:${t.accentFg};--lf-bg:${t.background};--lf-fg:${t.foreground};--lf-muted:${t.muted};--lf-muted-fg:${t.mutedFg};--lf-border:${t.border};--lf-font:${t.font};--lf-font-heading:${t.fontHeading};--lf-radius:${t.radius}}
-*{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:var(--lf-font);color:var(--lf-fg);background:var(--lf-bg);line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 a{color:inherit;text-decoration:none}
 img{max-width:100%;height:auto;display:block}
 button{font:inherit;cursor:pointer;border:none;background:none}
 .lf-section{width:100%}
-/* Apply heading font to all h1-h4 */
 h1,h2,h3,h4{font-family:var(--lf-font-heading)}
-/* Smooth transitions on interactive elements */
-a,button{transition:all .2s ease}
-/* Details/summary arrow removal for FAQ */
 summary::-webkit-details-marker{display:none}
 summary{list-style:none}`;
 }
