@@ -17,6 +17,7 @@ import { renderIconSvg } from "./icon-paths";
 
 export function renderSiteHTML(site: SiteData, page: PageData): string {
   const css = extractCss(site.themeTokens);
+  const js = extractJs();
   // Filter out hidden sections — they should not appear in exported HTML.
   const visibleSections = page.sections.filter((s) => !(s.config as Record<string, unknown>)?.__hidden);
   const body = visibleSections.map((s) => renderSection(s, site.themeTokens)).join("\n");
@@ -33,35 +34,122 @@ export function renderSiteHTML(site: SiteData, page: PageData): string {
 <!-- Google Fonts — matches the fonts available in the editor -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Noto+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <!-- Tailwind v4 browser bundle — scans the DOM and generates all utility classes used -->
 <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-<!-- Forge Studio theme tokens + base styles -->
+<!-- Forge Studio theme tokens + premium styles -->
 <style>\n${css}\n</style>
 </head>
 <body class="antialiased">
+<!-- Ambient background blobs — subtle floating gradients for depth -->
+<div class="lf-ambient">
+  <div class="lf-blob lf-blob-1"></div>
+  <div class="lf-blob lf-blob-2"></div>
+  <div class="lf-blob lf-blob-3"></div>
+</div>
 ${body}
+<!-- Forge Studio scroll animations + interactions -->
+<script>${js}</script>
 </body>
 </html>`;
 }
 
 function extractCss(t: ThemeTokens): string {
-  // Theme tokens + base styles only.
-  // DO NOT add *{margin:0;padding:0} — Tailwind v4 uses @layer for all
-  // utilities, and unlayered CSS overrides layered CSS regardless of
-  // specificity. A bare *{padding:0} would override every .px-5, .py-4,
-  // etc. class, breaking all spacing. Tailwind's preflight already handles
-  // the CSS reset.
+  // Theme tokens + premium base styles.
+  // No *{margin:0;padding:0} — Tailwind v4 preflight handles resets, and
+  // unlayered CSS would override Tailwind's @layer utilities.
   return `:root{--lf-primary:${t.primary};--lf-primary-fg:${t.primaryFg};--lf-accent:${t.accent};--lf-accent-fg:${t.accentFg};--lf-bg:${t.background};--lf-fg:${t.foreground};--lf-muted:${t.muted};--lf-muted-fg:${t.mutedFg};--lf-border:${t.border};--lf-font:${t.font};--lf-font-heading:${t.fontHeading};--lf-radius:${t.radius}}
 html{scroll-behavior:smooth}
-body{font-family:var(--lf-font);color:var(--lf-fg);background:var(--lf-bg);line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--lf-font);color:var(--lf-fg);background:var(--lf-bg);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden}
 a{color:inherit;text-decoration:none}
 img{max-width:100%;height:auto;display:block}
 button{font:inherit;cursor:pointer;border:none;background:none}
 .lf-section{width:100%}
-h1,h2,h3,h4{font-family:var(--lf-font-heading)}
+h1,h2,h3,h4{font-family:var(--lf-font-heading);letter-spacing:-0.02em}
+h1{letter-spacing:-0.03em}
 summary::-webkit-details-marker{display:none}
-summary{list-style:none}`;
+summary{list-style:none}
+
+/* ─── Premium typography ─── */
+.lf-eyebrow{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:0.75rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em}
+
+/* ─── Ambient background blobs ─── */
+.lf-ambient{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+.lf-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.15;animation:lfFloat 20s ease-in-out infinite}
+.lf-blob-1{top:-10%;left:10%;width:500px;height:500px;background:var(--lf-accent);animation-delay:0s}
+.lf-blob-2{top:20%;right:-5%;width:400px;height:400px;background:var(--lf-primary);animation-delay:-7s}
+.lf-blob-3{bottom:10%;left:30%;width:450px;height:450px;background:var(--lf-accent);animation-delay:-14s}
+@keyframes lfFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-30px) scale(1.05)}66%{transform:translate(-20px,20px) scale(0.95)}}
+@media(prefers-reduced-motion:reduce){.lf-blob{animation:none}}
+
+/* ─── Glassmorphism navbar ─── */
+header{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:color-mix(in srgb,var(--lf-bg) 80%,transparent);transition:box-shadow .3s ease,background .3s ease}
+header.lf-scrolled{box-shadow:0 1px 3px rgba(0,0,0,0.05),0 10px 30px -10px rgba(0,0,0,0.1);background:color-mix(in srgb,var(--lf-bg) 95%,transparent)}
+
+/* ─── Premium buttons ─── */
+.lf-btn{position:relative;overflow:hidden;transition:transform .2s cubic-bezier(0.4,0,0.2,1),box-shadow .2s ease}
+.lf-btn-primary{background:linear-gradient(135deg,var(--lf-primary) 0%,var(--lf-accent) 100%);box-shadow:0 4px 14px color-mix(in srgb,var(--lf-accent) 40%,transparent),inset 0 1px 0 rgba(255,255,255,0.2)}
+.lf-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px color-mix(in srgb,var(--lf-accent) 50%,transparent),inset 0 1px 0 rgba(255,255,255,0.3)}
+.lf-btn-primary:active{transform:translateY(0)}
+.lf-btn-secondary{background:transparent;border:1px solid var(--lf-border);transition:border-color .2s ease,transform .2s ease}
+.lf-btn-secondary:hover{border-color:var(--lf-accent);transform:translateY(-2px)}
+
+/* ─── Premium cards ─── */
+.lf-card{background:color-mix(in srgb,var(--lf-bg) 80%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid color-mix(in srgb,var(--lf-border) 50%,transparent);transition:transform .3s cubic-bezier(0.4,0,0.2,1),box-shadow .3s ease}
+.lf-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px -12px rgba(0,0,0,0.12),0 8px 16px -4px rgba(0,0,0,0.06)}
+
+/* ─── Hero image float ─── */
+.lf-hero-img{transform:perspective(1000px) rotateY(-2deg) rotateX(1deg);transition:transform .6s ease}
+.lf-hero-img:hover{transform:perspective(1000px) rotateY(0) rotateX(0)}
+
+/* ─── Scroll entrance animations ─── */
+.lf-reveal{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(0.4,0,0.2,1),transform .6s cubic-bezier(0.4,0,0.2,1)}
+.lf-reveal.lf-visible{opacity:1;transform:translateY(0)}
+.lf-reveal-stagger>*{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
+.lf-reveal-stagger.lf-visible>*{opacity:1;transform:translateY(0)}
+.lf-reveal-stagger.lf-visible>*:nth-child(1){transition-delay:0ms}
+.lf-reveal-stagger.lf-visible>*:nth-child(2){transition-delay:80ms}
+.lf-reveal-stagger.lf-visible>*:nth-child(3){transition-delay:160ms}
+.lf-reveal-stagger.lf-visible>*:nth-child(4){transition-delay:240ms}
+.lf-reveal-stagger.lf-visible>*:nth-child(5){transition-delay:320ms}
+.lf-reveal-stagger.lf-visible>*:nth-child(6){transition-delay:400ms}
+@media(prefers-reduced-motion:reduce){.lf-reveal,.lf-reveal-stagger>*{opacity:1;transform:none;transition:none}}
+
+/* ─── Pricing highlighted card glow ─── */
+.lf-pricing-highlight{position:relative}
+.lf-pricing-highlight::before{content:'';position:absolute;inset:-2px;border-radius:calc(var(--lf-radius) + 2px);background:linear-gradient(135deg,var(--lf-accent),var(--lf-primary));opacity:0.3;filter:blur(8px);z-index:-1}
+
+/* ─── Smooth link underline ─── */
+.lf-link{position:relative}
+.lf-link::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:var(--lf-accent);transition:width .3s ease}
+.lf-link:hover::after{width:100%}`;
+}
+
+function extractJs(): string {
+  // Scroll-triggered reveal animations + navbar scroll shadow.
+  // Uses Intersection Observer — no dependencies, ~1KB.
+  return `(function(){
+  // Navbar scroll shadow
+  var header = document.querySelector('header');
+  if(header){
+    var onScroll = function(){ if(window.scrollY > 10){ header.classList.add('lf-scrolled'); } else { header.classList.remove('lf-scrolled'); } };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+  // Scroll reveal — add .lf-reveal to elements, .lf-visible when in viewport
+  var reveals = document.querySelectorAll('.lf-reveal, .lf-reveal-stagger');
+  if(reveals.length && 'IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('lf-visible'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    reveals.forEach(function(el){ io.observe(el); });
+  } else {
+    // Fallback: just show everything
+    reveals.forEach(function(el){ el.classList.add('lf-visible'); });
+  }
+})();`;
 }
 
 function escapeHtml(s: unknown): string {
@@ -111,18 +199,18 @@ function renderNavbar(c: any, t: ThemeTokens): string {
 
 function renderHero(c: any, t: ThemeTokens): string {
   const isSplit = c.variant !== "centered";
-  const text = `<div class="flex flex-col gap-5 ${c.align === "center" ? "items-center text-center" : "items-start text-left"}">
-    ${c.eyebrow ? `<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style="background:${t.muted};color:${t.mutedFg}">${escapeHtml(c.eyebrow)}</span>` : ""}
-    <h1 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style="color:${t.foreground}">${escapeHtml(c.headline)}</h1>
-    ${c.subhead ? `<p class="max-w-2xl text-base sm:text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subhead)}</p>` : ""}
+  const text = `<div class="lf-reveal flex flex-col gap-5 ${c.align === "center" ? "items-center text-center" : "items-start text-left"}">
+    ${c.eyebrow ? `<span class="lf-eyebrow inline-flex items-center rounded-full px-3 py-1" style="background:${t.muted};color:${t.mutedFg}">${escapeHtml(c.eyebrow)}</span>` : ""}
+    <h1 class="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style="color:${t.foreground};font-weight:600">${escapeHtml(c.headline)}</h1>
+    ${c.subhead ? `<p class="max-w-2xl text-base sm:text-lg" style="color:${t.mutedFg};line-height:1.7">${escapeHtml(c.subhead)}</p>` : ""}
     <div class="mt-2 flex flex-wrap gap-3 ${c.align === "center" ? "justify-center" : ""}">
-      ${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}
-      ${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="inline-flex items-center rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors hover:opacity-80" style="border-color:${t.border};color:${t.foreground};background:transparent">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}
+      ${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="lf-btn lf-btn-primary inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold" style="color:${t.primaryFg}">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}
+      ${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="lf-btn lf-btn-secondary inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold" style="color:${t.foreground}">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}
     </div>
   </div>`;
-  return `<section class="px-6 py-16 sm:py-24" style="background:${t.background}">
+  return `<section class="px-6 py-20 sm:py-32" style="background:${t.background}">
     <div class="mx-auto max-w-6xl">
-      ${isSplit ? `<div class="grid items-center gap-12 md:grid-cols-2">${text}${c.imageUrl ? `<img src="${escapeHtml(c.imageUrl)}" alt="" class="w-full rounded-xl shadow-xl" style="border-radius:${t.radius}" />` : `<div class="grid aspect-video w-full place-items-center rounded-xl" style="background:${t.muted};border-radius:${t.radius}"><span class="text-sm" style="color:${t.mutedFg}">Image placeholder</span></div>`}</div>` : `<div class="flex flex-col items-center text-center">${text}</div>`}
+      ${isSplit ? `<div class="grid items-center gap-12 md:grid-cols-2">${text}${c.imageUrl ? `<div class="lf-reveal"><img src="${escapeHtml(c.imageUrl)}" alt="" class="lf-hero-img w-full rounded-xl shadow-2xl" style="border-radius:${t.radius}" /></div>` : `<div class="lf-reveal grid aspect-video w-full place-items-center rounded-xl shadow-xl" style="background:${t.muted};border-radius:${t.radius}"><span class="text-sm" style="color:${t.mutedFg}">Image placeholder</span></div>`}</div>` : `<div class="flex flex-col items-center text-center">${text}</div>`}
     </div>
   </section>`;
 }
@@ -134,8 +222,8 @@ function renderLogoCloud(c: any, t: ThemeTokens): string {
 
 function renderFeatures(c: any, t: ThemeTokens): string {
   const cols = Number(c.columns ?? 3);
-  const items = (c.items || []).map((it: any) => `<div class="group rounded-xl border p-6 transition-all hover:shadow-lg" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><div class="mb-4 grid h-10 w-10 place-items-center rounded-lg" style="background:${t.muted};color:${t.accent}">${renderIconSvg(it.icon, "h-5 w-5")}</div><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(it.title)}</h3>${it.description ? `<p class="text-sm" style="color:${t.mutedFg}">${escapeHtml(it.description)}</p>` : ""}</div>`).join("\n");
-  return `<section id="features" class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="mx-auto mb-12 max-w-2xl text-center">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${t.accent}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(${cols === 4 ? "240" : "280"}px,1fr))">${items}</div></div></section>`;
+  const items = (c.items || []).map((it: any) => `<div class="lf-card group rounded-xl p-6" style="border-color:${t.border};border-radius:${t.radius}"><div class="mb-4 grid h-10 w-10 place-items-center rounded-lg" style="background:${t.muted};color:${t.accent}">${renderIconSvg(it.icon, "h-5 w-5")}</div><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(it.title)}</h3>${it.description ? `<p class="text-sm" style="color:${t.mutedFg};line-height:1.6">${escapeHtml(it.description)}</p>` : ""}</div>`).join("\n");
+  return `<section id="features" class="px-6 py-20 sm:py-32" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="lf-reveal mx-auto mb-16 max-w-2xl text-center">${c.eyebrow ? `<p class="lf-eyebrow mb-3" style="color:${t.accent}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground};font-weight:600">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg};line-height:1.7">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="lf-reveal-stagger grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(${cols === 4 ? "240" : "280"}px,1fr))">${items}</div></div></section>`;
 }
 
 function renderStats(c: any, t: ThemeTokens): string {
@@ -149,17 +237,17 @@ function renderGallery(c: any, t: ThemeTokens): string {
 }
 
 function renderTestimonials(c: any, t: ThemeTokens): string {
-  const items = (c.items || []).map((it: any) => `<figure class="flex flex-col gap-4 rounded-xl border p-6 shadow-sm transition-all hover:shadow-lg" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><blockquote class="text-base leading-relaxed" style="color:${t.foreground}">&ldquo;${escapeHtml(it.quote)}&rdquo;</blockquote><figcaption class="mt-auto flex items-center gap-3">${it.avatar ? `<img src="${escapeHtml(it.avatar)}" alt="${escapeHtml(it.name)}" class="h-10 w-10 rounded-full object-cover" />` : `<div class="grid h-10 w-10 place-items-center rounded-full text-sm font-bold" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(it.name?.[0]?.toUpperCase())}</div>`}<div><div class="text-sm font-semibold" style="color:${t.foreground}">${escapeHtml(it.name)}</div>${it.role ? `<div class="text-xs" style="color:${t.mutedFg}">${escapeHtml(it.role)}</div>` : ""}</div></figcaption></figure>`).join("\n");
-  return `<section id="testimonials" class="px-6 py-16 sm:py-24" style="background:${t.muted}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="mb-12 text-center text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}<div class="grid gap-6 md:grid-cols-3">${items}</div></div></section>`;
+  const items = (c.items || []).map((it: any) => `<figure class="lf-card flex flex-col gap-4 rounded-xl p-6" style="border-color:${t.border};border-radius:${t.radius}"><blockquote class="text-base leading-relaxed" style="color:${t.foreground};font-size:1.05rem;line-height:1.7">&ldquo;${escapeHtml(it.quote)}&rdquo;</blockquote><figcaption class="mt-auto flex items-center gap-3">${it.avatar ? `<img src="${escapeHtml(it.avatar)}" alt="${escapeHtml(it.name)}" class="h-10 w-10 rounded-full object-cover" />` : `<div class="grid h-10 w-10 place-items-center rounded-full text-sm font-bold" style="background:${t.primary};color:${t.primaryFg}">${escapeHtml(it.name?.[0]?.toUpperCase())}</div>`}<div><div class="text-sm font-semibold" style="color:${t.foreground}">${escapeHtml(it.name)}</div>${it.role ? `<div class="text-xs" style="color:${t.mutedFg}">${escapeHtml(it.role)}</div>` : ""}</div></figcaption></figure>`).join("\n");
+  return `<section id="testimonials" class="px-6 py-20 sm:py-32" style="background:${t.muted}"><div class="mx-auto max-w-6xl">${c.title ? `<h2 class="lf-reveal mb-16 text-center text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground};font-weight:600">${escapeHtml(c.title)}</h2>` : ""}<div class="lf-reveal-stagger grid gap-6 md:grid-cols-3">${items}</div></div></section>`;
 }
 
 function renderPricing(c: any, t: ThemeTokens): string {
   const tiers = (c.tiers || []).map((tier: any) => {
     const features = (tier.features ?? "").split("\n").filter(Boolean).map((f: string) => `<li class="flex items-start gap-2 text-sm" style="color:${t.foreground}"><span style="color:${t.accent}">✓</span><span>${escapeHtml(f)}</span></li>`).join("\n");
     const highlight = tier.highlighted;
-    return `<div class="relative flex flex-col rounded-xl border p-6" style="border-color:${highlight ? t.accent : t.border};background:${t.background};border-radius:${t.radius}${highlight ? `;box-shadow:0 10px 30px -10px ${t.accent}40;transform:scale(1.02)` : ""}">${highlight ? `<div style="position:absolute;top:-.75rem;left:50%;transform:translateX(-50%);background:${t.accent};color:${t.accentFg};padding:.25rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:600;text-transform:uppercase">Most popular</div>` : ""}<h3 class="text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(tier.name)}</h3>${tier.description ? `<p class="mt-1 text-sm" style="color:${t.mutedFg}">${escapeHtml(tier.description)}</p>` : ""}<div class="mt-4 flex items-baseline gap-1"><span class="text-4xl font-bold tracking-tight" style="color:${t.foreground}">${escapeHtml(c.currency)}${escapeHtml(tier.price)}</span><span class="text-sm" style="color:${t.mutedFg}">${escapeHtml(c.period)}</span></div><ul class="mt-6 flex flex-1 flex-col gap-2">${features}</ul>${tier.ctaLabel ? `<a href="${escapeHtml(tier.ctaHref)}" class="mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold" style="background:${highlight ? t.accent : t.primary};color:${highlight ? t.accentFg : t.primaryFg}">${escapeHtml(tier.ctaLabel)}</a>` : ""}</div>`;
+    return `<div class="${highlight ? 'lf-pricing-highlight lf-card' : 'lf-card'} relative flex flex-col rounded-xl p-6" style="border-color:${highlight ? t.accent : t.border};border-radius:${t.radius}${highlight ? `;box-shadow:0 20px 50px -15px ${t.accent}50;transform:scale(1.03)` : ""}">${highlight ? `<div class="lf-eyebrow" style="position:absolute;top:-.75rem;left:50%;transform:translateX(-50%);background:${t.accent};color:${t.accentFg};padding:.3rem .9rem;border-radius:9999px;font-weight:600">Most popular</div>` : ""}<h3 class="text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(tier.name)}</h3>${tier.description ? `<p class="mt-1 text-sm" style="color:${t.mutedFg}">${escapeHtml(tier.description)}</p>` : ""}<div class="mt-4 flex items-baseline gap-1"><span class="text-4xl font-bold tracking-tight" style="color:${t.foreground};font-weight:600">${escapeHtml(c.currency)}${escapeHtml(tier.price)}</span><span class="text-sm" style="color:${t.mutedFg}">${escapeHtml(c.period)}</span></div><ul class="mt-6 flex flex-1 flex-col gap-2.5">${features}</ul>${tier.ctaLabel ? `<a href="${escapeHtml(tier.ctaHref)}" class="lf-btn ${highlight ? 'lf-btn-primary' : 'lf-btn-secondary'} mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold" style="${highlight ? `color:${t.accentFg}` : `color:${t.foreground}`}">${escapeHtml(tier.ctaLabel)}</a>` : ""}</div>`;
   }).join("\n");
-  return `<section id="pricing" class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="mx-auto mb-12 max-w-2xl text-center">${c.title ? `<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-6 md:grid-cols-3">${tiers}</div></div></section>`;
+  return `<section id="pricing" class="px-6 py-20 sm:py-32" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="lf-reveal mx-auto mb-16 max-w-2xl text-center">${c.title ? `<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground};font-weight:600">${escapeHtml(c.title)}</h2>` : ""}${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg};line-height:1.7">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="lf-reveal-stagger grid gap-6 md:grid-cols-3">${tiers}</div></div></section>`;
 }
 
 function renderFaq(c: any, t: ThemeTokens): string {
@@ -171,7 +259,7 @@ function renderCta(c: any, t: ThemeTokens): string {
   const bg = c.variant === "gradient" ? `linear-gradient(135deg, ${t.primary} 0%, ${t.accent} 100%)` : c.variant === "muted" ? t.muted : t.primary;
   const fg = c.variant === "muted" ? t.foreground : t.primaryFg;
   const mutedFg = c.variant === "muted" ? t.mutedFg : "rgba(255,255,255,0.85)";
-  return `<section class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-5xl"><div class="rounded-2xl px-8 py-12 text-center sm:px-16 sm:py-16" style="background:${bg};color:${fg};border-radius:${t.radius}">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${mutedFg}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${fg}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mx-auto mt-4 max-w-2xl text-base sm:text-lg" style="color:${mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}${(c.primaryCtaLabel || c.secondaryCtaLabel) ? `<div class="mt-8 flex flex-wrap justify-center gap-3">${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style="background:${t.background};color:${t.foreground}">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="inline-flex items-center rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors hover:opacity-80" style="border-color:rgba(255,255,255,.3);color:${fg};background:transparent">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}</div>` : ""}</div></div></section>`;
+  return `<section class="px-6 py-20 sm:py-32" style="background:${t.background}"><div class="mx-auto max-w-5xl"><div class="lf-reveal rounded-2xl px-8 py-16 text-center sm:px-16 sm:py-20" style="background:${bg};color:${fg};border-radius:${t.radius};box-shadow:0 20px 60px -20px color-mix(in srgb,var(--lf-accent) 40%,transparent)">${c.eyebrow ? `<p class="lf-eyebrow mb-4" style="color:${mutedFg}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${fg};font-weight:600">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mx-auto mt-4 max-w-2xl text-base sm:text-lg" style="color:${mutedFg};line-height:1.7">${escapeHtml(c.subtitle)}</p>` : ""}${(c.primaryCtaLabel || c.secondaryCtaLabel) ? `<div class="mt-8 flex flex-wrap justify-center gap-3">${c.primaryCtaLabel ? `<a href="${escapeHtml(c.primaryCtaHref)}" class="lf-btn inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold" style="background:${t.background};color:${t.foreground};box-shadow:0 4px 14px rgba(0,0,0,0.15)">${escapeHtml(c.primaryCtaLabel)}</a>` : ""}${c.secondaryCtaLabel ? `<a href="${escapeHtml(c.secondaryCtaHref)}" class="lf-btn lf-btn-secondary inline-flex items-center rounded-md px-5 py-2.5 text-sm font-semibold" style="border-color:rgba(255,255,255,.3);color:${fg}">${escapeHtml(c.secondaryCtaLabel)}</a>` : ""}</div>` : ""}</div></div></section>`;
 }
 
 function renderNewsletter(c: any, t: ThemeTokens): string {
