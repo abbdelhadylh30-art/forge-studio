@@ -13,6 +13,7 @@
  */
 
 import type { PageData, SectionInstance, SiteData, ThemeTokens } from "./types";
+import { renderIconSvg } from "./icon-paths";
 
 export function renderSiteHTML(site: SiteData, page: PageData): string {
   const css = extractCss(site.themeTokens);
@@ -133,7 +134,7 @@ function renderLogoCloud(c: any, t: ThemeTokens): string {
 
 function renderFeatures(c: any, t: ThemeTokens): string {
   const cols = Number(c.columns ?? 3);
-  const items = (c.items || []).map((it: any) => `<div class="group rounded-xl border p-6 transition-all hover:shadow-lg" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(it.title)}</h3>${it.description ? `<p class="text-sm" style="color:${t.mutedFg}">${escapeHtml(it.description)}</p>` : ""}</div>`).join("\n");
+  const items = (c.items || []).map((it: any) => `<div class="group rounded-xl border p-6 transition-all hover:shadow-lg" style="border-color:${t.border};background:${t.background};border-radius:${t.radius}"><div class="mb-4 grid h-10 w-10 place-items-center rounded-lg" style="background:${t.muted};color:${t.accent}">${renderIconSvg(it.icon, "h-5 w-5")}</div><h3 class="mb-2 text-lg font-semibold" style="color:${t.foreground}">${escapeHtml(it.title)}</h3>${it.description ? `<p class="text-sm" style="color:${t.mutedFg}">${escapeHtml(it.description)}</p>` : ""}</div>`).join("\n");
   return `<section id="features" class="px-6 py-16 sm:py-24" style="background:${t.background}"><div class="mx-auto max-w-6xl"><div class="mx-auto mb-12 max-w-2xl text-center">${c.eyebrow ? `<p class="mb-3 text-sm font-semibold uppercase tracking-wider" style="color:${t.accent}">${escapeHtml(c.eyebrow)}</p>` : ""}<h2 class="text-3xl font-bold tracking-tight sm:text-4xl" style="color:${t.foreground}">${escapeHtml(c.title)}</h2>${c.subtitle ? `<p class="mt-4 text-lg" style="color:${t.mutedFg}">${escapeHtml(c.subtitle)}</p>` : ""}</div><div class="grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(${cols === 4 ? "240" : "280"}px,1fr))">${items}</div></div></section>`;
 }
 
@@ -224,7 +225,7 @@ function renderComparison(c: any, t: ThemeTokens): string {
 }
 
 function renderGuarantee(c: any, t: ThemeTokens): string {
-  return `<section class="px-6 py-12" style="background:${t.muted}"><div class="mx-auto max-w-3xl"><div class="flex flex-col items-center gap-6 rounded-2xl border-2 border-dashed p-8 text-center sm:flex-row sm:text-left" style="border-color:${t.accent};border-radius:${t.radius}"><div style="display:grid;place-items:center;width:4rem;height:4rem;border-radius:9999px;background:${t.accent};color:${t.accentFg}"><span style="font-size:2rem">🛡</span></div><div class="flex-1"><div class="mb-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style="background:${t.accent};color:${t.accentFg}">${escapeHtml(c.badge)}</div><h3 class="text-xl font-bold" style="color:${t.foreground}">${escapeHtml(c.title)}</h3>${c.description ? `<p class="mt-2 text-sm" style="color:${t.mutedFg}">${escapeHtml(c.description)}</p>` : ""}</div></div></div></section>`;
+  return `<section class="px-6 py-12" style="background:${t.muted}"><div class="mx-auto max-w-3xl"><div class="flex flex-col items-center gap-6 rounded-2xl border-2 border-dashed p-8 text-center sm:flex-row sm:text-left" style="border-color:${t.accent};border-radius:${t.radius}"><div class="grid h-16 w-16 shrink-0 place-items-center rounded-full" style="background:${t.accent};color:${t.accentFg}">${renderIconSvg(c.icon || "ShieldCheck", "h-8 w-8")}</div><div class="flex-1"><div class="mb-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style="background:${t.accent};color:${t.accentFg}">${escapeHtml(c.badge)}</div><h3 class="text-xl font-bold" style="color:${t.foreground}">${escapeHtml(c.title)}</h3>${c.description ? `<p class="mt-2 text-sm" style="color:${t.mutedFg}">${escapeHtml(c.description)}</p>` : ""}</div></div></div></section>`;
 }
 
 function renderContactForm(c: any, t: ThemeTokens): string {
