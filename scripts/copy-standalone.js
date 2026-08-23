@@ -2,6 +2,9 @@
  * Cross-platform standalone copy script.
  * Copies .next/static and public into .next/standalone so the standalone
  * server has everything it needs. Uses Node fs (works on Windows/Mac/Linux).
+ *
+ * Also verifies that node_modules/next exists in the standalone output —
+ * if not, copies the full node_modules as a fallback.
  */
 const { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } = require("node:fs");
 const { join } = require("node:path");
@@ -35,4 +38,19 @@ console.log("Copying .next/static → .next/standalone/.next/static...");
 copyDir(staticSrc, staticDest);
 console.log("Copying public → .next/standalone/public...");
 copyDir(publicSrc, publicDest);
+
+// Verify node_modules/next exists in standalone
+const nextModulePath = join(standaloneDir, "node_modules", "next");
+if (!existsSync(nextModulePath)) {
+  console.warn("WARNING: node_modules/next not found in standalone output!");
+  console.log("Copying full node_modules as fallback...");
+  const nodeModulesSrc = join(process.cwd(), "node_modules");
+  const nodeModulesDest = join(standaloneDir, "node_modules");
+  copyDir(nodeModulesSrc, nodeModulesDest);
+  console.log("Done copying node_modules.");
+} else {
+  console.log("Verified: node_modules/next exists in standalone output.");
+}
+
 console.log("Done.");
+

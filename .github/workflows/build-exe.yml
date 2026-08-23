@@ -43,6 +43,10 @@ jobs:
           dir .next\standalone\.next\static
           echo "Public dir:"
           dir .next\standalone\public
+          echo "node_modules in standalone:"
+          if (Test-Path .next\standalone\node_modules) { dir .next\standalone\node_modules | Select-Object -First 10 } else { Write-Host "WARNING: node_modules NOT found in standalone!" }
+          echo "next module exists?"
+          if (Test-Path .next\standalone\node_modules\next) { Write-Host "YES - next module found" } else { Write-Host "NO - next module MISSING" }
         shell: pwsh
 
       - name: Compile Electron main process
@@ -105,6 +109,10 @@ jobs:
           dir .next\standalone\.next\static
           echo "Public dir:"
           dir .next\standalone\public
+          echo "node_modules in standalone:"
+          if (Test-Path .next\standalone\node_modules) { dir .next\standalone\node_modules | Select-Object -First 10 } else { Write-Host "WARNING: node_modules NOT found in standalone!" }
+          echo "next module exists?"
+          if (Test-Path .next\standalone\node_modules\next) { Write-Host "YES - next module found" } else { Write-Host "NO - next module MISSING" }
         shell: pwsh
 
       - name: Compile Electron main process

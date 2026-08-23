@@ -24,7 +24,7 @@
     {
       "from": ".next/standalone",
       "to": "app/.next/standalone",
-      "filter": ["**/*"]
+      "filter": ["**/*", "**/node_modules/**/*", "**/.next/**/*"]
     },
     {
       "from": ".next/static",
