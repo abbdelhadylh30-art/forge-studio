@@ -72,3 +72,12 @@ server.log
 
 # Prisma generated client (regenerated on install)
 /src/generated/
+
+# electron build outputs
+release/
+electron/dist/
+dev.log
+server.log
+*.exe
+*.dmg
+*.AppImage

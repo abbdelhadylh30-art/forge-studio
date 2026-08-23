@@ -1,7 +1,8 @@
 {
-  "name": "nextjs_tailwind_shadcn_ts",
-  "version": "0.2.0",
+  "name": "forge-studio",
+  "version": "1.0.0",
   "private": true,
+  "main": "electron/dist/main.js",
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
@@ -11,7 +12,11 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "electron:dev": "concurrently \"bun run dev\" \"wait-on http://localhost:3000 && electron electron/dist/main.js\"",
+    "electron:compile": "tsc electron/main.ts electron/preload.ts --outDir electron/dist --module commonjs --target es2022 --esModuleInterop --skipLibCheck --resolveJsonModule --moduleResolution node",
+    "electron:build": "bun run build && bun run electron:compile && electron-builder --win --config electron-builder.json",
+    "electron:build:mac": "bun run build && bun run electron:compile && electron-builder --mac --config electron-builder.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -88,12 +93,16 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
     "bun-types": "^1.3.4",
+    "concurrently": "^9.1.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wait-on": "^8.0.1"
   }
 }

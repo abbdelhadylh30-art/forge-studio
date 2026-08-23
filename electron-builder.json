@@ -1,0 +1,68 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.forge-studio.app",
+  "productName": "Forge Studio",
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "files": [
+    "electron/dist/**/*",
+    "electron/preload.js",
+    "package.json",
+    "!**/*.ts",
+    "!**/*.map",
+    "!**/node_modules/*/{CHANGELOG.md,README.md,readme.md,readme}",
+    "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+    "!.editorconfig",
+    "!**/._*",
+    "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+    "!**/{__pycache__,thumbs.db,.flow,.idea,.vs,.nyc_output}"
+  ],
+  "extraResources": [
+    {
+      "from": ".next/standalone",
+      "to": "app/.next/standalone",
+      "filter": ["**/*"]
+    },
+    {
+      "from": ".next/static",
+      "to": "app/.next/standalone/.next/static",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "public",
+      "to": "app/.next/standalone/public",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "prisma",
+      "to": "app/prisma",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": ["nsis"],
+    "icon": "build/icon.png",
+    "artifactName": "ForgeStudio-Setup-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Forge Studio"
+  },
+  "mac": {
+    "target": ["dmg"],
+    "icon": "build/icon.png",
+    "category": "public.app-category.developer-tools"
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "icon": "build/icon.png",
+    "category": "Development"
+  }
+}
