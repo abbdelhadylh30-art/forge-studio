@@ -37,9 +37,13 @@ jobs:
 
       - name: Verify standalone output
         run: |
-          ls -la .next/standalone/
-          ls -la .next/standalone/.next/static/
-          ls -la .next/standalone/public/
+          echo "Standalone dir:"
+          dir .next\standalone
+          echo "Static dir:"
+          dir .next\standalone\.next\static
+          echo "Public dir:"
+          dir .next\standalone\public
+        shell: pwsh
 
       - name: Compile Electron main process
         run: |
@@ -95,9 +99,13 @@ jobs:
 
       - name: Verify standalone output
         run: |
-          ls -la .next/standalone/
-          ls -la .next/standalone/.next/static/
-          ls -la .next/standalone/public/
+          echo "Standalone dir:"
+          dir .next\standalone
+          echo "Static dir:"
+          dir .next\standalone\.next\static
+          echo "Public dir:"
+          dir .next\standalone\public
+        shell: pwsh
 
       - name: Compile Electron main process
         run: |
