@@ -47,7 +47,7 @@ jobs:
 
       - name: Compile Electron main process
         run: |
-          npx tsc electron/main.ts electron/preload.ts --outDir electron/dist --module commonjs --target es2022 --esModuleInterop --skipLibCheck --resolveJsonModule --moduleResolution node
+          bunx tsc electron/main.ts electron/preload.ts --outDir electron/dist --module commonjs --target es2022 --esModuleInterop --skipLibCheck --resolveJsonModule --moduleResolution node
 
       - name: Install electron-builder
         run: bun add -d electron electron-builder
@@ -109,7 +109,7 @@ jobs:
 
       - name: Compile Electron main process
         run: |
-          npx tsc electron/main.ts electron/preload.ts --outDir electron/dist --module commonjs --target es2022 --esModuleInterop --skipLibCheck --resolveJsonModule --moduleResolution node
+          bunx tsc electron/main.ts electron/preload.ts --outDir electron/dist --module commonjs --target es2022 --esModuleInterop --skipLibCheck --resolveJsonModule --moduleResolution node
 
       - name: Install electron-builder
         run: bun add -d electron electron-builder
