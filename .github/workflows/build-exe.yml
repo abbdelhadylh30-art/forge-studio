@@ -30,15 +30,16 @@ jobs:
         run: bunx prisma generate
 
       - name: Build Next.js (standalone)
-        run: bun run build
+        run: bun run build:standalone
         env:
           DATABASE_URL: "file:/tmp/prod.db"
           NEXT_TELEMETRY_DISABLED: "1"
 
-      - name: Copy standalone assets
+      - name: Verify standalone output
         run: |
-          cp -r .next/static .next/standalone/.next/
-          cp -r public .next/standalone/
+          ls -la .next/standalone/
+          ls -la .next/standalone/.next/static/
+          ls -la .next/standalone/public/
 
       - name: Compile Electron main process
         run: |
@@ -87,15 +88,16 @@ jobs:
         run: bunx prisma generate
 
       - name: Build Next.js (standalone)
-        run: bun run build
+        run: bun run build:standalone
         env:
           DATABASE_URL: "file:/tmp/prod.db"
           NEXT_TELEMETRY_DISABLED: "1"
 
-      - name: Copy standalone assets
+      - name: Verify standalone output
         run: |
-          cp -r .next/static .next/standalone/.next/
-          cp -r public .next/standalone/
+          ls -la .next/standalone/
+          ls -la .next/standalone/.next/static/
+          ls -la .next/standalone/public/
 
       - name: Compile Electron main process
         run: |
