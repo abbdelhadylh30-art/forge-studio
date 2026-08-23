@@ -131,8 +131,9 @@ function startNextServer(port: number): ChildProcess {
     env = { ...process.env };
   } else {
     // Production: run the standalone server
-    // The standalone output is in resources/app/.next/standalone/
-    cwd = join(process.resourcesPath, "app", ".next", "standalone");
+    // The standalone output is in resources/app/standalone/
+    // (using "standalone" not ".next/standalone" to avoid Windows dot-prefix issues)
+    cwd = join(process.resourcesPath, "app", "standalone");
     cmd = "node";
     args = ["server.js"];
     env = {

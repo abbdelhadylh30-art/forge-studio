@@ -23,17 +23,17 @@
   "extraResources": [
     {
       "from": ".next/standalone",
-      "to": "app/.next/standalone",
+      "to": "app/standalone",
       "filter": ["**/*", "**/node_modules/**/*", "**/.next/**/*"]
     },
     {
       "from": ".next/static",
-      "to": "app/.next/standalone/.next/static",
+      "to": "app/standalone/.next/static",
       "filter": ["**/*"]
     },
     {
       "from": "public",
-      "to": "app/.next/standalone/public",
+      "to": "app/standalone/public",
       "filter": ["**/*"]
     },
     {
