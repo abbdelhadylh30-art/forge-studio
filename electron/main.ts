@@ -146,12 +146,19 @@ function startNextServer(port: number): ChildProcess {
     };
   }
 
-  // On Windows, use shell:true so it can find node/npx
+  // On Windows, we need shell:true so it can find node/npx.
+  // But in a packaged Electron app, the ComSpec env var might not be set,
+  // causing spawn ENOENT. We fix this by explicitly setting ComSpec to cmd.exe.
+  const spawnEnv = { ...env };
+  if (process.platform === "win32" && !spawnEnv.ComSpec) {
+    spawnEnv.ComSpec = "C:\\Windows\\system32\\cmd.exe";
+  }
+
   const child = spawn(cmd, args, {
     cwd,
-    shell: true,
+    shell: process.platform === "win32" ? spawnEnv.ComSpec : true,
     stdio: "pipe",
-    env,
+    env: spawnEnv,
   });
 
   let errorOutput = "";
