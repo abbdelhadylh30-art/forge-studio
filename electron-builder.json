@@ -10,30 +10,12 @@
     "electron/dist/**/*",
     "electron/preload.js",
     "package.json",
-    "!**/*.ts",
-    "!**/*.map",
-    "!**/node_modules/*/{CHANGELOG.md,README.md,readme.md,readme}",
-    "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-    "!.editorconfig",
-    "!**/._*",
-    "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-    "!**/{__pycache__,thumbs.db,.flow,.idea,.vs,.nyc_output}"
+    "standalone-server/**/*"
   ],
   "extraResources": [
     {
-      "from": ".next/standalone",
-      "to": "app/standalone",
-      "filter": ["**/*", "**/node_modules/**/*", "**/.next/**/*"]
-    },
-    {
-      "from": ".next/static",
-      "to": "app/standalone/.next/static",
-      "filter": ["**/*"]
-    },
-    {
       "from": "public",
-      "to": "app/standalone/public",
+      "to": "app/public",
       "filter": ["**/*"]
     },
     {
@@ -43,17 +25,9 @@
     }
   ],
   "win": {
-    "target": ["nsis"],
+    "target": ["portable"],
     "icon": "build/icon.png",
-    "artifactName": "ForgeStudio-Setup-${version}.${ext}"
-  },
-  "nsis": {
-    "oneClick": false,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": true,
-    "createDesktopShortcut": true,
-    "createStartMenuShortcut": true,
-    "shortcutName": "Forge Studio"
+    "artifactName": "ForgeStudio-${version}.${ext}"
   },
   "mac": {
     "target": ["dmg"],
