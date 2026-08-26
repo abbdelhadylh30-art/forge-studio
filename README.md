@@ -4,12 +4,14 @@
 
 Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and ship landing pages in one place — no code, no plugins, no sign-up.
 
+**Try it live:** <https://forge-studio-green.vercel.app> · **Windows app:** grab the installer from the [latest release](https://github.com/abbdelhadylh30-art/forge-studio/releases/latest)
+
 ## What's inside
 
 ### Page Builder
-- 12 section types (Navbar, Hero, Logo cloud, Features, Stats, Gallery, Testimonials, Pricing, FAQ, CTA, Newsletter, Footer)
+- 20 section types (Navbar, Hero, Logocloud, Features, Stats, Gallery, Testimonials, Pricing, FAQ, CTA, Newsletter, Footer, Announcement, Problem, Solution, Video, Comparison, Guarantee, Contactform, Legal)
 - 5 pre-built templates (SaaS, Portfolio, Agency, E-commerce, Startup)
-- 7 theme presets
+- 8 theme presets + custom colors, fonts & corner radius
 - Drag-and-drop section reordering
 - Multi-page sites
 - Inline editing with auto-generated inspector forms

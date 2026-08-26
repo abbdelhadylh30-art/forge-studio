@@ -1,6 +1,6 @@
 # Forge Studio — Requirements Specification
 
-**Version:** 1.1.0 · **Status:** Living document · **SWEBOK KA:** Software Requirements
+**Version:** 1.2.0 · **Status:** Living document · **SWEBOK KA:** Software Requirements
 
 This document captures the functional and non-functional requirements for Forge Studio. It follows the structure recommended by SWEBOK v3.0 Chapter 1 (Software Requirements): functional requirements, non-functional requirements (quality attributes), and constraints.
 
@@ -44,6 +44,12 @@ The tool is a single-user, client-side-heavy application with server-side API ro
 ### FR-4: Bidirectional transfer
 - **FR-4.1** The unified `useForge` store SHALL hold a `pendingTransfer` payload (HTML + name + source + timestamp).
 - **FR-4.2** Transferring SHALL switch the active view to the target tool and pre-load the HTML.
+
+### FR-5: Desktop packaging (v1.2.0)
+- **FR-5.1** The app SHALL ship as a Windows NSIS installer and a portable .exe via electron-builder.
+- **FR-5.2** The packaged app SHALL bundle the Next.js standalone server as plain files (`asar: false`) so the child node process can execute it.
+- **FR-5.3** Tag pushes matching `v*` SHALL publish the built installers to a GitHub Release automatically.
+- **FR-5.4** The CI pipeline SHALL smoke-test both the standalone server and the packaged .exe (boot + serve HTTP 200) before publishing.
 
 ## 3. Non-Functional Requirements (Quality Attributes)
 

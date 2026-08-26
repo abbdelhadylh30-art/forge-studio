@@ -4,8 +4,9 @@
   "productName": "Forge Studio",
   "directories": {
     "output": "release",
-    "buildResources": "build"
+    "buildResources": "icons"
   },
+  "asar": false,
   "files": [
     "electron/dist/**/*",
     "electron/preload.js",
@@ -25,18 +26,24 @@
     }
   ],
   "win": {
-    "target": ["portable"],
-    "icon": "build/icon.png",
+    "target": ["nsis", "portable"],
+    "icon": "icons/icon.png",
     "artifactName": "ForgeStudio-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "artifactName": "ForgeStudio-Setup-${version}.${ext}"
   },
   "mac": {
     "target": ["dmg"],
-    "icon": "build/icon.png",
+    "icon": "icons/icon.png",
     "category": "public.app-category.developer-tools"
   },
   "linux": {
     "target": ["AppImage"],
-    "icon": "build/icon.png",
+    "icon": "icons/icon.png",
     "category": "Development"
   }
 }

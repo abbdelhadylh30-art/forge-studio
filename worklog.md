@@ -449,3 +449,71 @@ Stage Summary:
 - Lint: 0 errors
 - Verified locally via agent-browser on both mobile and desktop viewports
 - Pushed to GitHub — user needs to connect GitHub repo to Vercel for auto-deploy, or provide a new Vercel token
+
+---
+Task ID: 10
+Agent: main (Z.ai Code)
+Task: v1.2.0 — fix the packaged .exe (asar bug), add NSIS installer +
+app icon, CI smoke tests, and automatic GitHub Release publishing.
+
+Work Log:
+- Root-caused why the packaged .exe never actually worked despite 6
+  green CI runs: electron-builder packs `files` (incl. standalone-server/)
+  into app.asar, but main.ts spawns a REAL child node.exe with
+  cwd = app.getAppPath()/standalone-server — node cannot read inside an
+  asar archive, so the server could never boot (the last 5 commits
+  fought symptoms: ENOENT, missing 'next' module, path mangling).
+- Fix: `asar: false` in electron-builder.json (app is 200MB regardless;
+  real files on disk are required for the child-process architecture).
+- main.ts hardening: production env now sets DATABASE_URL to a writable
+  SQLite path in Electron userData (feedback + email-report routes fall
+  back gracefully if tables are missing); documented the asar constraint
+  inline so nobody re-enables it accidentally.
+- Added NSIS installer target (oneClick:false, choose install dir,
+  desktop shortcut) alongside portable; Setup exe named
+  ForgeStudio-Setup-<version>.exe.
+- Generated icons/icon.png (1024×1024 RGBA, violet→pink brand gradient
+  with a geometric white F) — the previous config referenced
+  build/icon.png but the directory didn't exist (default Electron icon
+  was silently used).
+- Workflow (build-exe.yml) overhaul:
+  * Added `permissions: contents: write` (was missing — release
+    publishing would have been denied).
+  * NEW blocking smoke test #1: boots `node server.js` from
+    standalone-server/ and requires HTTP 200 with >500 bytes within 60s
+    (fails fast, before the slow electron-builder step).
+  * NEW blocking smoke test #2: launches the packaged portable .exe,
+    polls http://localhost:3000 for HTTP 200 within 120s, dumps
+    listening ports + forge processes on failure, then kills the whole
+    tree. This is the test that would have caught every one of the last
+    5 broken releases.
+  * Release publishing: on tag push v*, uploads both .exe files to a
+    GitHub Release with auto-generated notes (softprops/action-gh-release).
+  * Artifact uploads split correctly (Setup vs Portable; portable glob
+    ForgeStudio-[0-9]*.exe excludes the Setup exe).
+  * Timeout 30→40 min (NSIS + smoke tests add minutes).
+- Version hygiene: package.json 1.0.0 → 1.2.0, REQUIREMENTS.md 1.1.0 →
+  1.2.0 with new FR-5 (desktop packaging) requirements.
+- README: added live URL (forge-studio-green.vercel.app) + Windows
+  download link, corrected "12 section types" → exact 20 list from the
+  registry, "7 theme presets" → 8 + custom colors/fonts/radius.
+- .gitignore already ignores release/.
+
+Stage Summary:
+- The .exe should finally WORK: asar fix + DATABASE_URL + verified
+  launch path. CI now proves it before publishing (two blocking smoke
+  tests).
+- Releases are permanent (not 30-day artifacts): tag push → GitHub
+  Release with ForgeStudio-Setup-1.2.0.exe + ForgeStudio-1.2.0.exe.
+- Proper NSIS installer replaces portable-only distribution; real app
+  icon replaces default Electron icon.
+
+Unresolved issues / risks:
+- The exe smoke test runs a GUI app on a headless-ish Windows runner —
+  Electron does run on windows-latest, but if it proves flaky the step
+  may need a fallback (block on standalone test only). Watch the first
+  v1.2.0 run.
+- Mac build still disabled (if: false).
+- Desktop DATABASE_URL points at an empty SQLite file — feedback/email
+  routes fall back gracefully (console.warn), but provisioning the
+  schema at first launch is a future nicety.

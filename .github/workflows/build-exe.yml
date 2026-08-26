@@ -1,6 +1,9 @@
 # Forge Studio — Build Desktop App (.exe)
+#
+# Triggers: tag push (v*) or manual dispatch.
+# Produces: NSIS installer + portable exe, smoke-tested, published to a
+# GitHub Release when triggered by a tag.
 
-# Runs on push to main (manual trigger only for now to save CI minutes)
 name: Build Desktop App
 
 on:
@@ -9,10 +12,13 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout code
@@ -44,6 +50,34 @@ jobs:
           echo "server.js exists:"
           if (Test-Path standalone-server\server.js) { Write-Host "YES" } else { Write-Host "NO" }
         shell: pwsh
+
+      - name: Smoke test — standalone server boots and serves HTTP
+        shell: pwsh
+        run: |
+          $env:PORT = "3100"
+          $env:HOSTNAME = "localhost"
+          $env:NODE_ENV = "production"
+          $env:DATABASE_URL = "file:./prod.db"
+          $p = Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "standalone-server" -PassThru -RedirectStandardOutput "smoke-out.log" -RedirectStandardError "smoke-err.log"
+          $ok = $false
+          try {
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 2
+              if ($p.HasExited) { break }
+              try {
+                $r = Invoke-WebRequest -Uri "http://localhost:3100" -UseBasicParsing -TimeoutSec 3
+                if ($r.StatusCode -eq 200 -and $r.Content.Length -gt 500) { $ok = $true; break }
+              } catch {}
+            }
+          } finally {
+            if (-not $p.HasExited) { taskkill /PID $p.Id /T /F 2>&1 | Out-Null }
+          }
+          Write-Host "=== server stdout (last 15 lines) ==="
+          Get-Content smoke-out.log -ErrorAction SilentlyContinue | Select-Object -Last 15
+          Write-Host "=== server stderr (last 15 lines) ==="
+          Get-Content smoke-err.log -ErrorAction SilentlyContinue | Select-Object -Last 15
+          if (-not $ok) { throw "SMOKE TEST FAILED — standalone server did not serve HTTP 200 within 60s" }
+          Write-Host "SMOKE TEST PASSED — standalone server served the dashboard"
 
       - name: Compile Electron main process
         run: |
@@ -52,29 +86,68 @@ jobs:
       - name: Install electron-builder
         run: bun add -d electron electron-builder
 
-      - name: Build .exe
+      - name: Build .exe (NSIS installer + portable)
         run: npx electron-builder --win --config electron-builder.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload .exe artifact
+      - name: Smoke test — packaged .exe boots and serves HTTP
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "release\*.exe" | Where-Object { $_.Name -match '^ForgeStudio-[0-9]' } | Select-Object -First 1
+          if (-not $exe) { throw "Portable exe not found in release\ — listing:"; Get-ChildItem release }
+          Write-Host "Testing: $($exe.FullName)"
+          $p = Start-Process -FilePath $exe.FullName -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            if ($p.HasExited) { break }
+            try {
+              $r = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 3
+              if ($r.StatusCode -eq 200 -and $r.Content.Length -gt 500) { $ok = $true; break }
+            } catch {}
+          }
+          Write-Host "=== listening ports ==="
+          netstat -ano | Select-String "LISTENING" | Select-Object -First 20
+          Write-Host "=== forge processes ==="
+          Get-Process | Where-Object { $_.Name -like "*forge*" -or $_.Name -like "*electron*" } | Format-Table Id,Name -AutoSize
+          # Kill the whole tree: node server by port, electron by name
+          $conn = netstat -ano | Select-String ":3000\s.*LISTENING"
+          if ($conn -match '(\d+)\s*$') { taskkill /PID $Matches[1] /T /F 2>&1 | Out-Null }
+          Get-Process -Name "Forge*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "SMOKE TEST FAILED — packaged exe did not serve http://localhost:3000 within 120s" }
+          Write-Host "SMOKE TEST PASSED — packaged exe served the dashboard"
+
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: ForgeStudio-Windows-Setup
           path: release/ForgeStudio-Setup-*.exe
           retention-days: 30
 
-      - name: Upload portable build (optional)
+      - name: Upload portable artifact
         uses: actions/upload-artifact@v4
         with:
           name: ForgeStudio-Windows-Portable
-          path: release/*.exe
+          path: release/ForgeStudio-[0-9]*.exe
           retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/ForgeStudio-Setup-*.exe
+            release/ForgeStudio-[0-9]*.exe
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-mac:
     runs-on: macos-latest
-    timeout-minutes: 30
-    if: false  # Disabled by default — uncomment to enable Mac builds
+    timeout-minutes: 40
+    if: false  # Disabled by default — flip to true to enable Mac builds
 
     steps:
       - name: Checkout code
@@ -96,16 +169,6 @@ jobs:
         env:
           DATABASE_URL: "file:/tmp/prod.db"
           NEXT_TELEMETRY_DISABLED: "1"
-
-      - name: Verify standalone output
-        run: |
-          echo "standalone-server dir:"
-          dir standalone-server
-          echo "next module:"
-          if (Test-Path standalone-server\node_modules\next) { Write-Host "YES - next module found" } else { Write-Host "NO - next module MISSING" }
-          echo "server.js exists:"
-          if (Test-Path standalone-server\server.js) { Write-Host "YES" } else { Write-Host "NO" }
-        shell: pwsh
 
       - name: Compile Electron main process
         run: |

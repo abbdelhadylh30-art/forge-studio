@@ -131,7 +131,10 @@ function startNextServer(port: number): ChildProcess {
     env = { ...process.env };
   } else {
     // Production: run the standalone server
-    // The standalone output is bundled as "standalone-server" inside the app
+    // The standalone output is bundled as "standalone-server" inside the app.
+    // NOTE: electron-builder.json sets `asar: false` so that app.getAppPath()
+    // is a REAL directory on disk — a child node.exe process cannot read
+    // files inside an .asar archive, so the server must live as plain files.
     cwd = join(app.getAppPath(), "standalone-server");
     cmd = "node";
     args = ["server.js"];
@@ -143,6 +146,9 @@ function startNextServer(port: number): ChildProcess {
       ELECTRON_RUN_AS_NODE: undefined as any,
       // Set the hostname explicitly
       HOSTNAME: "localhost",
+      // Give Prisma a writable SQLite location (feedback + email-report
+      // routes fall back gracefully if the tables don't exist yet)
+      DATABASE_URL: `file:${join(app.getPath("userData"), "forge.db")}`,
     };
   }
 
