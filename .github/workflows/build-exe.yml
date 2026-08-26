@@ -88,11 +88,9 @@ jobs:
 
       - name: Build .exe (NSIS installer + portable)
         run: npx electron-builder --win --config electron-builder.json --publish never
-        env:
-          # GH_TOKEN intentionally NOT set here: electron-builder auto-publishes
-          # a draft release when it sees GH_TOKEN on a tag build. Publishing is
-          # handled by the dedicated 'Publish GitHub Release' step below.
-          # (kept as comment for clarity)
+        # NOTE: GH_TOKEN is intentionally NOT set on this step — electron-builder
+        # auto-publishes a draft release when it sees GH_TOKEN on a tag build.
+        # Publishing is handled solely by the 'Publish GitHub Release' step below.
 
       - name: Smoke test — packaged .exe boots and serves HTTP
         shell: pwsh
