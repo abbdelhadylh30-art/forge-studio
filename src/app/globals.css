@@ -103,6 +103,44 @@
   --pf-transition: 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
+/* ═══ Dark mode (Tier 4) — next-themes toggles .dark on <html> ═══
+   Dashboard/builder chrome flips to a deep-slate palette that matches the
+   auditor's --pf-* aesthetic. The builder canvas keeps its own site theme
+   tokens (per-site design), so only the surrounding chrome darkens. */
+.dark {
+  --background: #0b1020;
+  --foreground: #e2e8f0;
+  --card: #121826;
+  --card-foreground: #e2e8f0;
+  --popover: #151b2c;
+  --popover-foreground: #e2e8f0;
+  --primary: #818cf8;
+  --primary-foreground: #0b1020;
+  --secondary: #1a2233;
+  --secondary-foreground: #e2e8f0;
+  --muted: #1a2233;
+  --muted-foreground: #8b95ad;
+  --accent: #1e2740;
+  --accent-foreground: #e2e8f0;
+  --destructive: #f87171;
+  --border: #262d3f;
+  --input: #262d3f;
+  --ring: #818cf8;
+  --chart-1: #818cf8;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #c4b5fd;
+  --chart-5: #f472b6;
+  --sidebar: #121826;
+  --sidebar-foreground: #e2e8f0;
+  --sidebar-primary: #818cf8;
+  --sidebar-primary-foreground: #0b1020;
+  --sidebar-accent: #1e2740;
+  --sidebar-accent-foreground: #e2e8f0;
+  --sidebar-border: #262d3f;
+  --sidebar-ring: #818cf8;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

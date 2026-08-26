@@ -82,3 +82,8 @@ server.log
 *.dmg
 *.AppImage
 standalone-server/
+
+# QA screenshots + local dev logs + local db
+qa-*.png
+dev-3005.log
+db/

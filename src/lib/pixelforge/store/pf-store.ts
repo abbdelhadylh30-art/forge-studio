@@ -12,6 +12,7 @@
 
 import { create } from "zustand";
 import { v4 as uuid } from "uuid";
+import { saveAuditSnapshot, type AuditHistoryEntry } from "../audit-history";
 import type {
   ChangeLogItem,
   DeviceMode,
@@ -126,6 +127,10 @@ interface EditorState {
   addABVariant: (name: string, html: string) => void;
   setABVariantScore: (id: string, score: number) => void;
   setABWinner: (id: string) => void;
+
+  // Tier 2 — audit history: persist the current score state as a snapshot
+  // (localStorage always; Prisma best-effort via /api/audits).
+  saveSnapshot: () => AuditHistoryEntry | null;
 }
 
 export const usePFStore = create<EditorState>((set, get) => ({
@@ -333,6 +338,26 @@ export const usePFStore = create<EditorState>((set, get) => ({
     set((s) => ({
       abVariants: s.abVariants.map((v) => ({ ...v, isWinner: v.id === id })),
     }));
+  },
+
+  saveSnapshot: () => {
+    const s = get();
+    if (!s.scoreData || !s.currentHTML) return null;
+    const entry = saveAuditSnapshot({
+      name: s.projectName,
+      url: s.projectUrl,
+      clientName: s.clientName,
+      projectId: s.projectId,
+      score: s.scoreData.score,
+      desktopScore: s.scoreData.desktopScore,
+      mobileScore: s.scoreData.mobileScore,
+      issues: s.scoreData.issues,
+      cats: s.scoreData.cats,
+      html: s.currentHTML,
+    });
+    // Remember the server-assigned project id for future snapshots.
+    set({ projectId: s.projectId });
+    return entry;
   },
 }));
 

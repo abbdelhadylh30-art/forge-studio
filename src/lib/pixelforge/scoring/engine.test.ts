@@ -116,11 +116,11 @@ describe("runScoring — bug regressions", () => {
     </body></html>`;
     const d = doc(html);
     // Simulate the link being above the fold with a real size (jsdom returns
-    // zeros by default, which the engine treats as "hidden").
-    const link = d.querySelector("a")!;
-    (link as HTMLElement & { dataset: DOMStringMap }).dataset._rect = JSON.stringify({
-      top: 100, left: 0, width: 200, height: 50, right: 200, bottom: 150, x: 0, y: 100,
-    });
+    // zeros by default, which the engine treats as "hidden"). Mock the rect
+    // on the element itself — the engine calls getBoundingClientRect().
+    const link = d.querySelector("a")! as HTMLElement;
+    link.getBoundingClientRect = () =>
+      ({ top: 100, left: 0, width: 200, height: 50, right: 200, bottom: 150, x: 0, y: 100, toJSON: () => ({}) }) as DOMRect;
     const sd = runScoring({ doc: d });
     const ctaWeak = sd.issues.find((i) => i.id === "cta-weak");
     expect(ctaWeak).toBeTruthy();

@@ -4,7 +4,6 @@ import { useBuilder, readBuilderAutosave } from "@/lib/builder/store/builder-sto
 import { BuilderTopBar, SectionLibrary } from "./TopBar";
 import { BuilderCanvas } from "./Canvas";
 import { BuilderInspector } from "./Inspector";
-import { CommandPalette } from "./CommandPalette";
 import { PreviewModeBanner } from "./PreviewModeBanner";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
@@ -66,7 +65,6 @@ export function BuilderShell() {
       <div className="flex h-screen flex-col bg-white overflow-hidden">
         <PreviewModeBanner />
         <main className="flex-1 overflow-hidden pt-7"><BuilderCanvas /></main>
-        <CommandPalette />
       </div>
     );
   }
@@ -107,7 +105,6 @@ export function BuilderShell() {
           </>
         )}
       </div>
-      <CommandPalette />
     </div>
   );
 }

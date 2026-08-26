@@ -8,7 +8,7 @@ import { runScoring } from "@/lib/pixelforge/scoring/engine";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, Zap,
-  Sparkles, Wand2, ListChecks, Info,
+  Sparkles, Wand2, ListChecks, Info, History,
 } from "lucide-react";
 
 interface ScorePanelProps {
@@ -24,7 +24,7 @@ interface SeverityFilter {
 }
 
 export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelProps) {
-  const { scoreData, initialScore, currentHTML, setHTML, pushHistory, addChange, setSelectedSelector, startGuide } = usePFStore();
+  const { scoreData, initialScore, currentHTML, setHTML, pushHistory, addChange, setSelectedSelector, startGuide, saveSnapshot } = usePFStore();
   const issues = scoreData?.issues ?? [];
   const top3 = useMemo(
     () => [...issues].filter((i) => i.pts < i.max).sort((a, b) => b.priority - a.priority).slice(0, 3),
@@ -115,6 +115,8 @@ export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelPro
         : `Applied ${count} ${count === 1 ? "fix" : "fixes"}${diff > 0 ? ` · +${diff} pts` : ""}`,
       "success"
     );
+    // Auto-record the improved state in audit history (Tier 2).
+    if (count > 0) saveSnapshot();
   };
 
   const score = scoreData.score;
@@ -184,6 +186,26 @@ export function ScorePanel({ onToast, onImprovement, onConfetti }: ScorePanelPro
             <div className="text-[9px] text-[var(--pf-text-dim)]">Mobile penalty</div>
           </div>
         )}
+      </div>
+
+      {/* Save snapshot to audit history (Tier 2) */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--pf-border)] bg-white/[0.01]">
+        <span className="text-[10px] text-[var(--pf-text-dim)] flex items-center gap-1.5">
+          <History className="w-3 h-3" />
+          Snapshot this result to your audit history
+        </span>
+        <button
+          onClick={() => {
+            const entry = saveSnapshot();
+            if (entry) {
+              onToast(`Saved “${entry.name}” (${entry.score}/100) to audit history`, "success");
+            } else {
+              onToast("Nothing to save yet — score a page first.", "info");
+            }
+          }}
+          className="pf-btn pf-btn-sm"
+          title="Save the current score to the dashboard's audit history"
+        >Save</button>
       </div>
 
       {/* Category breakdown */}

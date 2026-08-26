@@ -19,13 +19,46 @@ interface ToolsModalProps {
 type ToolId = "pdf" | "whitelabel" | "platforms" | "clients" | "monitor" | "heatmap" | "conversion" | "team" | "speed" | "abovefold" | null;
 
 export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
-  const { currentHTML, scoreData, teamComments, addTeamComment, whitelabelActive, whitelabelBrand, setWhitelabel } = usePFStore();
+  const { currentHTML, scoreData, teamComments, addTeamComment, whitelabelActive, whitelabelBrand, setWhitelabel, projectUrl } = usePFStore();
   const [activeTool, setActiveTool] = useState<ToolId>(null);
   const [commentText, setCommentText] = useState("");
   const [commentAuthor, setCommentAuthor] = useState("Anonymous");
   const [heatmapHotspots, setHeatmapHotspots] = useState<{ x: number; y: number; intensity: number }[]>([]);
   const [monitorActive, setMonitorActive] = useState(false);
   const [monitorHistory, setMonitorHistory] = useState<{ date: string; score: number; diff: number }[]>([]);
+
+  // Real PageSpeed Insights (Tier 2): Lighthouse lab data + CrUX field data
+  // for imported URLs. Falls back to the DOM-heuristic sim when offline or
+  // when auditing a local/edited page with no source URL.
+  const [psiLoading, setPsiLoading] = useState(false);
+  const [psiError, setPsiError] = useState<string | null>(null);
+  const [psiStrategy, setPsiStrategy] = useState<"mobile" | "desktop">("mobile");
+  const [psiResult, setPsiResult] = useState<{
+    score: number | null;
+    metrics: { id: string; label: string; value: string; score: number | null }[];
+    opportunities: { id: string; title: string; savingsMs: number }[];
+    fieldData: { category: string; fcp: string; lcp: string; cls: string } | null;
+  } | null>(null);
+
+  const runPsi = async () => {
+    if (!projectUrl) return;
+    setPsiLoading(true);
+    setPsiError(null);
+    setPsiResult(null);
+    try {
+      const res = await fetch(`/api/pagespeed?url=${encodeURIComponent(projectUrl)}&strategy=${psiStrategy}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setPsiError(data?.error ?? "PageSpeed test failed.");
+      } else {
+        setPsiResult(data);
+      }
+    } catch {
+      setPsiError("Network error — couldn't reach the PageSpeed service.");
+    } finally {
+      setPsiLoading(false);
+    }
+  };
 
   // Auto Monitor: re-audit the iframe every 10s while monitoring is active.
   // This is a REAL re-audit (calls runScoring on the live iframe document),
@@ -61,7 +94,7 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
     { id: "heatmap", label: "Heatmap Sim", desc: "Simulated click hotspots — not real visitor data", icon: Flame, category: "Behemoth", badge: "Sim" },
     { id: "conversion", label: "Conversion Score", desc: "Heuristic estimate of conversion probability", icon: Target, category: "Behemoth", badge: "Estimate" },
     { id: "team", label: "Team Comments", desc: "Leave comments on the audit (local only)", icon: MessageSquare, category: "Behemoth" },
-    { id: "speed", label: "Page Speed Sim", desc: "Estimate load time from DOM size and assets", icon: Activity, category: "Conversion", badge: "Sim" },
+    { id: "speed", label: "Page Speed", desc: "Real Google PageSpeed (Lighthouse + CrUX) with offline sim fallback", icon: Activity, category: "Conversion", badge: "Live" },
     { id: "abovefold", label: "Above Fold", desc: "Score what visitors see before scrolling", icon: Target, category: "Conversion" },
   ];
 
@@ -413,33 +446,141 @@ export function ToolsModal({ open, onClose, onToast }: ToolsModalProps) {
     }
 
     if (activeTool === "speed") {
-      try {
-        const iframe = document.querySelector("iframe[title='preview']") as HTMLIFrameElement | null;
-        const doc = iframe?.contentDocument;
-        if (!doc) return <div className="text-center py-8 text-[var(--pf-text-dim)] text-xs">Preview not ready.</div>;
-        const speed = calculatePageSpeed(doc);
-        return (
-          <div>
-            <div className="flex items-center gap-4 mb-3">
-              <div className="text-[32px] font-black" style={{
-                color: speed.badge === "fast" ? "var(--pf-success)" : speed.badge === "moderate" ? "var(--pf-warning)" : "var(--pf-error)",
-              }}>{(speed.totalTime / 1000).toFixed(2)}s</div>
-              <div className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${speed.badge === "fast" ? "bg-[var(--pf-success-dim)] text-[var(--pf-success)]" : speed.badge === "moderate" ? "bg-[var(--pf-warning-dim)] text-[var(--pf-warning)]" : "bg-[var(--pf-error-dim)] text-[var(--pf-error)]"}`}>
-                {speed.badge}
+      const scoreColor = (n: number | null) =>
+        n == null ? "var(--pf-text-dim)"
+        : n >= 90 ? "var(--pf-success)"
+        : n >= 50 ? "var(--pf-warning)"
+        : "var(--pf-error)";
+      const ring = (n: number) =>
+        `conic-gradient(${n >= 90 ? "var(--pf-success)" : n >= 50 ? "var(--pf-warning)" : "var(--pf-error)"} ${n * 3.6}deg, rgba(255,255,255,0.06) 0deg)`;
+      return (
+        <div>
+          {/* ── Real Google PageSpeed Insights ─────────────────────────── */}
+          <div className="rounded-lg p-3 mb-3 border border-[var(--pf-border)] bg-white/[0.03]">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--pf-text-dim)]">Real PageSpeed</span>
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-[var(--pf-primary-dim,rgba(92,141,239,0.15))] text-[var(--pf-primary,#5c8def)]">Lighthouse + CrUX</span>
+              </div>
+              <div className="flex rounded overflow-hidden border border-[var(--pf-border)]">
+                {(["mobile", "desktop"] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => { setPsiStrategy(s); setPsiResult(null); setPsiError(null); }}
+                    className={`px-2.5 py-1 text-[9px] font-bold uppercase transition-colors ${psiStrategy === s ? "bg-[var(--pf-primary,#5c8def)] text-white" : "text-[var(--pf-text-dim)] hover:bg-white/[0.04]"}`}
+                  >{s}</button>
+                ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {speed.breakdown.map((b) => (
-                <div key={b.label} className="flex items-center gap-1.5 p-1.5 bg-white/[0.02] rounded text-[10px]">
-                  <span className="flex-1 text-[var(--pf-text-dim)]">{b.label}</span>
-                  <span className="font-bold" style={{ color: b.rating === "fast" ? "var(--pf-success)" : b.rating === "moderate" ? "var(--pf-warning)" : "var(--pf-error)" }}>{b.value}ms</span>
+
+            {!projectUrl ? (
+              <div className="text-center py-4">
+                <p className="text-[11px] text-[var(--pf-text-dim)] leading-relaxed">
+                  Import a page by URL (top bar) to unlock real Google PageSpeed data —
+                  Lighthouse lab metrics plus real-user Chrome UX Report field data.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <button
+                    onClick={runPsi}
+                    disabled={psiLoading}
+                    className="pf-btn pf-btn-primary pf-btn-sm disabled:opacity-50"
+                  >{psiLoading ? "Running Lighthouse…" : `Test ${psiStrategy === "mobile" ? "Mobile" : "Desktop"}`}</button>
+                  <span className="text-[9px] text-[var(--pf-text-dim)] truncate flex-1">{projectUrl}</span>
                 </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-[var(--pf-text-dim)] mt-2">Simulated based on DOM size, image count, and external resources.</p>
+
+                {psiLoading && (
+                  <div className="py-4 text-center">
+                    <div className="inline-block w-6 h-6 border-2 border-[var(--pf-primary,#5c8def)] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-[10px] text-[var(--pf-text-dim)] mt-2">Google is rendering the page — this can take 20–30 seconds.</p>
+                  </div>
+                )}
+
+                {psiError && (
+                  <div className="p-2.5 rounded bg-[var(--pf-error-dim)] border border-[var(--pf-error)]/30 text-[10px] text-[var(--pf-error)] leading-relaxed">{psiError}</div>
+                )}
+
+                {psiResult && (
+                  <div>
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="relative w-16 h-16 rounded-full flex items-center justify-center shrink-0" style={{ background: ring(psiResult.score ?? 0) }}>
+                        <div className="absolute inset-[5px] rounded-full bg-[var(--pf-bg,#151923)] flex items-center justify-center">
+                          <span className="text-[18px] font-black" style={{ color: scoreColor(psiResult.score) }}>{psiResult.score ?? "—"}</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-[var(--pf-text-dim)]">Performance score ({psiStrategy})</div>
+                        <div className="text-[11px] text-[var(--pf-text-dim)] leading-relaxed mt-0.5">
+                          Lab data from Google&apos;s Lighthouse. {psiResult.fieldData ? `Real users: ${psiResult.fieldData.category} (FCP ${psiResult.fieldData.fcp}, LCP ${psiResult.fieldData.lcp}, CLS ${psiResult.fieldData.cls}).` : "No CrUX field data (site has too little traffic)."}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 mb-2">
+                      {psiResult.metrics.map((m) => (
+                        <div key={m.id} className="flex items-center gap-1.5 p-1.5 bg-white/[0.02] rounded text-[10px]">
+                          <span className="flex-1 text-[var(--pf-text-dim)] truncate">{m.label}</span>
+                          <span className="font-bold" style={{ color: scoreColor(m.score == null ? null : Math.round(m.score * 100)) }}>{m.value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {psiResult.opportunities.length > 0 && (
+                      <div>
+                        <div className="text-[9px] uppercase tracking-wider text-[var(--pf-text-dim)] mb-1.5">Top opportunities</div>
+                        <div className="space-y-1">
+                          {psiResult.opportunities.map((o) => (
+                            <div key={o.id} className="flex items-center gap-2 p-1.5 bg-white/[0.02] rounded text-[10px]">
+                              <span className="flex-1 truncate">{o.title}</span>
+                              <span className="font-bold text-[var(--pf-success)] shrink-0">−{(o.savingsMs / 1000).toFixed(1)}s</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        );
-      } catch { return null; }
+
+          {/* ── Offline simulation (kept as fallback) ───────────────────── */}
+          <div className="rounded-lg p-3 border border-[var(--pf-border)]">
+            <div className="text-[9px] uppercase tracking-wider text-[var(--pf-text-dim)] mb-2">Offline estimate (DOM heuristics)</div>
+            {(() => {
+              try {
+                const iframe = document.querySelector("iframe[title='preview']") as HTMLIFrameElement | null;
+                const doc = iframe?.contentDocument;
+                if (!doc) return <div className="text-center py-3 text-[var(--pf-text-dim)] text-xs">Preview not ready.</div>;
+                const speed = calculatePageSpeed(doc);
+                return (
+                  <div>
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="text-[24px] font-black" style={{
+                        color: speed.badge === "fast" ? "var(--pf-success)" : speed.badge === "moderate" ? "var(--pf-warning)" : "var(--pf-error)",
+                      }}>{(speed.totalTime / 1000).toFixed(2)}s</div>
+                      <div className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${speed.badge === "fast" ? "bg-[var(--pf-success-dim)] text-[var(--pf-success)]" : speed.badge === "moderate" ? "bg-[var(--pf-warning-dim)] text-[var(--pf-warning)]" : "bg-[var(--pf-error-dim)] text-[var(--pf-error)]"}`}>
+                        {speed.badge}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {speed.breakdown.map((b) => (
+                        <div key={b.label} className="flex items-center gap-1.5 p-1.5 bg-white/[0.02] rounded text-[10px]">
+                          <span className="flex-1 text-[var(--pf-text-dim)]">{b.label}</span>
+                          <span className="font-bold" style={{ color: b.rating === "fast" ? "var(--pf-success)" : b.rating === "moderate" ? "var(--pf-warning)" : "var(--pf-error)" }}>{b.value}ms</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-[var(--pf-text-dim)] mt-2">Simulated from the in-editor DOM — instant, works offline, reflects your edits.</p>
+                  </div>
+                );
+              } catch { return null; }
+            })()}
+          </div>
+        </div>
+      );
     }
 
     if (activeTool === "abovefold") {

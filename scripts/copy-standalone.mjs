@@ -6,8 +6,8 @@
  * Also verifies that node_modules/next exists in the standalone output —
  * if not, copies the full node_modules as a fallback.
  */
-const { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } = require("node:fs");
-const { join } = require("node:path");
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
+import { join } from "node:path";
 
 function copyDir(src, dest) {
   if (!existsSync(src)) return;
@@ -38,7 +38,7 @@ if (!existsSync(standaloneDir)) {
 
 // Remove old bundle dir if it exists
 if (existsSync(bundleDir)) {
-  const { rmSync } = require("node:fs");
+  
   rmSync(bundleDir, { recursive: true, force: true });
 }
 

@@ -22,17 +22,23 @@ Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and s
 
 ### Page Auditor
 - 0–100 score across 5 categories (SEO, Content, Accessibility, Structure, Performance)
-- 30+ individual checks with severity, points, and selector
+- 43 individual checks with severity, points, and selector
 - 38 one-click quick-fixes that mutate the iframe DOM
 - "Fix All Safe" button applies all safe fixes in sequence
 - 4-tab right panel: Score, Edit, OG (social preview), Share
 - URL import via server-side CORS proxy (Fetch mode) or direct iframe (Live mode)
 - Bidirectional transfer: send builder HTML to auditor, or send audited HTML back to builder
 - 80-deep undo/redo with changelog
-- 10 tools: PDF report, White label, Platform export, Client mode, Auto monitor, Heatmap sim, Conversion score, Team comments, Page speed sim, Above-fold analysis
+- **Real PageSpeed Insights** (v1.3): Google Lighthouse lab metrics + Chrome UX Report field data for imported URLs, with the instant DOM-heuristic sim as an offline fallback — set `PSI_API_KEY` for dedicated quota
+- **Audit history** (v1.3): save score snapshots (localStorage + Prisma) and review them on the dashboard — desktop/mobile split, error/warning counts, client & URL context
+- 10 tools: PDF report, White label, Platform export, Client mode, Auto monitor, Heatmap sim, Conversion score, Team comments, Page Speed (real PSI + sim), Above-fold analysis
 - Guided walkthrough with spotlight + checklist
 
 ### Cross-cutting
+- **⌘K / Ctrl+K command palette** (v1.3) — fuzzy-searchable, grouped, view-aware commands (navigate, themes, sections, audit actions) available from any screen
+- **Track in Build Ledger** (v1.3) — export any builder site or audit as a [Build Ledger](https://github.com/abbdelhadylh30-art/build-ledger) project entry; the payload passes Build Ledger's import guard as-is
+- **Dark mode** (v1.3) — system-aware light/dark theme with a header toggle and a palette command; persisted across visits
+- **PWA** (v1.3) — installable app with offline shell, generated icons, and app shortcuts (Builder / Auditor)
 - **Autosave + recovery** — both builder and auditor persist to localStorage; refresh the page and your work is still there
 - **Honest UX** — simulated tools are labelled "Sim" / "Estimate" / "Beta"; user-friendly error messages throughout
 - **Security** — SSRF guard, prompt-injection fencing, header-injection sanitization, sandboxed iframes, zod-validated APIs

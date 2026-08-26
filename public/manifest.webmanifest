@@ -1,0 +1,47 @@
+{
+  "name": "Forge Studio — Build. Audit. Ship.",
+  "short_name": "Forge Studio",
+  "description": "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "categories": ["productivity", "developer", "design"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Builder",
+      "short_name": "Builder",
+      "description": "Jump straight into the page builder",
+      "url": "/?tool=builder"
+    },
+    {
+      "name": "Open Auditor",
+      "short_name": "Auditor",
+      "description": "Jump straight into the page auditor",
+      "url": "/?tool=auditor"
+    }
+  ]
+}

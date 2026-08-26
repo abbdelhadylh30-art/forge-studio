@@ -2,10 +2,11 @@
 
 import { usePFStore } from "@/lib/pixelforge/store/pf-store";
 import { ModalShell } from "./CompetitorModal";
-import { Download, FileText, FileCode, Mail, Loader2, CheckCircle2 } from "lucide-react";
+import { Download, FileText, FileCode, Mail, Loader2, CheckCircle2, BookOpenCheck } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { downloadLedgerPayload } from "@/lib/integrations/build-ledger";
 
 interface ExportModalProps {
   open: boolean;
@@ -14,7 +15,7 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
-  const { currentHTML, scoreData, projectName, changeLog } = usePFStore();
+  const { currentHTML, scoreData, projectName, projectUrl, clientName, changeLog } = usePFStore();
   const [emailOptIn, setEmailOptIn] = useState(false);
   const [email, setEmail] = useState("");
   const [sendingReport, setSendingReport] = useState(false);
@@ -58,6 +59,30 @@ export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
     a.click();
     URL.revokeObjectURL(url);
     onToast("Audit report (JSON) downloaded", "success");
+  };
+
+  const trackInLedger = () => {
+    if (!currentHTML) {
+      onToast("Audit a page first, then track it in Build Ledger.", "info");
+      return;
+    }
+    const fixes = changeLog.filter((c) => !c.reverted).length;
+    const filename = downloadLedgerPayload(
+      {
+        name: projectName,
+        description: `Landing page audited with Forge Studio — final score ${scoreData?.score ?? 0}/100.`,
+        clientName,
+        liveUrl: projectUrl,
+        tags: ["forge-studio", "landing-page", "audited"],
+        notes: [
+          `Audit score: ${scoreData?.score ?? 0}/100 (desktop ${scoreData?.desktopScore ?? 0}, mobile ${scoreData?.mobileScore ?? 0}).`,
+          `${fixes} fix${fixes === 1 ? "" : "es"} applied in this session.`,
+          projectUrl ? `Source: ${projectUrl}` : null,
+        ].filter(Boolean).join("\n"),
+      },
+      projectName
+    );
+    onToast(`Downloaded ${filename} — import it in Build Ledger → Import`, "success");
   };
 
   const sendReport = async () => {
@@ -122,6 +147,26 @@ export function ExportModal({ open, onClose, onToast }: ExportModalProps) {
           <div className="text-[10px] text-[var(--pf-text-dim)] text-center">Full report with scores, issues, and changes</div>
         </button>
       </div>
+
+      {/* Tier 3 — cross-product bridge */}
+      <button
+        onClick={trackInLedger}
+        className="w-full flex items-center gap-3 p-3 mb-3 rounded-lg border border-[var(--pf-border)] bg-gradient-to-r from-[rgba(92,141,239,0.08)] to-[rgba(167,139,250,0.08)] hover:from-[rgba(92,141,239,0.16)] hover:to-[rgba(167,139,250,0.16)] hover:border-[var(--pf-accent)] transition-all text-left"
+        title="Export this audit as a Build Ledger project entry"
+      >
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#5c8def] to-[#a78bfa] text-white shadow">
+          <BookOpenCheck className="w-4 h-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold flex items-center gap-1.5">
+            Track in Build Ledger
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-[rgba(92,141,239,0.15)] text-[#5c8def]">New</span>
+          </div>
+          <div className="text-[10px] text-[var(--pf-text-dim)] leading-relaxed mt-0.5">
+            Export this page as a project entry — import it in Build Ledger to track it alongside your client pipeline.
+          </div>
+        </div>
+      </button>
 
       {scoreData && (
         <div className="p-3 rounded-lg bg-white/[0.03] border border-[var(--pf-border)] mb-3">
