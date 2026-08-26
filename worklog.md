@@ -517,3 +517,85 @@ Unresolved issues / risks:
 - Desktop DATABASE_URL points at an empty SQLite file — feedback/email
   routes fall back gracefully (console.warn), but provisioning the
   schema at first launch is a future nicety.
+
+---
+Task ID: 10
+Agent: Z.ai Code (main session)
+Task: Tiers 2+3+4 — real PageSpeed Insights, audit-history dashboard, Build Ledger bridge, cmdk palette, dark mode, PWA (v1.3.0)
+
+Work Log:
+- Moved the working clone from /tmp/forge-studio to /home/z/forge-studio
+  (survives /tmp wipes between sessions; Edit tool requires /home/z paths).
+- Tier 2a — /api/pagespeed/route.ts: Google PSI v5 proxy. IMPORTANT: the
+  correct endpoint is pagespeedonline.googleapis.com (pagespeedinsights
+  404s). SSRF-guarded (assertPublicUrl), rate-limited (8/5min/IP), 60s
+  timeout, keyless shared quota + optional PSI_API_KEY env. Normalizes
+  score, 6 core metrics, top-5 opportunities, CrUX field data.
+  ToolsModal "speed" tool rebuilt: real PSI panel (score ring, strategy
+  toggle, loading/error states) + DOM-heuristic sim kept as offline
+  fallback. Keyless quota was exhausted at test time (Google's shared
+  pool) — error path verified; full data path activates with a key.
+- Tier 2b — audit history: src/lib/pixelforge/audit-history.ts
+  (localStorage forge-studio:audit-history:v1, 20 entries, 90d TTL +
+  fire-and-forget POST), /api/audits (GET list + POST find-or-create
+  Project → Audit; zod-validated, 2MB HTML cap, dynamic @/lib/db import),
+  /api/projects (audit counts + latest score). pf-store gained
+  saveSnapshot(); ScorePanel has a Save row; Fix All Safe auto-records.
+  Dashboard shows "Recent audits" (score pills, D/M split, error/warn
+  counts, client/URL, Clear). Dormant Prisma models now live.
+- Tier 3a — src/lib/integrations/build-ledger.ts: exports a
+  build-ledger-importable {projects:[...]} payload. Wired into auditor
+  ExportModal (full-width gradient row), builder ExportDialog (violet
+  card), and the command palette. Cross-validated against Build
+  Ledger's REAL parseImportPayload: 1 project, 0 dropped, all fields
+  intact (bun script importing both repos' modules).
+- Tier 3b — CommandPalette rebuilt on cmdk (shadcn ui/command): global
+  mount in page.tsx (removed double-mount from BuilderShell), view-aware
+  groups (Navigate/Preferences/Audit & Track always; Builder/Themes/
+  Sections in builder; Auditor undo/redo in auditor), ⌘K hint button in
+  dashboard header, shadcn Toaster mounted for palette feedback.
+- Tier 4a — engine.test.ts failing test fixed: dead dataset._rect hack
+  replaced with a real getBoundingClientRect mock. 127→135 tests green
+  (8 new bridge tests).
+- Tier 4b — PWA: manifest.webmanifest (192/512/maskable icons, Builder/
+  Auditor shortcuts), sw.js (SWR statics, network-first navigations,
+  never cache /api), PWARegister (production-only), icons generated via
+  sharp from icons/icon.png. copy-standalone.js → .mjs (ESM) fixing 3
+  pre-existing lint errors.
+- Tier 4c — dark mode: .dark CSS-var block (deep-slate palette matching
+  the auditor), next-themes ThemeProvider (attribute=class, system
+  default) in layout, header Sun/Moon toggle + palette command, dark:
+  variants across all dashboard surfaces (header, hero, cards, stats,
+  templates, workflow, history rows).
+- Dashboard stats corrected: 20 sections / 8 presets / 43 checks.
+- QA via agent-browser: dark toggle (html.dark, body #0b1020), palette
+  open/search/run in dashboard+builder+auditor contexts, snapshot save
+  (toast + localStorage entry + Prisma rows verified via curl), ledger
+  export from all three surfaces, mobile 390px zero horizontal overflow,
+  VLM screenshot checks (dark consistency, history row visible).
+- Final: 135/135 tests, 0 lint errors. Committed 9f55ed9, tagged
+  v1.3.0, pushed main + tag.
+
+Stage Summary:
+- v1.3.0 shipped: all 3 remaining tiers landed in one release.
+- New APIs: /api/pagespeed, /api/audits, /api/projects.
+- New capabilities: real Lighthouse data (with key), persistent audit
+  history (localStorage + Prisma), one-click Build Ledger handoff,
+  global ⌘K palette, dark mode, installable PWA.
+- Local dev: .env (DATABASE_URL=file:../db/forge.db, gitignored),
+  db/forge.db created via db:push; dev server on :3005 (port 3000 is
+  the sandbox build-ledger).
+
+Unresolved issues / risks:
+- PSI keyless shared quota is frequently exhausted — production use
+  should set PSI_API_KEY (Vercel env / Electron main.ts env) for
+  dedicated quota (25k/day free tier).
+- /api/audits + /api/projects on Vercel are read/write against an
+  ephemeral SQLite — they degrade to {[], unavailable:true}; the
+  localStorage mirror remains the source of truth. For durable server
+  history, swap to Turso/Postgres later.
+- Builder canvas + auditor intentionally keep their own light/dark
+  themes (site tokens / pf-* vars) — only shared chrome darkens.
+- Mac build still disabled (if: false).
+- v1.3.0 Action run + Release verification pending at write time —
+  next session must verify run success + assets (Setup exe + portable).
