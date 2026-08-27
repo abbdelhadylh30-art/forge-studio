@@ -6,44 +6,65 @@
  *
  * Robustness:
  * - Shows a loading splash immediately so the user sees something
- * - If the server fails to start, shows an error dialog with the reason
- * - Uses a random available port (avoids conflicts with dev server)
+ * - Probes and binds the SAME address (127.0.0.1) so the availability
+ *   check and the server never disagree (fixes EADDRINUSE ::1:3000
+ *   crashes caused by IPv4/IPv6 "localhost" resolution differences)
+ * - If the port is stolen between probe and bind, automatically retries
+ *   on the next free port (up to 5 attempts) instead of crashing
+ * - Single-instance lock: a second launch focuses the first window
  * - Properly handles Windows paths and process management
  */
 
 import { app, BrowserWindow, shell, dialog } from "electron";
 import { spawn, ChildProcess, exec } from "node:child_process";
 import { join } from "node:path";
-import { existsSync, readFileSync } from "node:fs";
 import * as net from "node:net";
+
+/** Everything (probe, server, health check, window) uses IPv4 loopback only.
+ *  This sidesteps the Node >=17 "localhost → ::1" resolution mismatch that
+ *  made the old probe (bound to `::`) disagree with the server (bound to
+ *  `::1`) and crash with EADDRINUSE even though the probe had passed. */
+const HOST = "127.0.0.1";
+const MAX_START_ATTEMPTS = 5;
+const MAX_PORT_PROBES = 50;
 
 let nextServer: ChildProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 let serverPort = 3000;
+let serverReady = false;
+let serverExited = false;
+let serverStartError = "";
 
 const isDev = !app.isPackaged;
 
-/** Find an available port starting from 3000. */
-function findAvailablePort(startPort: number): Promise<number> {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.listen(startPort, () => {
-      const port = (server.address() as net.AddressInfo).port;
-      server.close(() => resolve(port));
+/**
+ * Find an available port on HOST, probing exactly the address the Next.js
+ * server will bind (127.0.0.1). Tries up to MAX_PORT_PROBES consecutive
+ * ports; returns 0 if none are free.
+ */
+async function findAvailablePort(startPort: number): Promise<number> {
+  for (let port = startPort; port < startPort + MAX_PORT_PROBES; port++) {
+    const free = await new Promise<boolean>((resolve) => {
+      const probe = net.createServer();
+      probe.once("error", () => resolve(false));
+      probe.listen(port, HOST, () => probe.close(() => resolve(true)));
     });
-    server.on("error", () => {
-      // Port in use, try next
-      resolve(findAvailablePort(startPort + 1));
-    });
-  });
+    if (free) return port;
+  }
+  return 0;
 }
 
-/** Wait for the Next.js server to respond. */
+/**
+ * Wait for the Next.js server to respond. Bails out early if the child
+ * process dies while we're polling (so EADDRINUSE is detected in ~1s
+ * instead of burning the full timeout).
+ */
 async function waitForServer(port: number, maxRetries = 60): Promise<boolean> {
   for (let i = 0; i < maxRetries; i++) {
+    if (serverExited) return false;
     try {
-      const res = await fetch(`http://localhost:${port}`);
+      const res = await fetch(`http://${HOST}:${port}`);
       if (res.ok || res.status === 404) return true;
     } catch {
       // Server not ready yet
@@ -124,10 +145,10 @@ function startNextServer(port: number): ChildProcess {
   let env: NodeJS.ProcessEnv;
 
   if (isDev) {
-    // Dev mode: run `next dev`
+    // Dev mode: run `next dev` on the same deterministic host
     cwd = process.cwd();
     cmd = "npx";
-    args = ["next", "dev", "-p", String(port)];
+    args = ["next", "dev", "-p", String(port), "-H", HOST];
     env = { ...process.env };
   } else {
     // Production: run the standalone server
@@ -144,8 +165,10 @@ function startNextServer(port: number): ChildProcess {
       PORT: String(port),
       // Prevent Electron from interfering with the child Node process
       ELECTRON_RUN_AS_NODE: undefined as any,
-      // Set the hostname explicitly
-      HOSTNAME: "localhost",
+      // Bind IPv4 loopback explicitly — matches our port probe exactly.
+      // (Never "localhost": on Node >=17 it can resolve to ::1, which is a
+      // different bind target than the probe used and caused EADDRINUSE.)
+      HOSTNAME: HOST,
       // Give Prisma a writable SQLite location (feedback + email-report
       // routes fall back gracefully if the tables don't exist yet)
       DATABASE_URL: `file:${join(app.getPath("userData"), "forge.db")}`,
@@ -167,7 +190,8 @@ function startNextServer(port: number): ChildProcess {
     env: spawnEnv,
   });
 
-  let errorOutput = "";
+  serverExited = false;
+  serverStartError = "";
 
   child.stdout?.on("data", (data: Buffer) => {
     const msg = data.toString().trim();
@@ -178,20 +202,22 @@ function startNextServer(port: number): ChildProcess {
     const msg = data.toString().trim();
     if (msg) {
       console.error(`[next] ${msg}`);
-      errorOutput += msg + "\n";
+      serverStartError += msg + "\n";
     }
   });
 
+  // Record failures; the bootstrap loop decides whether to retry (EADDRINUSE)
+  // or surface the error to the user. No dialogs from here.
   child.on("error", (err) => {
     console.error("[next] Spawn error:", err);
-    errorOutput += "Spawn error: " + err.message;
-    showErrorDialog(errorOutput);
+    serverStartError += "Spawn error: " + err.message + "\n";
+    serverExited = true;
   });
 
-  child.on("exit", (code, signal) => {
+  child.on("exit", (code) => {
+    serverExited = true;
     if (code !== 0 && code !== null) {
       console.error(`[next] Server exited with code ${code}`);
-      showErrorDialog(errorOutput || `Server exited with code ${code}`);
     }
   });
 
@@ -207,7 +233,8 @@ function showErrorDialog(error: string) {
     `Try:\n` +
     `1. Close any other instances of Forge Studio\n` +
     `2. Restart your computer\n` +
-    `3. Check if port 3000 is already in use`
+    `3. Free up ports 3000–3050 (in a terminal: netstat -ano | findstr :3000,\n` +
+    `   then: taskkill /PID <the-listed-PID> /F)`
   );
   app.quit();
 }
@@ -236,7 +263,7 @@ async function createWindow(port: number) {
   });
 
   // Load the Next.js app
-  await mainWindow.loadURL(`http://localhost:${port}`);
+  await mainWindow.loadURL(`http://${HOST}:${port}`);
 
   // Close splash and show main window
   if (splashWindow && !splashWindow.isDestroyed()) {
@@ -245,38 +272,89 @@ async function createWindow(port: number) {
   }
   mainWindow.show();
   mainWindow.focus();
+  serverReady = true;
 }
 
-app.whenReady().then(async () => {
+async function bootstrap() {
   // Show splash immediately
   createSplashWindow();
 
-  // Find an available port
-  serverPort = await findAvailablePort(3000);
-  console.log(`[forge] Using port ${serverPort}`);
-
-  // Start the Next.js server
-  nextServer = startNextServer(serverPort);
-
-  // Wait for it to be ready
-  const isReady = await waitForServer(serverPort);
-  if (!isReady) {
-    console.error("[forge] Failed to start Next.js server");
-    showErrorDialog("Server did not respond within 30 seconds.");
+  // `electron:dev` runs the dev server externally (scripts/dev.mjs +
+  // scripts/wait-dev.mjs) and points us at it — don't spawn a second one.
+  const externalUrl = isDev ? process.env.FORGE_DEV_URL : undefined;
+  if (externalUrl) {
+    try {
+      serverPort = Number(new URL(externalUrl).port) || 3000;
+    } catch {
+      serverPort = 3000;
+    }
+    console.log(`[forge] Using external dev server on port ${serverPort}`);
+    const ready = await waitForServer(serverPort, 240); // dev compile can be slow
+    if (!ready) {
+      showErrorDialog(`Dev server at ${externalUrl} did not respond in time.`);
+      return;
+    }
+    await createWindow(serverPort);
     return;
   }
 
-  console.log("[forge] Server ready, creating window…");
+  // Find an available port (probe binds exactly what the server will bind)
+  serverPort = await findAvailablePort(3000);
+  if (!serverPort) {
+    showErrorDialog(`No available port found between 3000 and ${3000 + MAX_PORT_PROBES - 1}.`);
+    return;
+  }
+  console.log(`[forge] Using port ${serverPort}`);
 
-  // Create the window
-  await createWindow(serverPort);
+  // Start the server; if the port gets stolen between probe and bind
+  // (EADDRINUSE), transparently fall back to the next free port.
+  for (let attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt++) {
+    nextServer = startNextServer(serverPort);
+    const ready = await waitForServer(serverPort);
+
+    if (ready) {
+      console.log("[forge] Server ready, creating window…");
+      await createWindow(serverPort);
+      return;
+    }
+
+    const addrInUse = serverExited && /EADDRINUSE/i.test(serverStartError);
+    if (addrInUse && attempt < MAX_START_ATTEMPTS) {
+      console.warn(
+        `[forge] Port ${serverPort} was taken during startup ` +
+        `(attempt ${attempt}/${MAX_START_ATTEMPTS}) — trying the next free port…`
+      );
+      serverPort = await findAvailablePort(serverPort + 1);
+      if (!serverPort) break;
+      continue;
+    }
+    break; // Unrecoverable — show the error below
+  }
+
+  showErrorDialog(serverStartError || "Server did not respond within 30 seconds.");
+}
+
+// --- Single instance: a second launch focuses the first window instead of
+// fighting it for the port. ---
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(bootstrap);
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (BrowserWindow.getAllWindows().length === 0 && serverReady) {
       createWindow(serverPort);
     }
   });
-});
+}
 
 // Quit when all windows are closed (except on Mac)
 app.on("window-all-closed", () => {

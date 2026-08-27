@@ -4,7 +4,7 @@
   "private": true,
   "main": "electron/dist/main.js",
   "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "dev": "node scripts/dev.mjs",
     "build": "next build",
     "build:standalone": "next build && node scripts/copy-standalone.mjs",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
@@ -14,7 +14,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
-    "electron:dev": "concurrently \"bun run dev\" \"wait-on http://localhost:3000 && electron electron/dist/main.js\"",
+    "electron:dev": "concurrently -k \"bun run dev\" \"node scripts/wait-dev.mjs\"",
     "electron:compile": "tsc electron/main.ts electron/preload.ts --outDir electron/dist --module commonjs --target es2022 --esModuleInterop --skipLibCheck --resolveJsonModule --moduleResolution node",
     "electron:build": "bun run build && bun run electron:compile && electron-builder --win --config electron-builder.json",
     "electron:build:mac": "bun run build && bun run electron:compile && electron-builder --mac --config electron-builder.json"

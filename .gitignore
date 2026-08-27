@@ -45,6 +45,7 @@ local-*
 *.log
 dev.log
 dev.out.log
+dev.port
 test
 prompt
 server.log

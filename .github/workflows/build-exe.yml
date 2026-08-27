@@ -55,7 +55,7 @@ jobs:
         shell: pwsh
         run: |
           $env:PORT = "3100"
-          $env:HOSTNAME = "localhost"
+          $env:HOSTNAME = "127.0.0.1"
           $env:NODE_ENV = "production"
           $env:DATABASE_URL = "file:./prod.db"
           $p = Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "standalone-server" -PassThru -RedirectStandardOutput "smoke-out.log" -RedirectStandardError "smoke-err.log"
@@ -65,7 +65,7 @@ jobs:
               Start-Sleep -Seconds 2
               if ($p.HasExited) { break }
               try {
-                $r = Invoke-WebRequest -Uri "http://localhost:3100" -UseBasicParsing -TimeoutSec 3
+                $r = Invoke-WebRequest -Uri "http://127.0.0.1:3100" -UseBasicParsing -TimeoutSec 3
                 if ($r.StatusCode -eq 200 -and $r.Content.Length -gt 500) { $ok = $true; break }
               } catch {}
             }
@@ -100,24 +100,31 @@ jobs:
           Write-Host "Testing: $($exe.FullName)"
           $p = Start-Process -FilePath $exe.FullName -PassThru
           $ok = $false
-          for ($i = 0; $i -lt 60; $i++) {
+          $foundPort = 0
+          # The app auto-picks the first free port from 3000 (with fallback),
+          # so scan 3000-3010 on 127.0.0.1 (its deterministic bind host).
+          for ($i = 0; $i -lt 60 -and -not $ok; $i++) {
             Start-Sleep -Seconds 2
             if ($p.HasExited) { break }
-            try {
-              $r = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 3
-              if ($r.StatusCode -eq 200 -and $r.Content.Length -gt 500) { $ok = $true; break }
-            } catch {}
+            foreach ($port in 3000..3010) {
+              try {
+                $r = Invoke-WebRequest -Uri "http://127.0.0.1:$port" -UseBasicParsing -TimeoutSec 2
+                if ($r.StatusCode -eq 200 -and $r.Content.Length -gt 500) { $ok = $true; $foundPort = $port; break }
+              } catch {}
+            }
           }
           Write-Host "=== listening ports ==="
           netstat -ano | Select-String "LISTENING" | Select-Object -First 20
           Write-Host "=== forge processes ==="
           Get-Process | Where-Object { $_.Name -like "*forge*" -or $_.Name -like "*electron*" } | Format-Table Id,Name -AutoSize
           # Kill the whole tree: node server by port, electron by name
-          $conn = netstat -ano | Select-String ":3000\s.*LISTENING"
-          if ($conn -match '(\d+)\s*$') { taskkill /PID $Matches[1] /T /F 2>&1 | Out-Null }
+          if ($foundPort -gt 0) {
+            $conn = netstat -ano | Select-String ":$foundPort\s.*LISTENING"
+            if ($conn -match '(\d+)\s*$') { taskkill /PID $Matches[1] /T /F 2>&1 | Out-Null }
+          }
           Get-Process -Name "Forge*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          if (-not $ok) { throw "SMOKE TEST FAILED — packaged exe did not serve http://localhost:3000 within 120s" }
-          Write-Host "SMOKE TEST PASSED — packaged exe served the dashboard"
+          if (-not $ok) { throw "SMOKE TEST FAILED — packaged exe did not serve HTTP within 120s (scanned 127.0.0.1:3000-3010)" }
+          Write-Host "SMOKE TEST PASSED — packaged exe served the dashboard on port $foundPort"
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4

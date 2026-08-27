@@ -76,8 +76,15 @@ Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and s
 # Install dependencies
 bun install
 
-# Start the dev server (http://localhost:3000)
+# Start the dev server (auto-picks the first free port from 3000,
+# and prints/records it in dev.port — no more EADDRINUSE crashes)
 bun run dev
+
+# Start elsewhere explicitly
+PORT=3005 bun run dev        # or: bun run dev -- 3005
+
+# Desktop shell (dev): boots the dev server + Electron together
+bun run electron:dev
 
 # Run lint
 bun run lint
@@ -88,6 +95,30 @@ bun x vitest run
 # Push the Prisma schema to SQLite
 bun run db:push
 ```
+
+## Troubleshooting
+
+**The desktop app shows "Failed to start server — EADDRINUSE ::1:3000".**
+Something else on your machine is holding port 3000 (often a leftover
+`node.exe` from an earlier run, another dev server, or Docker). Since
+v1.4.0 the app automatically falls back to the next free port, so this
+can no longer crash startup. On older versions, free the port:
+
+```powershell
+netstat -ano | findstr :3000      # note the PID in the last column
+taskkill /PID <that-PID> /F
+```
+
+…or simply reboot, then launch the app again.
+
+**Windows shows "SmartScreen protected your PC" / blocks the installer.**
+The exe is unsigned, so Windows warns on first run. Click
+**More info → Run anyway**. If Defender quarantined it, restore it from
+*Protection history* and add an exclusion for the Forge Studio folder.
+
+**The app window is blank or takes ~30s on first launch.**
+The first run self-extracts and compiles caches — the splash spinner can
+sit for a while. Give it up to a minute before assuming it failed.
 
 ## Project structure
 
