@@ -57,7 +57,15 @@ export const SECTION_TYPES: SectionType[] = [
       { key: "primaryCtaHref", label: "Primary CTA URL", type: "text" },
       { key: "secondaryCtaLabel", label: "Secondary CTA label", type: "text", placeholder: "Watch demo" },
       { key: "secondaryCtaHref", label: "Secondary CTA URL", type: "text" },
-      { key: "imageUrl", label: "Image URL (optional)", type: "image" },
+      { key: "imageUrl", label: "Image URL (single image, optional)", type: "image" },
+      { key: "images", label: "Image carousel (2+ images overrides the single image)", type: "list", itemSchema: [
+        { key: "url", label: "Image URL", type: "image" },
+        { key: "alt", label: "Alt text", type: "text" },
+      ], maxItems: 8 },
+      { key: "carouselAnim", label: "Carousel animation", type: "select", options: [
+        { label: "Fade", value: "fade" }, { label: "Zoom", value: "zoom" }, { label: "Flip", value: "flip" }, { label: "Cube", value: "cube" },
+      ]},
+      { key: "carouselAutoplay", label: "Carousel autoplay (seconds, 0 = off)", type: "number", min: 0, max: 30, step: 1 },
       { key: "align", label: "Text alignment", type: "select", options: [
         { label: "Left", value: "left" }, { label: "Center", value: "center" },
       ]},
@@ -68,7 +76,8 @@ export const SECTION_TYPES: SectionType[] = [
       subhead: "Forge Studio is the no-code page builder for marketers and founders. Drag, drop, ship — without a developer.",
       primaryCtaLabel: "Start free", primaryCtaHref: "#signup",
       secondaryCtaLabel: "Watch demo", secondaryCtaHref: "#demo",
-      imageUrl: "", align: "center",
+      imageUrl: "", images: [], carouselAnim: "fade", carouselAutoplay: 5,
+      align: "center",
     }),
   },
   {
@@ -141,11 +150,15 @@ export const SECTION_TYPES: SectionType[] = [
     }),
   },
   {
-    kind: "gallery", label: "Gallery", description: "Image grid with captions",
+    kind: "gallery", label: "Gallery", description: "Image gallery — grid, horizontal snap, accordion, ticker, or stories",
     icon: Images, category: "media",
     schema: [
       { key: "title", label: "Title", type: "text" },
-      { key: "columns", label: "Columns", type: "select", options: [
+      { key: "style", label: "Gallery style", type: "select", options: [
+        { label: "Grid", value: "grid" }, { label: "Horizontal scroll", value: "horizontal" }, { label: "Accordion", value: "accordion" }, { label: "Infinite ticker", value: "ticker" }, { label: "Stories", value: "stories" }, { label: "Vertical fade", value: "vertical" },
+      ]},
+      { key: "autoplay", label: "Autoplay (seconds, 0 = off)", type: "number", min: 0, max: 30, step: 1 },
+      { key: "columns", label: "Columns (grid style)", type: "select", options: [
         { label: "2", value: "2" }, { label: "3", value: "3" }, { label: "4", value: "4" },
       ]},
       { key: "images", label: "Images", type: "list", itemSchema: [
@@ -154,7 +167,7 @@ export const SECTION_TYPES: SectionType[] = [
       ], maxItems: 12 },
     ],
     defaultConfig: () => ({
-      title: "See it in action", columns: "3",
+      title: "See it in action", style: "grid", autoplay: 5, columns: "3",
       images: [
         { url: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=600", caption: "Dashboard" },
         { url: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600", caption: "Editor" },
@@ -163,10 +176,14 @@ export const SECTION_TYPES: SectionType[] = [
     }),
   },
   {
-    kind: "testimonials", label: "Testimonials", description: "Customer quotes with avatar, name, role",
+    kind: "testimonials", label: "Testimonials", description: "Customer quotes — grid or auto-playing carousel",
     icon: Star, category: "social",
     schema: [
       { key: "title", label: "Title", type: "text" },
+      { key: "style", label: "Style", type: "select", options: [
+        { label: "Grid", value: "grid" }, { label: "Carousel", value: "carousel" },
+      ]},
+      { key: "autoplay", label: "Carousel autoplay (seconds, 0 = off)", type: "number", min: 0, max: 30, step: 1 },
       { key: "items", label: "Testimonials", type: "list", itemSchema: [
         { key: "quote", label: "Quote", type: "textarea" },
         { key: "name", label: "Name", type: "text" },
@@ -175,7 +192,7 @@ export const SECTION_TYPES: SectionType[] = [
       ], maxItems: 9 },
     ],
     defaultConfig: () => ({
-      title: "Loved by builders",
+      title: "Loved by builders", style: "grid", autoplay: 5,
       items: [
         { quote: "We replaced our entire landing page workflow with Forge Studio. What took a week now takes an afternoon.", name: "Sarah Chen", role: "Head of Growth, Northwind", avatar: "https://i.pravatar.cc/100?img=47" },
         { quote: "The drag-and-drop is buttery. Our marketing team ships without waiting on engineering.", name: "Marcus Reed", role: "Founder, Tidewave", avatar: "https://i.pravatar.cc/100?img=12" },
@@ -184,16 +201,24 @@ export const SECTION_TYPES: SectionType[] = [
     }),
   },
   {
-    kind: "pricing", label: "Pricing", description: "Tiered pricing cards with feature lists",
+    kind: "pricing", label: "Pricing", description: "Pricing — tiered cards, single offer card, or monthly/yearly toggle",
     icon: Tag, category: "conversion",
     schema: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "textarea" },
+      { key: "style", label: "Pricing style", type: "select", options: [
+        { label: "Tiered cards", value: "tiers" }, { label: "Single offer card", value: "single" }, { label: "Monthly/Yearly toggle", value: "toggle" },
+      ]},
       { key: "currency", label: "Currency symbol", type: "text", placeholder: "$" },
       { key: "period", label: "Billing period", type: "text", placeholder: "/mo" },
+      { key: "originalPrice", label: "Original price (single offer, shown struck through)", type: "text", placeholder: "199" },
+      { key: "urgencyBadge", label: "Urgency badge (single offer)", type: "text", placeholder: "Launch week — ends Sunday" },
+      { key: "guaranteeNote", label: "Guarantee note (single offer)", type: "text", placeholder: "30-day money-back guarantee" },
+      { key: "saveBadge", label: "Save badge (toggle style)", type: "text", placeholder: "Save 20%" },
       { key: "tiers", label: "Pricing tiers", type: "list", itemSchema: [
         { key: "name", label: "Name", type: "text" },
-        { key: "price", label: "Price", type: "text" },
+        { key: "price", label: "Price (monthly)", type: "text" },
+        { key: "yearlyPrice", label: "Yearly price (toggle style)", type: "text" },
         { key: "description", label: "Description", type: "textarea" },
         { key: "ctaLabel", label: "CTA label", type: "text" },
         { key: "ctaHref", label: "CTA URL", type: "text" },
@@ -203,27 +228,31 @@ export const SECTION_TYPES: SectionType[] = [
     ],
     defaultConfig: () => ({
       title: "Simple, transparent pricing", subtitle: "Start free. Upgrade when you grow.",
-      currency: "$", period: "/mo",
+      style: "tiers", currency: "$", period: "/mo",
+      originalPrice: "", urgencyBadge: "", guaranteeNote: "", saveBadge: "Save 20%",
       tiers: [
-        { name: "Starter", price: "0", description: "For side projects", ctaLabel: "Start free", ctaHref: "#", highlighted: false, features: "1 site\n3 pages\nCommunity support" },
-        { name: "Pro", price: "29", description: "For founders & marketers", ctaLabel: "Start 14-day trial", ctaHref: "#", highlighted: true, features: "10 sites\nUnlimited pages\nCustom domain\nAI copy assistant" },
-        { name: "Team", price: "99", description: "For agencies & teams", ctaLabel: "Contact sales", ctaHref: "#", highlighted: false, features: "Unlimited sites\nTeam collaboration\nPriority support" },
+        { name: "Starter", price: "0", yearlyPrice: "0", description: "For side projects", ctaLabel: "Start free", ctaHref: "#", highlighted: false, features: "1 site\n3 pages\nCommunity support" },
+        { name: "Pro", price: "29", yearlyPrice: "279", description: "For founders & marketers", ctaLabel: "Start 14-day trial", ctaHref: "#", highlighted: true, features: "10 sites\nUnlimited pages\nCustom domain\nAI copy assistant" },
+        { name: "Team", price: "99", yearlyPrice: "949", description: "For agencies & teams", ctaLabel: "Contact sales", ctaHref: "#", highlighted: false, features: "Unlimited sites\nTeam collaboration\nPriority support" },
       ],
     }),
   },
   {
-    kind: "faq", label: "FAQ", description: "Collapsible Q&A list",
+    kind: "faq", label: "FAQ", description: "Q&A — accordion or side-by-side cards",
     icon: HelpCircle, category: "conversion",
     schema: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "textarea" },
+      { key: "style", label: "Style", type: "select", options: [
+        { label: "Accordion", value: "accordion" }, { label: "Cards", value: "cards" },
+      ]},
       { key: "items", label: "Q&A items", type: "list", itemSchema: [
         { key: "question", label: "Question", type: "text" },
         { key: "answer", label: "Answer", type: "textarea" },
       ], maxItems: 20 },
     ],
     defaultConfig: () => ({
-      title: "Frequently asked questions", subtitle: "Everything else you might want to know.",
+      title: "Frequently asked questions", subtitle: "Everything else you might want to know.", style: "accordion",
       items: [
         { question: "Do I need to know how to code?", answer: "No. Forge Studio is fully no-code. Drag sections in, edit text inline, hit publish." },
         { question: "Can I export the HTML?", answer: "Yes. One-click export produces a clean, self-contained HTML file or ZIP you can host anywhere." },
@@ -318,9 +347,12 @@ export const SECTION_TYPES: SectionType[] = [
       { key: "eyebrow", label: "Eyebrow", type: "text" },
       { key: "title", label: "Title", type: "text", placeholder: "The problem" },
       { key: "subtitle", label: "Subtitle", type: "textarea" },
+      { key: "style", label: "Style", type: "select", options: [
+        { label: "Cards", value: "cards" }, { label: "Tabs", value: "tabs" },
+      ]},
       { key: "items", label: "Pain points", type: "list", itemSchema: [{ key: "title", label: "Title", type: "text" }, { key: "description", label: "Description", type: "textarea" }], maxItems: 6 },
     ],
-    defaultConfig: () => ({ eyebrow: "The problem", title: "You're losing customers without knowing why", subtitle: "Most teams guess at why their landing page isn't converting.", items: [{ title: "Slow load times", description: "53% of visitors leave if your page takes more than 3 seconds to load." }, { title: "Weak messaging", description: "If visitors can't tell what you do in 5 seconds, they bounce." }, { title: "No clear CTA", description: "Pages without a strong call-to-action above the fold lose 80% of conversions." }] }),
+    defaultConfig: () => ({ eyebrow: "The problem", title: "You're losing customers without knowing why", subtitle: "Most teams guess at why their landing page isn't converting.", style: "cards", items: [{ title: "Slow load times", description: "53% of visitors leave if your page takes more than 3 seconds to load." }, { title: "Weak messaging", description: "If visitors can't tell what you do in 5 seconds, they bounce." }, { title: "No clear CTA", description: "Pages without a strong call-to-action above the fold lose 80% of conversions." }] }),
   },
   {
     kind: "solution", label: "Solution", description: "Show how your product solves the problem",
@@ -341,7 +373,7 @@ export const SECTION_TYPES: SectionType[] = [
       { key: "subtitle", label: "Subtitle", type: "textarea" },
       { key: "videoUrl", label: "Video URL (YouTube/Vimeo/mp4)", type: "text", placeholder: "https://youtube.com/watch?v=..." },
       { key: "thumbnailUrl", label: "Thumbnail URL (optional)", type: "image" },
-      { key: "variant", label: "Layout", type: "select", options: [{ label: "Centered", value: "centered" }, { label: "Split left", value: "split-left" }, { label: "Full width", value: "full" }] },
+      { key: "variant", label: "Layout", type: "select", options: [{ label: "Centered", value: "centered" }, { label: "Split left", value: "split-left" }, { label: "Split right", value: "split-right" }, { label: "Full width", value: "full" }, { label: "Cinematic (fullscreen)", value: "cinematic" }] },
     ],
     defaultConfig: () => ({ title: "See it in action", subtitle: "Watch a 2-minute demo.", videoUrl: "https://www.youtube.com/watch?v=M7lc1UVf-VE", thumbnailUrl: "", variant: "centered" }),
   },
@@ -351,11 +383,11 @@ export const SECTION_TYPES: SectionType[] = [
     schema: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "textarea" },
-      { key: "features", label: "Comparison rows", type: "list", itemSchema: [{ key: "label", label: "Feature name", type: "text" }, { key: "you", label: "Your product", type: "text", placeholder: "✓" }, { key: "competitor", label: "Competitor", type: "text", placeholder: "—" }], maxItems: 15 },
+      { key: "features", label: "Comparison rows (use yes / no for check ✓ / cross ✗ icons)", type: "list", itemSchema: [{ key: "label", label: "Feature name", type: "text" }, { key: "you", label: "Your product", type: "text", placeholder: "yes" }, { key: "competitor", label: "Competitor", type: "text", placeholder: "no" }], maxItems: 15 },
       { key: "youName", label: "Your column name", type: "text", placeholder: "Forge Studio" },
       { key: "competitorName", label: "Competitor column name", type: "text", placeholder: "Others" },
     ],
-    defaultConfig: () => ({ title: "How we compare", subtitle: "Why teams switch to Forge Studio.", youName: "Forge Studio", competitorName: "Others", features: [{ label: "Visual builder", you: "✓", competitor: "—" }, { label: "Built-in auditor", you: "✓", competitor: "—" }, { label: "One-click fixes", you: "✓", competitor: "—" }, { label: "Clean HTML export", you: "✓", competitor: "Limited" }, { label: "No sign-up required", you: "✓", competitor: "—" }, { label: "Price", you: "Free", competitor: "$20+/mo" }] }),
+    defaultConfig: () => ({ title: "How we compare", subtitle: "Why teams switch to Forge Studio.", youName: "Forge Studio", competitorName: "Others", features: [{ label: "Visual builder", you: "yes", competitor: "no" }, { label: "Built-in auditor", you: "yes", competitor: "no" }, { label: "One-click fixes", you: "yes", competitor: "no" }, { label: "Clean HTML export", you: "yes", competitor: "Limited" }, { label: "No sign-up required", you: "yes", competitor: "no" }, { label: "Price", you: "Free", competitor: "$20+/mo" }] }),
   },
   {
     kind: "guarantee", label: "Guarantee", description: "Trust block — money-back guarantee or warranty",
@@ -369,18 +401,32 @@ export const SECTION_TYPES: SectionType[] = [
     defaultConfig: () => ({ title: "30-day money-back guarantee", description: "Try Forge Studio risk-free. If you're not happy within 30 days, we'll refund every cent.", badge: "Guaranteed", icon: "ShieldCheck" }),
   },
   {
-    kind: "contactform", label: "Contact form", description: "Contact form with name, email, message fields",
+    kind: "contactform", label: "Contact form", description: "Contact form with real submission — Google Sheets, email, or demo",
     icon: MessageSquare, category: "conversion",
     schema: [
       { key: "title", label: "Title", type: "text" },
       { key: "subtitle", label: "Subtitle", type: "textarea" },
+      { key: "formType", label: "Submission handler", type: "select", options: [
+        { label: "Demo (toast only)", value: "demo" },
+        { label: "Google Sheet (Apps Script Web App)", value: "sheet" },
+        { label: "Email (FormSubmit.co)", value: "email" },
+      ]},
+      { key: "webappUrl", label: "Google Apps Script Web App URL (sheet mode)", type: "text", placeholder: "https://script.google.com/macros/s/…/exec" },
+      { key: "emailRecipient", label: "Recipient email (email mode)", type: "text", placeholder: "you@company.com" },
+      { key: "emailSubject", label: "Email subject (email mode)", type: "text", placeholder: "New Contact Form Submission" },
+      { key: "redirectUrl", label: "Redirect URL after success (optional)", type: "text", placeholder: "https://yoursite.com/thanks" },
+      { key: "successMsg", label: "Success message", type: "text", placeholder: "Thank you! Your message has been sent." },
       { key: "nameLabel", label: "Name field label", type: "text" },
       { key: "emailLabel", label: "Email field label", type: "text" },
       { key: "messageLabel", label: "Message field label", type: "text" },
+      { key: "showPhone", label: "Show phone field", type: "boolean" },
+      { key: "phoneLabel", label: "Phone field label", type: "text" },
+      { key: "showCompany", label: "Show company field", type: "boolean" },
+      { key: "companyLabel", label: "Company field label", type: "text" },
       { key: "buttonLabel", label: "Button label", type: "text" },
       { key: "variant", label: "Layout", type: "select", options: [{ label: "Centered", value: "centered" }, { label: "Split left", value: "split-left" }] },
     ],
-    defaultConfig: () => ({ title: "Get in touch", subtitle: "Have a question? We'll get back to you within 24 hours.", nameLabel: "Name", emailLabel: "Email", messageLabel: "Message", buttonLabel: "Send message", variant: "centered" }),
+    defaultConfig: () => ({ title: "Get in touch", subtitle: "Have a question? We'll get back to you within 24 hours.", formType: "demo", webappUrl: "", emailRecipient: "", emailSubject: "New Contact Form Submission", redirectUrl: "", successMsg: "Thank you! Your message has been sent.", nameLabel: "Name", emailLabel: "Email", messageLabel: "Message", showPhone: false, phoneLabel: "Phone", showCompany: false, companyLabel: "Company", buttonLabel: "Send message", variant: "centered" }),
   },
   {
     kind: "legal", label: "Legal", description: "Privacy policy, terms, or refund policy (not legal advice — review with a lawyer)",

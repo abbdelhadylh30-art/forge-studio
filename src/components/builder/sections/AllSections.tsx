@@ -1,17 +1,130 @@
 /**
- * Forge Studio — Builder: All 12 React section components in one file.
+ * Forge Studio — Builder: All React section components in one file.
  * Each consumes its config + theme tokens and renders with inline styles.
+ *
+ * Mirrors the LandingForge v21 string renderer (src/lib/builder/sections/
+ * renderer.ts): hero image carousel, 6 gallery styles, testimonial carousel,
+ * pricing single-offer / billing-toggle, FAQ cards, problem tabs, cinematic
+ * video, comparison ✓/✗ matrix, contact form extra fields.
  */
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronDown, Check, AlertCircle, Lightbulb, Video, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronDown, Check, AlertCircle, Lightbulb, Video, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ThemeTokens } from "@/lib/builder/sections/types";
 import { resolveIcon } from "@/lib/builder/sections/theme-utils";
 import { InlineText } from "./InlineText";
 
 type Theme = ThemeTokens;
+
+/* ─── Shared preview helpers ─────────────────────────────────────────── */
+
+/** Keyframes used by the canvas previews (gallery ticker/stories/vertical,
+ *  problem tab panels). Injected per-section so no other file needs edits. */
+function PreviewKeyframes() {
+  return (
+    <style>{`
+@keyframes lfGalleryTickerCanvas { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes lfStoryFillCanvas { from { width: 0; } to { width: 100%; } }
+@keyframes lfFadeUpCanvas { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.lf-canvas-ticker:hover .lf-canvas-ticker-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .lf-canvas-ticker-track { animation-duration: 120s; } }
+`}</style>
+  );
+}
+
+/** Round prev/next arrows + "n / N" counter (mirrors .lf-gnav in the export). */
+function GalleryNav({ theme, counter, onPrev, onNext }: { theme: Theme; counter: string; onPrev: () => void; onNext: () => void }) {
+  return (
+    <div className="mt-5 flex items-center justify-center gap-4">
+      <button type="button" onClick={onPrev} aria-label="Previous" className="grid h-10 w-10 place-items-center rounded-full border transition-transform hover:scale-105" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }}>
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <span className="text-sm tabular-nums" style={{ color: theme.mutedFg }}>{counter}</span>
+      <button type="button" onClick={onNext} aria-label="Next" className="grid h-10 w-10 place-items-center rounded-full border transition-transform hover:scale-105" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }}>
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+/** Measure a container and return the testimonial-carousel per-view count
+ *  (3 on ≥1024px, 2 on ≥768px, 1 below) — same breakpoints as the export JS. */
+function usePerView(ref: React.RefObject<HTMLDivElement | null>) {
+  const [perView, setPerView] = useState(1);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const update = () => {
+      const w = el.clientWidth;
+      setPerView(w >= 1024 ? 3 : w >= 768 ? 2 : 1);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return perView;
+}
+
+/** Auto-advancing fade carousel for the hero media slot (mirrors .lf-hcarousel).
+ *  carouselAutoplay seconds (0 = off, default 5); fade for all animations,
+ *  zoom gets a subtle Ken-Burns scale. */
+function HeroCarousel({ images, autoplay, anim, theme }: { images: { url: string; alt?: string }[]; autoplay: number; anim?: string; theme: Theme }) {
+  const [idx, setIdx] = useState(0);
+  const count = images.length;
+  useEffect(() => {
+    if (autoplay <= 0 || count < 2) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % count), autoplay * 1000);
+    return () => clearInterval(t);
+  }, [autoplay, count, idx]);
+  const zoom = anim === "zoom";
+  return (
+    <div className="relative aspect-[16/10] w-full overflow-hidden shadow-2xl" style={{ borderRadius: theme.radius }}>
+      {images.map((img, i) => (
+        <img
+          key={i}
+          src={img.url}
+          alt={img.alt ?? ""}
+          className="absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-in-out"
+          style={{ opacity: i === idx ? 1 : 0, pointerEvents: i === idx ? "auto" : "none", ...(zoom ? { transform: i === idx ? "scale(1)" : "scale(1.12)" } : {}) }}
+        />
+      ))}
+      <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+        {images.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setIdx(i)}
+            aria-label={`Go to slide ${i + 1}`}
+            className="h-2 rounded-full transition-all duration-300"
+            style={{ width: i === idx ? 24 : 8, background: i === idx ? "#fff" : "rgba(255,255,255,.5)" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Testimonial card — shared by the grid and carousel styles. */
+function TestimonialCard({ item, theme }: { item: any; theme: Theme }) {
+  return (
+    <figure className="flex h-full flex-col gap-4 rounded-xl border p-6" style={{ borderColor: theme.border, background: theme.background, borderRadius: theme.radius }}>
+      <blockquote className="text-base leading-relaxed" style={{ color: theme.foreground }}>&ldquo;{item.quote}&rdquo;</blockquote>
+      <figcaption className="mt-auto flex items-center gap-3">
+        {item.avatar ? <img src={item.avatar} alt={item.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="grid h-10 w-10 place-items-center rounded-full text-sm font-bold" style={{ background: theme.primary, color: theme.primaryFg }}>{item.name?.[0]?.toUpperCase()}</div>}
+        <div>
+          <div className="text-sm font-semibold" style={{ color: theme.foreground }}>{item.name}</div>
+          {item.role && <div className="text-xs" style={{ color: theme.mutedFg }}>{item.role}</div>}
+        </div>
+      </figcaption>
+    </figure>
+  );
+}
+
+/* ─── Section components ─────────────────────────────────────────────── */
 
 export function Navbar({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
@@ -36,6 +149,16 @@ export function Hero({ config, theme }: { config: any; theme: Theme }) {
   const variant = c.variant ?? "centered";
   const isSplit = variant === "split-left" || variant === "split-right";
   const align = c.align ?? (isSplit ? "left" : "center");
+  // Media: carousel when 2+ images, single image when 1, imageUrl otherwise.
+  const images: { url: string; alt?: string }[] = (c.images || []).filter((i: any) => i?.url);
+  const bgImage = images.length ? images[0].url : c.imageUrl;
+  const mediaSlot = images.length > 1
+    ? <HeroCarousel images={images} autoplay={Number(c.carouselAutoplay ?? 5)} anim={c.carouselAnim} theme={theme} />
+    : images.length === 1
+      ? <img src={images[0].url} alt={images[0].alt ?? ""} className="w-full rounded-xl shadow-xl" style={{ borderRadius: theme.radius }} />
+      : c.imageUrl
+        ? <img src={c.imageUrl} alt="" className="w-full rounded-xl shadow-xl" style={{ borderRadius: theme.radius }} />
+        : <div className="grid aspect-video w-full place-items-center rounded-xl" style={{ background: theme.muted, borderRadius: theme.radius }}><span className="text-sm" style={{ color: theme.mutedFg }}>Image placeholder</span></div>;
   const textBlock = (
     <div className={`flex flex-col gap-5 ${align === "center" ? "items-center text-center" : "items-start text-left"}`}>
       {c.eyebrow && <InlineText fieldKey="eyebrow" value={c.eyebrow} as="span" className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: theme.muted, color: theme.mutedFg }} placeholder="Eyebrow…" />}
@@ -54,12 +177,12 @@ export function Hero({ config, theme }: { config: any; theme: Theme }) {
 
   if (variant === "fullscreen") {
     return (
-      <section className="relative grid min-h-screen place-items-center px-6 py-24" style={{ background: c.imageUrl ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${c.imageUrl}) center/cover` : theme.background }}>
+      <section className="relative grid min-h-screen place-items-center px-6 py-24" style={{ background: bgImage ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${bgImage}) center/cover` : theme.background }}>
         <div className="mx-auto max-w-3xl text-center">
           <div className="flex flex-col items-center gap-5">
             {c.eyebrow && <InlineText fieldKey="eyebrow" value={c.eyebrow} as="span" className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }} placeholder="Eyebrow…" />}
-            <InlineText fieldKey="headline" value={c.headline ?? ""} as="h1" className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style={{ color: c.imageUrl ? "#fff" : theme.foreground, fontFamily: theme.fontHeading }} placeholder="Your headline…" />
-            <InlineText fieldKey="subhead" value={c.subhead ?? ""} as="p" multiline className="max-w-2xl text-base sm:text-lg" style={{ color: c.imageUrl ? "rgba(255,255,255,0.85)" : theme.mutedFg }} placeholder="Your subhead…" />
+            <InlineText fieldKey="headline" value={c.headline ?? ""} as="h1" className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl" style={{ color: bgImage ? "#fff" : theme.foreground, fontFamily: theme.fontHeading }} placeholder="Your headline…" />
+            <InlineText fieldKey="subhead" value={c.subhead ?? ""} as="p" multiline className="max-w-2xl text-base sm:text-lg" style={{ color: bgImage ? "rgba(255,255,255,0.85)" : theme.mutedFg }} placeholder="Your subhead…" />
             <div className="mt-2 flex flex-wrap justify-center gap-3">
               <a href={c.primaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: theme.accent, color: theme.accentFg }}><InlineText fieldKey="primaryCtaLabel" value={c.primaryCtaLabel ?? ""} as="span" placeholder="Start free" /></a>
               <a href={c.secondaryCtaHref ?? "#"} className="inline-flex items-center gap-1 rounded-md border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "rgba(255,255,255,0.3)", color: "#fff", background: "transparent" }}><InlineText fieldKey="secondaryCtaLabel" value={c.secondaryCtaLabel ?? ""} as="span" placeholder="Watch demo" /></a>
@@ -133,7 +256,7 @@ export function Hero({ config, theme }: { config: any; theme: Theme }) {
         {isSplit ? (
           <div className={`grid items-center gap-12 md:grid-cols-2 ${variant === "split-right" ? "md:[&>*:first-child]:order-2" : ""}`}>
             {textBlock}
-            {c.imageUrl ? <img src={c.imageUrl} alt="" className="w-full rounded-xl shadow-xl" style={{ borderRadius: theme.radius }} /> : <div className="grid aspect-video w-full place-items-center rounded-xl" style={{ background: theme.muted, borderRadius: theme.radius }}><span className="text-sm" style={{ color: theme.mutedFg }}>Image placeholder</span></div>}
+            {mediaSlot}
           </div>
         ) : <div className="flex flex-col items-center text-center">{textBlock}</div>}
       </div>
@@ -208,21 +331,132 @@ export function Stats({ config, theme }: { config: any; theme: Theme }) {
 
 export function Gallery({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
+  const style = c.style || "grid";
   const cols = Number(c.columns ?? 3);
-  return (
-    <section id="work" className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
-      <div className="mx-auto max-w-6xl">
-        {c.title && <h2 className="mb-10 text-center text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(260px, 1fr))` }}>
-          {c.images?.map((img: any, i: number) => (
-            <figure key={i} className="group overflow-hidden rounded-xl" style={{ borderRadius: theme.radius }}>
-              <div className="relative aspect-[4/3] overflow-hidden" style={{ background: theme.muted }}>
-                <img src={img.url} alt={img.caption ?? ""} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-              </div>
-              {img.caption && <figcaption className="mt-2 text-sm" style={{ color: theme.mutedFg }}>{img.caption}</figcaption>}
+  const autoplay = Number(c.autoplay ?? 5);
+  const images: { url: string; caption?: string }[] = (c.images || []).filter((i: any) => i?.url);
+  const count = images.length;
+  const [expandedIdx, setExpandedIdx] = useState(0); // accordion
+  const [slideIdx, setSlideIdx] = useState(0); // stories + vertical
+  const slide = images[slideIdx];
+
+  // Stories / vertical auto-advance (autoplay seconds; 0 = off, default 5).
+  useEffect(() => {
+    if ((style !== "stories" && style !== "vertical") || autoplay <= 0 || count < 2) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setInterval(() => setSlideIdx((i) => (i + 1) % count), autoplay * 1000);
+    return () => clearInterval(t);
+  }, [style, autoplay, count, slideIdx]);
+
+  const title = c.title ? <h2 className="mb-10 text-center text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2> : null;
+  const frame = (im: { url: string; caption?: string }) => (
+    <div className="relative aspect-[4/3] overflow-hidden" style={{ background: theme.muted }}>
+      <img src={im.url} alt={im.caption ?? ""} className="h-full w-full object-cover" />
+    </div>
+  );
+
+  let body: React.ReactNode = null;
+  if (style === "horizontal") {
+    body = (
+      <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}>
+        {images.map((im, i) => (
+          <figure key={i} className="overflow-hidden rounded-xl" style={{ borderRadius: theme.radius, flex: "0 0 min(420px, 80vw)", scrollSnapAlign: "center" }}>
+            {frame(im)}
+            {im.caption && <figcaption className="mt-2 text-sm" style={{ color: theme.mutedFg }}>{im.caption}</figcaption>}
+          </figure>
+        ))}
+      </div>
+    );
+  } else if (style === "accordion") {
+    body = (
+      <div className="flex h-[420px] gap-2">
+        {images.map((im, i) => {
+          const expanded = expandedIdx === i;
+          return (
+            <div
+              key={i}
+              role="button"
+              tabIndex={0}
+              aria-expanded={expanded}
+              aria-label={im.caption || `Image ${i + 1}`}
+              onClick={() => setExpandedIdx(i)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedIdx(i); } }}
+              className="relative min-w-16 cursor-pointer overflow-hidden"
+              style={{ flex: expanded ? 5 : 1, borderRadius: theme.radius, transition: "flex .55s cubic-bezier(.4,0,.2,1)" }}
+            >
+              <img src={im.url} alt={im.caption ?? ""} className="absolute inset-0 h-full w-full object-cover" style={{ transition: "transform .55s ease" }} />
+              <div className="absolute inset-x-0 bottom-0 p-4 text-sm text-white" style={{ background: "linear-gradient(to top, rgba(0,0,0,.75), transparent)", opacity: expanded ? 1 : 0, transition: "opacity .4s ease .1s" }}>{im.caption ?? ""}</div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  } else if (style === "ticker") {
+    body = (
+      <div className="lf-canvas-ticker relative overflow-hidden">
+        <div className="lf-canvas-ticker-track flex w-max gap-4" style={{ animation: "lfGalleryTickerCanvas 30s linear infinite" }}>
+          {[...images, ...images].map((im, i) => (
+            <figure key={i} aria-hidden={i >= count} className="overflow-hidden rounded-xl" style={{ borderRadius: theme.radius, width: 300, flex: "0 0 auto" }}>
+              {frame(im)}
             </figure>
           ))}
         </div>
+      </div>
+    );
+  } else if (style === "stories") {
+    body = (
+      <div>
+        <div className="relative mx-auto max-w-[420px] overflow-hidden" style={{ borderRadius: theme.radius }}>
+          <div className="absolute left-3 right-3 top-3 z-10 flex gap-1">
+            {images.map((_, i) => (
+              <div key={i} className="h-[3px] flex-1 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,.35)" }}>
+                <span className="block h-full" style={{ width: i < slideIdx ? "100%" : 0, background: "#fff", ...(i === slideIdx && autoplay > 0 ? { animation: `lfStoryFillCanvas ${autoplay}s linear forwards` } : {}) }} />
+              </div>
+            ))}
+          </div>
+          {slide && (
+            <div key={slideIdx}>
+              <img src={slide.url} alt={slide.caption ?? ""} className="w-full object-cover" style={{ aspectRatio: "4 / 5" }} />
+              {slide.caption && <div className="absolute inset-x-0 bottom-0 p-6 pb-3.5 text-[15px] text-white" style={{ background: "linear-gradient(to top, rgba(0,0,0,.8), transparent)" }}>{slide.caption}</div>}
+            </div>
+          )}
+        </div>
+        {count >= 2 && <GalleryNav theme={theme} counter={`${slideIdx + 1} / ${count}`} onPrev={() => setSlideIdx((i) => (i - 1 + count) % count)} onNext={() => setSlideIdx((i) => (i + 1) % count)} />}
+      </div>
+    );
+  } else if (style === "vertical") {
+    body = (
+      <div>
+        <div className="mx-auto max-w-[640px]">
+          {slide && (
+            <figure key={slideIdx} className="overflow-hidden rounded-xl" style={{ borderRadius: theme.radius, animation: "lfFadeUpCanvas .6s ease" }}>
+              {frame(slide)}
+              {slide.caption && <figcaption className="mt-2 text-sm" style={{ color: theme.mutedFg }}>{slide.caption}</figcaption>}
+            </figure>
+          )}
+        </div>
+        {count >= 2 && <GalleryNav theme={theme} counter={`${slideIdx + 1} / ${count}`} onPrev={() => setSlideIdx((i) => (i - 1 + count) % count)} onNext={() => setSlideIdx((i) => (i + 1) % count)} />}
+      </div>
+    );
+  } else {
+    body = (
+      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cols === 4 ? "220" : "260"}px, 1fr))` }}>
+        {images.map((im, i) => (
+          <figure key={i} className="overflow-hidden rounded-xl" style={{ borderRadius: theme.radius }}>
+            {frame(im)}
+            {im.caption && <figcaption className="mt-2 text-sm" style={{ color: theme.mutedFg }}>{im.caption}</figcaption>}
+          </figure>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <section id="work" className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+      <PreviewKeyframes />
+      <div className="mx-auto max-w-6xl">
+        {title}
+        {body}
       </div>
     </section>
   );
@@ -230,23 +464,52 @@ export function Gallery({ config, theme }: { config: any; theme: Theme }) {
 
 export function Testimonials({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
+  const style = c.style || "grid";
+  const autoplay = Number(c.autoplay ?? 5);
+  const items: any[] = c.items || [];
+  const count = items.length;
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const perView = usePerView(viewportRef);
+  const [idx, setIdx] = useState(0);
+  const maxIdx = Math.max(0, count - perView);
+  const cur = Math.min(idx, maxIdx);
+
+  // Carousel auto-advance (autoplay seconds; 0 = off, default 5). Restarting on
+  // idx change mirrors the export's "restart timer on interaction" behaviour.
+  useEffect(() => {
+    if (style !== "carousel" || autoplay <= 0 || count < 2) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setInterval(() => setIdx((i) => (i >= Math.max(0, count - perView) ? 0 : i + 1)), autoplay * 1000);
+    return () => clearInterval(t);
+  }, [style, autoplay, count, perView, idx]);
+
+  const title = c.title ? <h2 className="mb-12 text-center text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2> : null;
+
+  if (style === "carousel" && count > 0) {
+    return (
+      <section id="testimonials" className="px-6 py-16 sm:py-24" style={{ background: theme.muted }}>
+        <div className="mx-auto max-w-6xl">
+          {title}
+          <div ref={viewportRef} className="overflow-hidden">
+            <div className="flex" style={{ transform: `translateX(-${cur * (100 / perView)}%)`, transition: "transform .6s cubic-bezier(.4,0,.2,1)" }}>
+              {items.map((t, i) => (
+                <div key={i} className="px-1" style={{ flex: `0 0 ${100 / perView}%`, boxSizing: "border-box" }}>
+                  <TestimonialCard item={t} theme={theme} />
+                </div>
+              ))}
+            </div>
+          </div>
+          {count >= 2 && <GalleryNav theme={theme} counter={`${Math.min(cur + 1, count)} / ${count}`} onPrev={() => setIdx(Math.max(0, cur - 1))} onNext={() => setIdx(cur >= maxIdx ? 0 : cur + 1)} />}
+        </div>
+      </section>
+    );
+  }
   return (
     <section id="testimonials" className="px-6 py-16 sm:py-24" style={{ background: theme.muted }}>
       <div className="mx-auto max-w-6xl">
-        {c.title && <h2 className="mb-12 text-center text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
+        {title}
         <div className="grid gap-6 md:grid-cols-3">
-          {c.items?.map((t: any, i: number) => (
-            <figure key={i} className="flex flex-col gap-4 rounded-xl border p-6" style={{ borderColor: theme.border, background: theme.background, borderRadius: theme.radius }}>
-              <blockquote className="text-base leading-relaxed" style={{ color: theme.foreground }}>&ldquo;{t.quote}&rdquo;</blockquote>
-              <figcaption className="mt-auto flex items-center gap-3">
-                {t.avatar ? <img src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full object-cover" /> : <div className="grid h-10 w-10 place-items-center rounded-full text-sm font-bold" style={{ background: theme.primary, color: theme.primaryFg }}>{t.name?.[0]?.toUpperCase()}</div>}
-                <div>
-                  <div className="text-sm font-semibold" style={{ color: theme.foreground }}>{t.name}</div>
-                  {t.role && <div className="text-xs" style={{ color: theme.mutedFg }}>{t.role}</div>}
-                </div>
-              </figcaption>
-            </figure>
-          ))}
+          {items.map((t, i) => <TestimonialCard key={i} item={t} theme={theme} />)}
         </div>
       </div>
     </section>
@@ -255,38 +518,119 @@ export function Testimonials({ config, theme }: { config: any; theme: Theme }) {
 
 export function Pricing({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
+  const style = c.style || "tiers";
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const head = (
+    <div className="mx-auto mb-12 max-w-2xl text-center">
+      {c.title && <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
+      {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+    </div>
+  );
+  const renderTierCard = (tier: any, price: string, period: string, key?: string | number) => {
+    const features = (tier.features ?? "").split("\n").filter(Boolean);
+    const highlight = tier.highlighted;
+    return (
+      <div key={key} className="relative flex flex-col rounded-xl border p-6 shadow-sm" style={{ borderColor: highlight ? theme.accent : theme.border, background: theme.background, borderRadius: theme.radius, boxShadow: highlight ? `0 10px 30px -10px ${theme.accent}40` : undefined, transform: highlight ? "scale(1.02)" : undefined }}>
+        {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: theme.accent, color: theme.accentFg }}>Most popular</div>}
+        <h3 className="text-lg font-semibold" style={{ color: theme.foreground }}>{tier.name}</h3>
+        {tier.description && <p className="mt-1 text-sm" style={{ color: theme.mutedFg }}>{tier.description}</p>}
+        <div className="mt-4 flex items-baseline gap-1">
+          <span className="text-4xl font-bold tracking-tight" style={{ color: theme.foreground }}>{price}</span>
+          <span className="text-sm" style={{ color: theme.mutedFg }}>{period}</span>
+        </div>
+        <ul className="mt-6 flex flex-1 flex-col gap-2">
+          {features.map((f: string, j: number) => (
+            <li key={j} className="flex items-start gap-2 text-sm" style={{ color: theme.foreground }}>
+              <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.accent }} />
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+        {tier.ctaLabel && <a href={tier.ctaHref} className="mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: highlight ? theme.accent : theme.primary, color: highlight ? theme.accentFg : theme.primaryFg }}>{tier.ctaLabel}</a>}
+      </div>
+    );
+  };
+
+  if (style === "single") {
+    const tier = (c.tiers || [])[0] || {};
+    const features = (tier.features ?? "").split("\n").filter(Boolean);
+    return (
+      <section id="pricing" className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+        <div className="mx-auto max-w-6xl">
+          {head}
+          <div className="relative mx-auto max-w-[28rem] border px-10 py-12 text-center" style={{ borderColor: theme.border, background: theme.background, borderRadius: `calc(${theme.radius} + 4px)`, boxShadow: "0 4px 12px rgba(0,0,0,.08), 0 24px 64px rgba(0,0,0,.08)" }}>
+            {c.urgencyBadge && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white" style={{ background: "linear-gradient(135deg, #ef4444, #f97316)", boxShadow: "0 4px 20px rgba(239,68,68,.35)" }}>
+                {c.urgencyBadge}
+              </div>
+            )}
+            {tier.name && <h3 className="text-lg font-semibold" style={{ color: theme.foreground }}>{tier.name}</h3>}
+            {c.originalPrice && <span className="mb-1 block text-base" style={{ color: theme.mutedFg, textDecoration: "line-through" }}>{c.currency}{c.originalPrice}</span>}
+            <div className="mb-4 mt-2 flex items-baseline justify-center gap-1">
+              <span className="text-5xl font-bold tracking-tight" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.currency}{tier.price}</span>
+              <span className="text-sm" style={{ color: theme.mutedFg }}>{c.period}</span>
+            </div>
+            {tier.description && <p className="text-sm" style={{ color: theme.mutedFg }}>{tier.description}</p>}
+            <ul className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5 text-left">
+              {features.map((f: string, j: number) => (
+                <li key={j} className="flex items-start gap-2 text-sm" style={{ color: theme.foreground }}>
+                  <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.accent }} />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            {tier.ctaLabel && (
+              <a href={tier.ctaHref} className="mt-8 inline-flex w-full items-center justify-center rounded-md px-5 py-3 text-base font-semibold transition-transform hover:scale-105" style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 100%)`, color: theme.accentFg }}>
+                {tier.ctaLabel}
+              </a>
+            )}
+            {c.guaranteeNote && <p className="mt-4 text-xs" style={{ color: theme.mutedFg }}>{c.guaranteeNote}</p>}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (style === "toggle") {
+    const monthlyLabel = c.toggleMonthlyLabel || "Monthly";
+    const yearlyLabel = c.toggleYearlyLabel || "Yearly";
+    const pillBtn = (active: boolean): React.CSSProperties => active
+      ? { background: theme.background, color: theme.foreground, boxShadow: "0 2px 8px rgba(0,0,0,.08)" }
+      : { color: theme.mutedFg };
+    return (
+      <section id="pricing" className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+        <div className="mx-auto max-w-6xl">
+          {head}
+          <div className="mb-10 text-center">
+            <div className="inline-flex gap-1 rounded-full border p-1.5" style={{ borderColor: theme.border, background: theme.muted }}>
+              <button type="button" onClick={() => setBilling("monthly")} aria-pressed={billing === "monthly"} className="rounded-full px-6 py-2 text-sm font-semibold transition-all" style={pillBtn(billing === "monthly")}>
+                {monthlyLabel}
+              </button>
+              <button type="button" onClick={() => setBilling("yearly")} aria-pressed={billing === "yearly"} className="rounded-full px-6 py-2 text-sm font-semibold transition-all" style={pillBtn(billing === "yearly")}>
+                {yearlyLabel}
+                {c.saveBadge && <span className="ml-2 rounded-full px-2 py-0.5 align-middle text-[10px] font-bold" style={{ background: "rgba(16,185,129,.12)", color: "#10b981" }}>{c.saveBadge}</span>}
+              </button>
+            </div>
+          </div>
+          <div className={`grid gap-6 ${c.tiers?.length === 1 ? "mx-auto max-w-md" : "md:grid-cols-2 lg:grid-cols-3"}`}>
+            {c.tiers?.map((tier: any, i: number) => renderTierCard(
+              tier,
+              `${c.currency}${billing === "yearly" ? (tier.yearlyPrice || tier.price) : tier.price}`,
+              billing === "yearly" ? "/yr" : "/mo",
+              i,
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="pricing" className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
       <div className="mx-auto max-w-6xl">
-        <div className="mx-auto mb-12 max-w-2xl text-center">
-          {c.title && <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
-          {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
-        </div>
+        {head}
         <div className={`grid gap-6 ${c.tiers?.length === 1 ? "mx-auto max-w-md" : "md:grid-cols-2 lg:grid-cols-3"}`}>
-          {c.tiers?.map((tier: any, i: number) => {
-            const features = (tier.features ?? "").split("\n").filter(Boolean);
-            const highlight = tier.highlighted;
-            return (
-              <div key={i} className="relative flex flex-col rounded-xl border p-6 shadow-sm" style={{ borderColor: highlight ? theme.accent : theme.border, background: theme.background, borderRadius: theme.radius, boxShadow: highlight ? `0 10px 30px -10px ${theme.accent}40` : undefined, transform: highlight ? "scale(1.02)" : undefined }}>
-                {highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ background: theme.accent, color: theme.accentFg }}>Most popular</div>}
-                <h3 className="text-lg font-semibold" style={{ color: theme.foreground }}>{tier.name}</h3>
-                {tier.description && <p className="mt-1 text-sm" style={{ color: theme.mutedFg }}>{tier.description}</p>}
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold tracking-tight" style={{ color: theme.foreground }}>{c.currency}{tier.price}</span>
-                  <span className="text-sm" style={{ color: theme.mutedFg }}>{c.period}</span>
-                </div>
-                <ul className="mt-6 flex flex-1 flex-col gap-2">
-                  {features.map((f: string, j: number) => (
-                    <li key={j} className="flex items-start gap-2 text-sm" style={{ color: theme.foreground }}>
-                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: theme.accent }} />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                {tier.ctaLabel && <a href={tier.ctaHref} className="mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: highlight ? theme.accent : theme.primary, color: highlight ? theme.accentFg : theme.primaryFg }}>{tier.ctaLabel}</a>}
-              </div>
-            );
-          })}
+          {c.tiers?.map((tier: any, i: number) => renderTierCard(tier, `${c.currency}${tier.price}`, c.period, i))}
         </div>
       </div>
     </section>
@@ -296,13 +640,33 @@ export function Pricing({ config, theme }: { config: any; theme: Theme }) {
 export function Faq({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
   const [openIdx, setOpenIdx] = useState<number | null>(0);
+  const titleBlock = (
+    <div className="mb-10 text-center">
+      {c.title && <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
+      {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+    </div>
+  );
+  if (c.style === "cards") {
+    return (
+      <section id="faq" className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
+        <div className="mx-auto max-w-6xl">
+          {titleBlock}
+          <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            {c.items?.map((item: any, i: number) => (
+              <div key={i} className="rounded-xl border p-6" style={{ borderColor: theme.border, background: theme.background, borderRadius: theme.radius }}>
+                <h3 className="mb-2 text-base font-semibold" style={{ color: theme.foreground }}>{item.question}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: theme.mutedFg }}>{item.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id="faq" className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-10 text-center">
-          {c.title && <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
-          {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
-        </div>
+        {titleBlock}
         <div className="flex flex-col gap-3">
           {c.items?.map((item: any, i: number) => {
             const open = openIdx === i;
@@ -448,14 +812,51 @@ function CountdownAnnouncement({ c, bg, fg }: { c: any; bg: string; fg: string }
 
 export function Problem({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
+  const [activeTab, setActiveTab] = useState(0);
+  const head = (
+    <div className="mb-12 text-center">
+      {c.eyebrow && <p className="mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: theme.accent }}>{c.eyebrow}</p>}
+      <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>
+      {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+    </div>
+  );
+  if (c.style === "tabs") {
+    const items: any[] = c.items || [];
+    const active = items[activeTab] || items[0];
+    return (
+      <section className="px-6 py-16 sm:py-24" style={{ background: theme.muted }}>
+        <PreviewKeyframes />
+        <div className="mx-auto max-w-4xl">
+          {head}
+          <div className="mb-8 flex flex-wrap justify-center gap-2">
+            {items.map((item: any, i: number) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveTab(i)}
+                className="rounded-full border px-5 py-2.5 text-sm font-semibold transition-all"
+                style={activeTab === i
+                  ? { background: theme.primary, borderColor: theme.primary, color: theme.primaryFg }
+                  : { background: theme.background, borderColor: theme.border, color: theme.mutedFg }}
+              >
+                {item.title}
+              </button>
+            ))}
+          </div>
+          {active && (
+            <div key={activeTab} className="mx-auto max-w-2xl rounded-xl border p-8 text-center" style={{ borderColor: theme.border, background: theme.background, borderRadius: theme.radius, animation: "lfFadeUpCanvas .45s ease" }}>
+              <h3 className="mb-3 text-2xl font-semibold" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{active.title}</h3>
+              {active.description && <p className="text-base leading-relaxed" style={{ color: theme.mutedFg }}>{active.description}</p>}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="px-6 py-16 sm:py-24" style={{ background: theme.muted }}>
       <div className="mx-auto max-w-4xl">
-        <div className="mb-12 text-center">
-          {c.eyebrow && <p className="mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: theme.accent }}>{c.eyebrow}</p>}
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>
-          {c.subtitle && <p className="mt-4 text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
-        </div>
+        {head}
         <div className="grid gap-4 md:grid-cols-3">
           {c.items?.map((item: any, i: number) => (
             <div key={i} className="rounded-xl border p-6" style={{ borderColor: theme.border, background: theme.background, borderRadius: theme.radius }}>
@@ -504,6 +905,24 @@ export function VideoSection({ config, theme }: { config: any; theme: Theme }) {
     if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
     return url;
   };
+  // Cinematic: full-bleed dark section — thumbnail (or dark placeholder) under
+  // a gradient veil with centered white copy (mirrors .lf-video-cinematic).
+  if (c.variant === "cinematic") {
+    return (
+      <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden" style={{ background: "#000" }}>
+        {c.thumbnailUrl ? (
+          <img src={c.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-50" />
+        ) : (
+          <Video aria-hidden className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.12)" }} />
+        )}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.75))" }} />
+        <div className="relative z-10 mx-auto max-w-3xl px-6 py-20 text-center">
+          {c.title && <h2 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl" style={{ color: "#fff", textShadow: "0 4px 30px rgba(0,0,0,0.5)", fontFamily: theme.fontHeading }}>{c.title}</h2>}
+          {c.subtitle && <p className="text-base sm:text-xl" style={{ color: "rgba(255,255,255,0.85)" }}>{c.subtitle}</p>}
+        </div>
+      </section>
+    );
+  }
   const inner = (
     <div className="overflow-hidden rounded-xl shadow-xl" style={{ borderRadius: theme.radius }}>
       <div className="relative aspect-video" style={{ background: theme.muted }}>
@@ -522,14 +941,17 @@ export function VideoSection({ config, theme }: { config: any; theme: Theme }) {
       </div>
     </div>
   );
-  if (c.variant === "split-left") {
+  const head = (
+    <div>
+      {c.title && <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
+      {c.subtitle && <p className="text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
+    </div>
+  );
+  if (c.variant === "split-left" || c.variant === "split-right") {
     return (
       <section className="px-6 py-16 sm:py-24" style={{ background: theme.background }}>
-        <div className="mx-auto max-w-6xl grid items-center gap-12 md:grid-cols-2">
-          <div>
-            {c.title && <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: theme.foreground, fontFamily: theme.fontHeading }}>{c.title}</h2>}
-            {c.subtitle && <p className="text-lg" style={{ color: theme.mutedFg }}>{c.subtitle}</p>}
-          </div>
+        <div className={`mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-2 ${c.variant === "split-right" ? "md:[&>*:first-child]:order-2" : ""}`}>
+          {head}
           {inner}
         </div>
       </section>
@@ -550,6 +972,18 @@ export function VideoSection({ config, theme }: { config: any; theme: Theme }) {
 
 export function Comparison({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
+  // "yes"/"✓"/"true" → green check, "no"/"—"/"-"/"false"/"" → red cross;
+  // anything else renders as text (mirrors .lf-cmp-yes / .lf-cmp-no).
+  const renderCell = (v: any, kind: "you" | "them") => {
+    const s = String(v ?? "").trim().toLowerCase();
+    if (s === "yes" || s === "✓" || s === "true") {
+      return <span className="inline-grid h-[22px] w-[22px] place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-600" role="img" aria-label="Yes">✓</span>;
+    }
+    if (s === "no" || s === "—" || s === "-" || s === "false" || s === "") {
+      return <span className="inline-grid h-[22px] w-[22px] place-items-center rounded-full bg-red-100 text-sm font-bold text-red-600" role="img" aria-label="No">✗</span>;
+    }
+    return <span style={{ color: kind === "you" ? theme.accent : theme.mutedFg }}>{v}</span>;
+  };
   return (
     <section className="px-6 py-16 sm:py-24" style={{ background: theme.muted }}>
       <div className="mx-auto max-w-3xl">
@@ -564,8 +998,8 @@ export function Comparison({ config, theme }: { config: any; theme: Theme }) {
               {c.features?.map((f: any, i: number) => (
                 <tr key={i} style={{ borderTop: `1px solid ${theme.border}`, background: i % 2 === 0 ? theme.background : "transparent" }}>
                   <td className="px-4 py-3 text-sm" style={{ color: theme.foreground }}>{f.label}</td>
-                  <td className="px-4 py-3 text-center text-sm font-semibold" style={{ color: theme.accent }}>{f.you}</td>
-                  <td className="px-4 py-3 text-center text-sm" style={{ color: theme.mutedFg }}>{f.competitor}</td>
+                  <td className="px-4 py-3 text-center text-sm font-semibold">{renderCell(f.you, "you")}</td>
+                  <td className="px-4 py-3 text-center text-sm">{renderCell(f.competitor, "them")}</td>
                 </tr>
               ))}
             </tbody>
@@ -597,11 +1031,23 @@ export function Guarantee({ config, theme }: { config: any; theme: Theme }) {
 
 export function ContactForm({ config, theme }: { config: any; theme: Theme }) {
   const c = config;
+  const inputStyle = { borderColor: theme.border, background: theme.background, color: theme.foreground };
+  const field = (label: string, type: string = "text") => (
+    <div>
+      <label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{label}</label>
+      <input type={type} className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={inputStyle} />
+    </div>
+  );
   const formEl = (
     <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
-      <div><label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{c.nameLabel || "Name"}</label><input type="text" className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }} /></div>
-      <div><label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{c.emailLabel || "Email"}</label><input type="email" className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }} /></div>
-      <div><label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{c.messageLabel || "Message"}</label><textarea rows={4} className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={{ borderColor: theme.border, background: theme.background, color: theme.foreground }} /></div>
+      {field(c.nameLabel || "Name")}
+      {field(c.emailLabel || "Email", "email")}
+      {c.showPhone && field(c.phoneLabel || "Phone", "tel")}
+      {c.showCompany && field(c.companyLabel || "Company")}
+      <div>
+        <label className="mb-1 block text-xs font-medium" style={{ color: theme.foreground }}>{c.messageLabel || "Message"}</label>
+        <textarea rows={4} className="w-full rounded-md border px-4 py-2.5 text-sm outline-none" style={inputStyle} />
+      </div>
       <button type="submit" className="inline-flex items-center justify-center rounded-md px-5 py-2.5 text-sm font-semibold transition-transform hover:scale-105" style={{ background: theme.primary, color: theme.primaryFg }}>{c.buttonLabel || "Send"}</button>
     </form>
   );
@@ -632,7 +1078,7 @@ export function Legal({ config, theme }: { config: any; theme: Theme }) {
           {c.lastUpdated && <p className="text-sm" style={{ color: theme.mutedFg }}>Last updated: {c.lastUpdated}</p>}
         </div>
         <div className="space-y-4">
-          {paragraphs.map((p: string, i: number) => (
+          {paragraphs.map((p, i) => (
             <p key={i} className="text-sm leading-relaxed" style={{ color: theme.foreground }}>{p}</p>
           ))}
         </div>

@@ -10,6 +10,20 @@ Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and s
 
 ### Page Builder
 - 20 section types (Navbar, Hero, Logocloud, Features, Stats, Gallery, Testimonials, Pricing, FAQ, CTA, Newsletter, Footer, Announcement, Problem, Solution, Video, Comparison, Guarantee, Contactform, Legal)
+- **LandingForge v21 engine** (v1.4) — per-section style variants + interactive JS in every export:
+  - Hero image **carousel** with fade/zoom/flip/cube animations, autoplay & swipe
+  - Gallery styles: grid · horizontal scroll-snap · accordion · infinite ticker · **stories** (progress bars) · vertical fade
+  - Video layouts: centered · split · full-width · **cinematic fullscreen** with gradient veil
+  - Pricing styles: tiered cards · **single offer card** (urgency badge + struck-through price) · **monthly/yearly toggle** with save badge
+  - Testimonials grid or auto-playing **carousel**
+  - FAQ accordion or side-by-side **cards**
+  - Problem section as cards or interactive **tabs**
+  - Comparison table renders `yes`/`no` as green ✓ / red ✗ matrix icons
+  - Announcement bar: static, scrolling ticker, or **live countdown**
+  - Contact form with **real submission** — Google Sheets (Apps Script), FormSubmit.co email, or demo toast — plus optional phone/company fields, honeypot spam trap & success redirect
+  - **Mobile hamburger menu** in the exported navbar (with slide-down panel)
+  - **Dark-mode toggle** shipped with every exported page (persisted)
+  - **OG + Twitter card meta** and `theme-color` generated from page SEO settings
 - 5 pre-built templates (SaaS, Portfolio, Agency, E-commerce, Startup)
 - 8 theme presets + custom colors, fonts & corner radius
 - Drag-and-drop section reordering
