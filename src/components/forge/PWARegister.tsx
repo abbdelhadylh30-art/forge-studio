@@ -11,10 +11,22 @@
 
 import { useEffect } from "react";
 
+declare global {
+  interface Window {
+    forgeStudio?: { version: string; desktop: boolean; platform: string };
+  }
+}
+
 export function PWARegister() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+
+    // Desktop (Electron) app: the Next.js server is embedded in the app
+    // binary, so offline caching adds nothing — and a service worker
+    // caching through the app:// proxy could serve a stale shell after
+    // updates. Skip registration entirely there.
+    if (window.forgeStudio?.desktop) return;
 
     const register = () => {
       navigator.serviceWorker

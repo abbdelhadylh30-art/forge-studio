@@ -98,11 +98,14 @@ bun run db:push
 
 ## Troubleshooting
 
-**The desktop app shows "Failed to start server — EADDRINUSE ::1:3000".**
-Something else on your machine is holding port 3000 (often a leftover
-`node.exe` from an earlier run, another dev server, or Docker). Since
-v1.4.0 the app automatically falls back to the next free port, so this
-can no longer crash startup. On older versions, free the port:
+**"EADDRINUSE ::1:3000" on launch (v1.3.0 and earlier).**
+Something else on your machine was holding port 3000 (a leftover
+`node.exe`, another dev server, Docker, …) and old versions crashed on
+it. **Since v1.4.1 the app doesn't use any fixed port at all**: the
+internal server binds an OS-assigned ephemeral port (picked fresh by
+Windows at every launch), and the UI loads over an internal `app://`
+protocol — so port conflicts are structurally impossible. Just grab the
+latest release. On old versions, free the port:
 
 ```powershell
 netstat -ano | findstr :3000      # note the PID in the last column
@@ -110,6 +113,11 @@ taskkill /PID <that-PID> /F
 ```
 
 …or simply reboot, then launch the app again.
+
+**Where did my data go after an update?**
+Nowhere — the desktop app runs on the stable `app://local` origin, so
+your projects, audits, and pages live in the same storage regardless of
+which port the server got. (Data is stored per-origin in localStorage.)
 
 **Windows shows "SmartScreen protected your PC" / blocks the installer.**
 The exe is unsigned, so Windows warns on first run. Click

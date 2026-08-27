@@ -79,6 +79,41 @@ jobs:
           if (-not $ok) { throw "SMOKE TEST FAILED — standalone server did not serve HTTP 200 within 60s" }
           Write-Host "SMOKE TEST PASSED — standalone server served the dashboard"
 
+      - name: Smoke test — ephemeral port (PORT=0) patch
+        shell: pwsh
+        run: |
+          # The desktop app launches the server with PORT=0 and reads the
+          # OS-assigned port back from the startup banner. Verify the patched
+          # server.js actually honors PORT=0 and reports the real port.
+          $env:PORT = "0"
+          $env:HOSTNAME = "127.0.0.1"
+          $env:NODE_ENV = "production"
+          $env:DATABASE_URL = "file:./prod.db"
+          $p = Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "standalone-server" -PassThru -RedirectStandardOutput "eph-out.log" -RedirectStandardError "eph-err.log"
+          $ok = $false
+          $foundPort = 0
+          try {
+            for ($i = 0; $i -lt 15; $i++) {
+              Start-Sleep -Seconds 2
+              if ($p.HasExited) { break }
+              $banner = Get-Content eph-out.log -Raw -ErrorAction SilentlyContinue
+              if ($banner -match 'http://127\.0\.0\.1:(\d+)') {
+                $foundPort = [int]$Matches[1]
+                try {
+                  $r = Invoke-WebRequest -Uri "http://127.0.0.1:$foundPort" -UseBasicParsing -TimeoutSec 3
+                  if ($r.StatusCode -eq 200 -and $r.Content.Length -gt 500) { $ok = $true; break }
+                } catch {}
+              }
+            }
+          } finally {
+            if (-not $p.HasExited) { taskkill /PID $p.Id /T /F 2>&1 | Out-Null }
+          }
+          Write-Host "=== ephemeral banner (last 10 lines) ==="
+          Get-Content eph-out.log -ErrorAction SilentlyContinue | Select-Object -Last 10
+          if ($foundPort -eq 0) { throw "EPHEMERAL PATCH TEST FAILED — server banner never reported a port (PORT=0 not honored?)" }
+          if (-not $ok) { throw "EPHEMERAL PATCH TEST FAILED — server on port $foundPort did not serve HTTP 200" }
+          Write-Host "EPHEMERAL PATCH TEST PASSED — PORT=0 bound OS-assigned port $foundPort and served the dashboard"
+
       - name: Compile Electron main process
         run: |
           bunx tsc electron/main.ts electron/preload.ts --outDir electron/dist --module commonjs --target es2022 --esModuleInterop --skipLibCheck --resolveJsonModule --moduleResolution node
@@ -98,6 +133,11 @@ jobs:
           $exe = Get-ChildItem "release\*.exe" | Where-Object { $_.Name -match '^ForgeStudio-[0-9]' } | Select-Object -First 1
           if (-not $exe) { throw "Portable exe not found in release\ — listing:"; Get-ChildItem release }
           Write-Host "Testing: $($exe.FullName)"
+          # The app defaults to an OS-assigned ephemeral port; pin a fixed
+          # port via env (honored by the Electron main process) so this test
+          # knows where to look. The ephemeral path is covered by the
+          # dedicated PORT=0 patch smoke test above.
+          $env:PORT = "3000"
           $p = Start-Process -FilePath $exe.FullName -PassThru
           $ok = $false
           $foundPort = 0
