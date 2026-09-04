@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Plus, ShieldCheck, Sparkles, Layout, ArrowRight, Wand2, Megaphone,
-  CheckCircle2, Zap, Eye, MousePointerClick, Layers, History, X, TrendingUp, Trash2, ExternalLink,
+  CheckCircle2, Zap, Eye, MousePointerClick, Layers, History, X, TrendingUp, Trash2, ExternalLink, Hammer,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -38,7 +38,7 @@ export function ForgeDashboard() {
   const { loadSite, newBlankSite, exportHTML, site: builderSite } = useBuilder();
   const { setHTML: setAuditorHTML, projectName: auditorProjectName } = usePFStore();
   const { resolvedTheme, setTheme } = useTheme();
-  const [hoveredTool, setHoveredTool] = useState<"builder" | "auditor" | null>(null);
+  const [hoveredTool, setHoveredTool] = useState<"builder" | "auditor" | "sites" | null>(null);
   const [autosave, setAutosave] = useState<AutosaveInfo | null>(null);
   const [auditHistory, setAuditHistory] = useState<AuditHistoryEntry[]>([]);
 
@@ -125,6 +125,9 @@ export function ForgeDashboard() {
               <Button variant="outline" size="sm" onClick={() => setView("auditor")} className="gap-1.5 h-8">
                 <ShieldCheck className="h-3.5 w-3.5" /> Auditor
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setView("sites")} className="gap-1.5 h-8">
+                <Hammer className="h-3.5 w-3.5" /> Sites
+              </Button>
             </div>
           </div>
         </header>
@@ -201,6 +204,14 @@ export function ForgeDashboard() {
               >
                 <ShieldCheck className="h-4 w-4" /> Audit a page
               </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => setView("sites")}
+                className="h-11 gap-2 px-6 bg-white/70 backdrop-blur"
+              >
+                <Hammer className="h-4 w-4" /> Publish a live site
+              </Button>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
               <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> No sign-up, no install</span>
@@ -238,6 +249,21 @@ export function ForgeDashboard() {
               secondaryLabel="Audit my builder page"
               isHovered={hoveredTool === "auditor"}
               onHover={(v) => setHoveredTool(v ? "auditor" : null)}
+            />
+            <ToolCard
+              icon={Hammer}
+              title="Landing Sites"
+              tagline="Forge Studio Sites (from landing-forge): build a page from YAML or an AI prompt, publish it live with built-in privacy-friendly analytics, section-level A/B testing, a leads inbox, and deploy simulation."
+              accent="from-emerald-500 to-teal-500"
+              glow="shadow-emerald-500/20"
+              features={["AI prompt → full page", "YAML import/export", "Live analytics + A/B tests", "Published pages with tracking", "Leads inbox + CSV export"]}
+              onPrimary={() => setView("sites")}
+              onSecondary={() => setView("sites")}
+              primaryLabel="Open Sites studio"
+              secondaryLabel="View analytics"
+              isHovered={hoveredTool === "sites"}
+              onHover={(v) => setHoveredTool(v ? "sites" : null)}
+              className="md:col-span-2"
             />
           </section>
 
@@ -333,17 +359,18 @@ export function ForgeDashboard() {
   );
 }
 
-function ToolCard({ icon: Icon, title, tagline, accent, glow, features, onPrimary, onSecondary, primaryLabel, secondaryLabel, isHovered, onHover }: {
+function ToolCard({ icon: Icon, title, tagline, accent, glow, features, onPrimary, onSecondary, primaryLabel, secondaryLabel, isHovered, onHover, className }: {
   icon: LucideIcon; title: string; tagline: string; accent: string; glow: string;
   features: string[];
   onPrimary: () => void; onSecondary: () => void; primaryLabel: string; secondaryLabel: string;
   isHovered: boolean; onHover: (v: boolean) => void;
+  className?: string;
 }) {
   return (
     <Card
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      className={`group relative overflow-hidden border-slate-200/70 dark:border-slate-800 transition-all duration-300 hover:shadow-xl ${glow} ${isHovered ? "-translate-y-0.5" : ""}`}
+      className={`group relative overflow-hidden border-slate-200/70 dark:border-slate-800 transition-all duration-300 hover:shadow-xl ${glow} ${isHovered ? "-translate-y-0.5" : ""} ${className ?? ""}`}
     >
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
       <div className={`absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br ${accent} opacity-10 transition-opacity duration-300 ${isHovered ? "opacity-20" : ""}`} />

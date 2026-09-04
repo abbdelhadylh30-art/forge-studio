@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/command";
 import {
   Eye, Download, Palette, ShieldCheck, Copy, RotateCcw, Save, History,
-  Layout, Home, Sun, Moon, BookOpenCheck, Plus, Monitor, CheckCircle2, Sparkles,
+  Layout, Home, Sun, Moon, BookOpenCheck, Plus, Monitor, CheckCircle2, Sparkles, Hammer,
 } from "lucide-react";
 import { THEME_PRESETS, type SectionKind } from "@/lib/builder/sections/types";
 import { SECTION_TYPES } from "@/lib/builder/sections/registry";
@@ -131,6 +131,11 @@ export function CommandPalette() {
           {view !== "templates" && (
             <CommandItem onSelect={() => run(() => forge.setView("templates"))}>
               <Sparkles className="h-4 w-4" /> Browse templates
+            </CommandItem>
+          )}
+          {view !== "sites" && (
+            <CommandItem onSelect={() => run(() => forge.setView("sites"))}>
+              <Hammer className="h-4 w-4" /> Open Sites studio (landing-forge)
             </CommandItem>
           )}
         </CommandGroup>

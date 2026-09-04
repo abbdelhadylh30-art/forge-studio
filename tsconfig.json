@@ -40,6 +40,10 @@
     "node_modules",
     "examples",
     "skills",
-    "mini-services"
+    "mini-services",
+    "landing-forge",
+    "forge-studio-repo",
+    "electron",
+    "download"
   ]
 }

@@ -507,3 +507,18 @@
   from { transform: translateX(0); }
   to { transform: translateX(-20%); }
 }
+
+/* ── landing-forge section entrance animations (preview + export parity) ── */
+.lf-anim { opacity: 0; will-change: transform, opacity; }
+.lf-anim.lf-in { animation: lf-fade-in-reveal .65s cubic-bezier(.22,1,.36,1) both; }
+.lf-anim[data-lf-anim="fade-up"].lf-in { animation-name: lf-fade-up-reveal; }
+.lf-anim[data-lf-anim="slide-left"].lf-in { animation-name: lf-slide-left-reveal; }
+.lf-anim[data-lf-anim="zoom-in"].lf-in { animation-name: lf-zoom-in-reveal; }
+@keyframes lf-fade-in-reveal { from { opacity: 0 } to { opacity: 1 } }
+@keyframes lf-fade-up-reveal { from { opacity: 0; transform: translateY(26px) } to { opacity: 1; transform: none } }
+@keyframes lf-slide-left-reveal { from { opacity: 0; transform: translateX(36px) } to { opacity: 1; transform: none } }
+@keyframes lf-zoom-in-reveal { from { opacity: 0; transform: scale(.96) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) {
+  .lf-anim { opacity: 1 !important; }
+  .lf-anim.lf-in { animation: none !important; }
+}

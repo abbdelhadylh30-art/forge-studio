@@ -13,7 +13,7 @@
 
 import { create } from "zustand";
 
-export type ForgeView = "dashboard" | "builder" | "auditor" | "templates";
+export type ForgeView = "dashboard" | "builder" | "auditor" | "templates" | "sites";
 
 /** A transfer payload older than this is discarded on the next read. */
 export const TRANSFER_TTL_MS = 60_000; // 60 seconds

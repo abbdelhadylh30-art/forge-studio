@@ -149,3 +149,80 @@ model EmailReportRequest {
   @@index([createdAt])
   @@index([sent])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// landing-forge Sites module (ported from abbdelhadylh30-art/landing-forge)
+// "Sites" = published landing pages with analytics / A/B / leads / deploys.
+// Prefixed Site* to avoid colliding with the auditor's Project/Audit models.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Site {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  config    String // JSON-serialized LandingConfig
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  views    SiteView[]
+  events   SiteEvent[]
+  deploys  SiteDeploy[]
+  leads    SiteLead[]
+}
+
+model SiteView {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Site     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  visitorId  String   @default("anon") // pseudo-anonymous visitor id (client-generated)
+  path       String   @default("/")
+  referrer   String   @default("direct")
+  country    String   @default("US")
+  device     String   @default("desktop")
+  browser    String   @default("Chrome")
+  variant    String? // PRIMARY A/B variant this visit was exposed to (per-variant duration/engagement)
+  variantMap String? // JSON: sectionId → variant name for EVERY enabled section-level test
+  duration   Int      @default(0) // seconds in page
+  isBounce   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model SiteEvent {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Site     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String // cta_click | form_submit | section_view | variant_exposure | promote_winner
+  label     String   @default("")
+  variant   String? // A/B variant name, e.g. "A"
+  value     Float    @default(0)
+  path      String   @default("/")
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model SiteDeploy {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Site     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status     String   @default("queued") // queued | building | live | failed
+  url        String?
+  logs       String   @default("[]") // JSON array of {t, msg, level}
+  durationMs Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model SiteLead {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Site     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String   @default("")
+  email     String   @default("")
+  message   String   @default("")
+  fields    String   @default("{}") // JSON map of all submitted field label → value
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}

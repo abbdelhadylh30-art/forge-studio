@@ -1,8 +1,8 @@
 # Forge Studio
 
-**Build. Audit. Ship.** — The all-in-one landing page studio.
+**Build. Audit. Publish. Ship.** — The all-in-one landing page studio.
 
-Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and ship landing pages in one place — no code, no plugins, no sign-up.
+Drag-drop builder + 5-category auditor with one-click fixes + the landing-forge Sites studio: AI page generation, published pages with built-in analytics, section-level A/B testing, and a leads inbox — no code, no plugins, no sign-up.
 
 **Try it live:** <https://forge-studio-green.vercel.app> · **Windows app:** grab the installer from the [latest release](https://github.com/abbdelhadylh30-art/forge-studio/releases/latest)
 
@@ -33,6 +33,20 @@ Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and s
 - Device preview (desktop / tablet / mobile)
 - HTML + JSON export
 - 50-deep undo/redo with Ctrl+Z / Ctrl+Shift+Z
+
+### Landing Sites (from landing-forge)
+The full landing-forge studio, embedded as a fourth view:
+- Drag & drop section list — reorder, duplicate, hide, delete **13 section types** (navbar, hero, logos, features, stats, testimonials, pricing, FAQ, gallery, **about**, contact, final CTA, footer) with 40+ content packs
+- **AI prompt → full page** (`/api/ai/generate`), AI copy improve, AI images
+- **YAML import/export** — round-trips with the landing-forge CLI config format
+- **Multilingual publishing** — per-section AI translation into any locale, RTL (Arabic/Hebrew/Farsi/Urdu), language switcher on the published page, `?lang=` deep links
+- **Per-section entrance animations** — fade/slide/zoom on scroll into view (respects `prefers-reduced-motion`, included in the HTML export)
+- **Section-level A/B testing** — weighted per-visitor assignment, per-variant engagement/read counts, confidence + auto-winner + one-click Promote
+- **Published pages** at `/p/<slug>` — server-rendered SEO (OG + Twitter card + JSON-LD + canonical + sitemap), real visitor tracking (pageviews, referrers, countries, devices, bounce, section reads, CTA attribution)
+- **Analytics dashboard** — live socket.io relay ("right now" visitors + event ticker), traffic charts, conversion funnel, section performance, leads inbox, CSV export, traffic simulation
+- **Readiness audit** — weighted score (SEO, content, links, brand) with fix suggestions
+- **Deploy simulation** with streaming build logs + published-page URL
+- 6 one-click themes + Google webfont pairs + custom accent
 
 ### Page Auditor
 - 0–100 score across 5 categories (SEO, Content, Accessibility, Structure, Performance)
@@ -75,6 +89,9 @@ Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and s
 ```bash
 # Install dependencies
 bun install
+
+# Ported from landing-forge? Push the new Prisma models first
+bun run db:push
 
 # Start the dev server (auto-picks the first free port from 3000,
 # and prints/records it in dev.port — no more EADDRINUSE crashes)
@@ -147,6 +164,7 @@ src/
 │   │   ├── sections/             # 12 section renderers + SectionRenderer
 │   │   └── templates/            # TemplatesGallery
 │   ├── forge/                    # Unified shell (Dashboard, AuditorShell)
+│   ├── sites/                    # Landing Sites studio (from landing-forge): SitesApp, panels, preview sections, dashboard, published page
 │   ├── pixelforge/               # Page Auditor UI
 │   │   ├── editor/               # AppShell, TopBar, DeviceBar, LayerPanel, Preview, RightPanel, GuideOverlay, ChangelogFab
 │   │   ├── modals/               # Import, Competitor, A/B, Tools, Export
@@ -156,6 +174,7 @@ src/
 ├── lib/
 │   ├── builder/                  # Builder store, section registry, templates, renderer
 │   ├── forge/                    # Unified store (view switching + transfer bridge)
+│   ├── landing/                  # Sites engine: types, themes, defaults, YAML, A/B, readiness, i18n, export
 │   ├── pixelforge/               # Auditor store, scoring engine, quick-fixes, sample page
 │   └── security/                 # SSRF guard, sanitizer, rate limiter
 └── hooks/                        # use-mobile, use-toast
@@ -174,8 +193,9 @@ MIT — see `LICENSE`.
 
 ## Acknowledgements
 
-Built as a Next.js 16 reimagining of two earlier projects:
+Built as a Next.js 16 reimagining of three earlier projects:
 - **LandingForge v4** — the drag-drop builder
 - **PixelForge v19** — the page auditor
+- **landing-forge (abbdelhadylh30-art)** — the visual landing-page studio with analytics, A/B testing and published pages (ported whole as the Sites view, per the [kasimmj/landing-forge](https://github.com/kasimmj/landing-forge) vision)
 
-Combined into Forge Studio with a bidirectional transfer bridge so pages flow freely between build and audit.
+Combined into Forge Studio with a bidirectional transfer bridge so pages flow freely between build and audit — plus the Sites studio for publish-and-measure workflows.
