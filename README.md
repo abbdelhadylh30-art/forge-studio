@@ -127,8 +127,11 @@ self-healing, no manual setup:
   uploaded images are stored in `/tmp/uploads` and streamed back through the
   `GET /api/uploads/<name>` route. Template-bundled images keep their static
   `/uploads/<name>` URLs.
-- **Honest 404s** — unknown `/p/<slug>` pages return a real HTTP 404 (only a
-  genuine DB outage falls back to the client shell).
+- **Honest 404s** — unknown `/p/<slug>` pages return a real HTTP 404 when the
+  database is deterministic (local / desktop). On Vercel the page falls through
+  to the client shell instead, because route lambdas don't share the ephemeral
+  SQLite — the client fetches `/api/sites` from the lambda that has the site
+  and renders normally.
 
 Known serverless limits (by design, honest trade-offs): the SQLite file is
 **per-instance and ephemeral** — a cold start begins with an empty database and

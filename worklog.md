@@ -649,3 +649,7 @@ Stage Summary:
 - The Vercel deployment is now functionally complete: every Sites/Auditor API provisions its own schema on cold start, published pages 404 correctly, and AI-image/upload storage works on the read-only FS.
 - Pushing main triggers the usual auto-deploy; no Vercel project settings need changing.
 - Serverless data is ephemeral by design (documented) — durable history needs Turso/Postgres in DATABASE_URL.
+- Live verification of cc114fb found one regression of my own making: /p/<slug> hard-404'd on Vercel even when the site existed — because /p/[slug] and /api/sites are SEPARATE route lambdas with SEPARATE /tmp SQLite files (verified: page lambda 404'd while the API lambda still returned the row; minutes later the API instance recycled and /api/sites went back to []). The v1.5 fall-through-to-client-shell design was the correct serverless behavior all along.
+- Fix: notFound() now fires only when !isServerless() (deterministic local/desktop DB → SEO-correct 404); on Vercel a missing row falls through to the client shell, whose /api/sites fetch hits the lambda that actually has the site. generateMetadata returns {} for missing rows (title was dead weight on both paths).
+- Re-verified: tsc clean, eslint clean; simulation suite extended to 28/28 (serverless mode: fallthrough + /tmp uploads + /api/uploads serving; local mode without VERCEL: strict 404, static upload URLs, ensureSchema provisions regardless).
+- README 404 bullet corrected to describe the split behavior.

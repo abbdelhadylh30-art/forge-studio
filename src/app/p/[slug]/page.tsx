@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { db, ensureSchema } from "@/lib/db"
 import { toWithConfig } from "@/lib/landing/server"
+import { isServerless } from "@/lib/landing/uploads"
 import { PublishedPage } from "@/components/sites/published/PublishedPage"
 import type { LandingConfig } from "@/lib/landing/types"
 
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   try {
     await ensureSchema().catch(() => undefined)
     const row = await db.site.findUnique({ where: { slug } })
-    if (!row) return { title: "Page not found" }
+    if (!row) return {}
     const { config } = toWithConfig(row)
     const title = config.seo?.title || `${config.brand.name} — ${config.brand.tagline ?? ""}`.trim()
     const description = config.seo?.description ?? ""
@@ -73,9 +74,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PublishedSitePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   // Verify the site exists server-side:
-  //  • DB reachable + row missing  → real 404 (SEO-correct for unknown slugs)
-  //  • DB unreachable (offline)    → fall through to the client shell, which
-  //    surfaces its own error state
+  //  • DB reachable + row missing, NOT serverless → real 404 (deterministic
+  //    single-instance DB locally / in the desktop app — SEO-correct)
+  //  • Serverless (Vercel) with a missing row → fall through to the client
+  //    shell. Route lambdas do NOT share the ephemeral /tmp SQLite, so this
+  //    instance may simply not know the site yet — the client fetches
+  //    /api/sites from the lambda that does and renders normally.
+  //  • DB unreachable (offline) → same client-shell fallthrough for errors.
   let jsonLd: string | null = null
   let rowFound = false
   try {
@@ -100,7 +105,7 @@ export default async function PublishedSitePage({ params }: { params: Promise<{ 
   } catch {
     // DB offline → let the client component surface its own error state
   }
-  if (!rowFound) notFound()
+  if (!rowFound && !isServerless()) notFound()
 
   return (
     <>
