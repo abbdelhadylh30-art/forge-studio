@@ -283,7 +283,7 @@ function initialsOf(name: string): string {
 
 /** config → YAML string (reorders keys for readability) */
 export function configToYaml(config: LandingConfig): string {
-  const ordered = {
+  const ordered: Record<string, unknown> = {
     brand: {
       name: config.brand.name,
       tagline: config.brand.tagline || undefined,
@@ -298,6 +298,9 @@ export function configToYaml(config: LandingConfig): string {
       return hidden === true ? { ...rest, hidden: true } : rest
     }),
   }
+  // i18n (locales + translations) must survive the round-trip — the YAML
+  // export is advertised as the complete, version-controllable page config.
+  if (config.i18n) ordered.i18n = config.i18n
   return yamlDump(ordered, { lineWidth: 100, noRefs: true, sortKeys: false })
 }
 
