@@ -627,3 +627,25 @@ Stage Summary:
 - Published URLs changed: /?p=<slug> → /p/<slug> (server-rendered metadata per site).
 - Prisma models added: Site, SiteView, SiteEvent, SiteDeploy, SiteLead (run `bun run db:push` after pulling).
 - New env (optional): NEXT_PUBLIC_SITE_URL (canonical/OG absolute URLs), PSI_API_KEY (auditor, pre-existing).
+
+---
+Task ID: 2
+Agent: Super Z (main agent, sandbox)
+Task: "Push it to Vercel" — make the v1.5 Landing Sites port actually WORK on the serverless deployment (forge-studio-green.vercel.app), not just build.
+
+Work Log:
+- Verified v1.5 (90dfeff) was pushed and Vercel auto-deployed it (combined status: Vercel | success; production deployment 6262946 at 2026-09-04T11:02Z; live homepage shows the Landing Sites card).
+- Live smoke test found two real bugs on the serverless deployment:
+  1) /api/sites → 500 "Invalid prisma.site.findMany() invocation: The table main.Site does not exist in the current database" — Vercel's file:/tmp/prod.db starts EMPTY and `prisma db push` never runs in the lambda.
+  2) /p/<unknown-slug> → HTTP 200 (soft-404) — missing rows fell through to the client shell unconditionally.
+- Fix 1 — runtime schema provisioning: scripts/gen-db-schema.py (persisted in the sandbox) dumps the exact DDL `prisma db push` creates from a probe DB into src/lib/db-schema.ts (15 tables + 15 indexes, IF NOT EXISTS). ensureSchema() in src/lib/db.ts executes them once per process (memoized on globalThis, resets on failure so a later request retries). Wired in: guard() in lib/landing/server.ts (best-effort — non-DB routes like AI generate keep working when provisioning fails) → covers all 14 Sites/AI/analytics/leads/deploy/images routes at once; explicit awaits in p/[slug] page, sitemap.ts, and the 4 dynamic-import routes (audits, projects, feedback, send-report) inside their existing try/catch degradation. guard() now maps missing-table Prisma errors to an honest 503 instead of leaking engine internals; Prisma log level downgraded to error-only in production.
+- Fix 2 — honest 404s: /p/[slug] calls notFound() when the DB query SUCCEEDS but the row is missing; a genuine DB outage still falls through to the client shell.
+- Fix 3 — writable uploads on serverless: lib/landing/uploads.ts (uploadDir() = /tmp/uploads + publicUrl() = /api/uploads/<name> when VERCEL=1, else public/uploads + /uploads/<name>); new GET /api/uploads/[name] streams files from the writable root (path-validated, content-typed, 1h cache); /api/images lists BOTH roots on serverless (runtime + template-bundled), writes to the writable root, DELETE checks both URL shapes and both roots; /api/ai/image saves via the same helpers; /p/[slug] og:image regex now accepts /api/uploads/* and absolutizes them.
+- Verified: tsc --noEmit clean, eslint 0 errors on all changed files, vitest 159/159.
+- Vercel simulation test (scripts/vercel-sim-test.sh in the sandbox): fresh empty /tmp DB, VERCEL=1, no db push — 23/23 checks green: schema auto-provision, site create/read, /p/<slug> 200 + JSON-LD + SSR metadata, /p/unknown → 404, pageview + cta_click tracking landing in stats (pageviews 1, ctaClicks 1, funnel), leads persist, /api/audits + /api/projects return real responses (no unavailable flag), upload → /api/uploads URL → identical bytes served back + listed, sitemap lists the site, deploy 201, CSV export 200, idempotent second calls.
+- package.json 1.4.1 → 1.5.0; README gains a "Deploying on Vercel" section (self-healing behavior + honest serverless limits: per-instance ephemeral SQLite, /tmp uploads, live relay off → REST polling fallback, optional NEXT_PUBLIC_SITE_URL / PSI_API_KEY).
+
+Stage Summary:
+- The Vercel deployment is now functionally complete: every Sites/Auditor API provisions its own schema on cold start, published pages 404 correctly, and AI-image/upload storage works on the read-only FS.
+- Pushing main triggers the usual auto-deploy; no Vercel project settings need changing.
+- Serverless data is ephemeral by design (documented) — durable history needs Turso/Postgres in DATABASE_URL.

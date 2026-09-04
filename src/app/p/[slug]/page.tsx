@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
-import { db } from "@/lib/db"
+import { notFound } from "next/navigation"
+import { db, ensureSchema } from "@/lib/db"
 import { toWithConfig } from "@/lib/landing/server"
 import { PublishedPage } from "@/components/sites/published/PublishedPage"
 import type { LandingConfig } from "@/lib/landing/types"
@@ -19,7 +20,7 @@ function firstImage(config: LandingConfig): string | null {
   // explicit ogImage override → hero image → gallery images
   if (config.seo?.ogImage && /^https?:/.test(config.seo.ogImage)) return config.seo.ogImage
   const hero = config.sections.find((s) => s.type === "hero")
-  if (hero && hero.type === "hero" && hero.image && /^https?:|^\/uploads\//.test(hero.image)) {
+  if (hero && hero.type === "hero" && hero.image && /^https?:|^\/(api\/)?uploads\//.test(hero.image)) {
     return hero.image.startsWith("http") ? hero.image : `${siteOrigin()}${hero.image}`
   }
   const gallery = config.sections.find((s) => s.type === "gallery")
@@ -34,6 +35,7 @@ function firstImage(config: LandingConfig): string | null {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   try {
+    await ensureSchema().catch(() => undefined)
     const row = await db.site.findUnique({ where: { slug } })
     if (!row) return { title: "Page not found" }
     const { config } = toWithConfig(row)
@@ -70,11 +72,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PublishedSitePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  // Verify the site exists server-side; a missing row falls through to the
-  // client shell, which renders its own styled not-found screen.
+  // Verify the site exists server-side:
+  //  • DB reachable + row missing  → real 404 (SEO-correct for unknown slugs)
+  //  • DB unreachable (offline)    → fall through to the client shell, which
+  //    surfaces its own error state
   let jsonLd: string | null = null
+  let rowFound = false
   try {
+    await ensureSchema().catch(() => undefined)
     const row = await db.site.findUnique({ where: { slug } })
+    rowFound = row !== null
     if (row) {
       const { config } = toWithConfig(row)
       const title = config.seo?.title || config.brand.name
@@ -93,6 +100,7 @@ export default async function PublishedSitePage({ params }: { params: Promise<{ 
   } catch {
     // DB offline → let the client component surface its own error state
   }
+  if (!rowFound) notFound()
 
   return (
     <>

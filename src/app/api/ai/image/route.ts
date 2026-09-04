@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // /api/ai/image — generate an image with the z-ai SDK and store it under
-// public/uploads so the config can reference a stable URL.
+// uploads so the config can reference a stable URL. Written to the writable
+// root (public/uploads locally, /tmp/uploads + /api/uploads/<n> on serverless).
 //
 // POST /api/ai/image
 // body: { prompt: string, size?: "1024x1024" | "768x1344" | "864x1152" |
@@ -13,14 +14,13 @@ import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { randomBytes } from "node:crypto"
 import { guard, HttpError, readJsonBody, str } from "@/lib/landing/server"
+import { publicUrl, uploadDir } from "@/lib/landing/uploads"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const SIZES = ["1024x1024", "768x1344", "864x1152", "1344x768", "1152x864", "1440x768", "768x1440"] as const
 type ImgSize = (typeof SIZES)[number]
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
 
 export async function POST(req: NextRequest) {
   return guard(async () => {
@@ -52,10 +52,11 @@ export async function POST(req: NextRequest) {
     if (!base64) throw new HttpError(500, `Image generation failed (${lastError}) — try again`)
 
     const buffer = Buffer.from(base64, "base64")
-    await mkdir(UPLOAD_DIR, { recursive: true })
+    const dir = uploadDir()
+    await mkdir(dir, { recursive: true })
     const filename = `lf-${randomBytes(6).toString("hex")}.png`
-    await writeFile(path.join(UPLOAD_DIR, filename), buffer)
+    await writeFile(path.join(dir, filename), buffer)
 
-    return NextResponse.json({ url: `/uploads/${filename}`, bytes: buffer.length })
+    return NextResponse.json({ url: publicUrl(filename), bytes: buffer.length })
   })
 }

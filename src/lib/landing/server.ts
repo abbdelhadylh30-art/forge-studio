@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextResponse } from "next/server"
 import type { Site } from "@prisma/client"
-import { db } from "@/lib/db"
+import { db, ensureSchema } from "@/lib/db"
 import { slugify } from "./defaults"
 import { normalizeConfig } from "./yaml"
 import type { LandingConfig, ProjectSummary, ProjectWithConfig } from "./types"
@@ -21,6 +21,11 @@ export class HttpError extends Error {
 /** Central try/catch wrapper for every route handler. */
 export async function guard(fn: () => Promise<Response>): Promise<Response> {
   try {
+    // Best-effort runtime schema provisioning (serverless / fresh SQLite).
+    // Non-fatal on purpose: routes that don't touch the DB keep working.
+    await ensureSchema().catch((e) =>
+      console.warn("[db] ensureSchema skipped:", e instanceof Error ? e.message : e)
+    )
     return await fn()
   } catch (e) {
     if (e instanceof HttpError) {
@@ -28,7 +33,12 @@ export async function guard(fn: () => Promise<Response>): Promise<Response> {
     }
     console.error("[api-error]", e)
     const message = e instanceof Error ? e.message : "Internal server error"
-    return NextResponse.json({ error: message }, { status: 500 })
+    // Missing tables (schema provisioning failed) → honest 503, no Prisma internals
+    const dbDown = /does not exist in the current database|P2021|P2022/.test(message)
+    return NextResponse.json(
+      { error: dbDown ? "Database unavailable — schema could not be provisioned" : message },
+      { status: dbDown ? 503 : 500 }
+    )
   }
 }
 

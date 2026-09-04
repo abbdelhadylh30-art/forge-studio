@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
   try {
     // Dynamic import so the route doesn't crash if @prisma/client isn't
     // generated yet (e.g., during local dev before `prisma generate`).
-    const { db } = await import("@/lib/db");
+    const { db, ensureSchema } = await import("@/lib/db");
+    await ensureSchema();
     await db.feedback.create({
       data: {
         message: message.trim(),

@@ -14,7 +14,8 @@ const LIST_LIMIT = 50;
 
 export async function GET() {
   try {
-    const { db } = await import("@/lib/db");
+    const { db, ensureSchema } = await import("@/lib/db");
+    await ensureSchema();
     const projects = await db.project.findMany({
       orderBy: { updatedAt: "desc" },
       take: LIST_LIMIT,

@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
   const { email, projectName, score, desktopScore, mobileScore, issueCount, fixCount, report } = parsed.data;
 
   try {
-    const { db } = await import("@/lib/db");
+    const { db, ensureSchema } = await import("@/lib/db");
+    await ensureSchema();
     await db.emailReportRequest.create({
       data: {
         email: email.trim().toLowerCase(),

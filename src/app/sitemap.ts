@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { db } from "@/lib/db";
+import { db, ensureSchema } from "@/lib/db";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://forge-studio-green.vercel.app";
 
@@ -18,6 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Published landing sites (/p/<slug>) — included unless the site opts out
   // via seo.noIndex. DB failures degrade to the static entry above.
   try {
+    await ensureSchema();
     const sites = await db.site.findMany({
       select: { slug: true, updatedAt: true, config: true },
       orderBy: { updatedAt: "desc" },

@@ -113,6 +113,32 @@ bun x vitest run
 bun run db:push
 ```
 
+## Deploying on Vercel
+
+The repo is already wired for Vercel (`vercel.json`: bun install + `next build`,
+`DATABASE_URL=file:/tmp/prod.db`) — push to `main` and the Git integration
+deploys automatically. Since **v1.5.1** the serverless deployment is fully
+self-healing, no manual setup:
+
+- **Runtime schema provisioning** — `ensureSchema()` (src/lib/db.ts) creates all
+  30 tables/indexes exactly like `prisma db push` on the first request of a
+  cold instance. No build step or CLI needed inside the lambda.
+- **Writable uploads** — the app FS is read-only on Vercel, so AI-generated and
+  uploaded images are stored in `/tmp/uploads` and streamed back through the
+  `GET /api/uploads/<name>` route. Template-bundled images keep their static
+  `/uploads/<name>` URLs.
+- **Honest 404s** — unknown `/p/<slug>` pages return a real HTTP 404 (only a
+  genuine DB outage falls back to the client shell).
+
+Known serverless limits (by design, honest trade-offs): the SQLite file is
+**per-instance and ephemeral** — a cold start begins with an empty database and
+the Sites studio re-bootstraps its demo site; data doesn't survive instance
+recycling. For durable server-side history, point `DATABASE_URL` at Turso or
+Postgres. The socket.io live-analytics relay (mini-services/analytics-live,
+port 3003) is a local companion service — on Vercel the dashboard silently
+falls back to REST polling. Optional env vars: `NEXT_PUBLIC_SITE_URL` (canonical
+/ OG absolute URLs), `PSI_API_KEY` (dedicated PageSpeed quota).
+
 ## Troubleshooting
 
 **"EADDRINUSE ::1:3000" on launch (v1.3.0 and earlier).**

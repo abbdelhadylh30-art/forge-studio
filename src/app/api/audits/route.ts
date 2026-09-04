@@ -44,7 +44,8 @@ const postSchema = z.object({
 
 export async function GET() {
   try {
-    const { db } = await import("@/lib/db");
+    const { db, ensureSchema } = await import("@/lib/db");
+    await ensureSchema();
     const audits = await db.audit.findMany({
       orderBy: { createdAt: "desc" },
       take: LIST_LIMIT,
