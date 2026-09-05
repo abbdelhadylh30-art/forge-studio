@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Cookie, Eye, EyeOff, GripVertical, Hash, Images, Languages, Link2, Loader2, Monitor, Moon, Palette, Plus, Sparkles, Sun, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
+import { Check, ChevronsUpDown, Cookie, Eye, EyeOff, GripVertical, Hash, Images, Languages, Link2, Loader2, Monitor, Moon, Palette, Plus, Sheet, Sparkles, Sun, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -1143,6 +1143,8 @@ function GalleryEditor({ section, update }: EditorProps<GallerySection>) {
 }
 
 function ContactEditor({ section, update }: EditorProps<ContactSection>) {
+  const [showSetup, setShowSetup] = React.useState(false)
+  const delivery = section.delivery ?? "inbox"
   return (
     <div className="space-y-4">
       <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
@@ -1158,6 +1160,69 @@ function ContactEditor({ section, update }: EditorProps<ContactSection>) {
         placeholder="Field label"
       />
       <TextField label="Submit label" value={section.submitLabel} onChange={(v) => update({ submitLabel: v })} />
+
+      {/* ── Delivery — where submissions go ─────────────────────────────── */}
+      <div className="space-y-3 rounded-xl border border-zinc-800/80 bg-gradient-to-b from-emerald-500/[0.03] to-transparent p-3">
+        <div className="flex items-center gap-2">
+          <Sheet className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
+          <p className="text-[11px] font-semibold text-zinc-200">Delivery</p>
+          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
+            {delivery === "inbox" ? "leads inbox" : delivery === "sheets" ? "sheet + inbox" : "embedded form"}
+          </span>
+        </div>
+        <SelectField
+          label="Submissions go to"
+          value={delivery}
+          onChange={(v) => {
+            const patch: Partial<ContactSection> =
+              v === "inbox" ? { delivery: undefined, sheetWebhookUrl: undefined, googleFormUrl: undefined } : { delivery: v }
+            update(patch)
+          }}
+          options={[
+            { value: "inbox", label: "Leads inbox — dashboard + CSV" },
+            { value: "sheets", label: "Google Sheet webhook — Apps Script" },
+            { value: "embed", label: "Embed an existing Google Form" },
+          ]}
+        />
+        {delivery === "sheets" && (
+          <>
+            <TextField
+              label="Sheet webhook URL"
+              value={section.sheetWebhookUrl ?? ""}
+              onChange={(v) => update({ sheetWebhookUrl: v || undefined })}
+              placeholder="https://script.google.com/macros/s/…/exec"
+              mono
+              hint="Apps Script Web App URL — submissions POST here (no-cors) AND mirror into the leads inbox."
+            />
+            <button
+              type="button"
+              onClick={() => setShowSetup((s) => !s)}
+              className="flex w-full items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 transition-colors hover:border-violet-500/50 hover:text-violet-200"
+            >
+              <ChevronsUpDown className="h-3 w-3" aria-hidden />
+              {showSetup ? "Hide" : "Show"} the 6-step Google Sheet setup
+            </button>
+            {showSetup && <SheetSetupGuide fieldLabels={section.fields} />}
+          </>
+        )}
+        {delivery === "embed" && (
+          <TextField
+            label="Google Form URL"
+            value={section.googleFormUrl ?? ""}
+            onChange={(v) => update({ googleFormUrl: v || undefined })}
+            placeholder="https://docs.google.com/forms/d/e/…/viewform"
+            mono
+            hint="Renders as an embedded frame — submissions flow through the Google Form itself."
+          />
+        )}
+        {delivery === "inbox" && (
+          <p className="text-[10px] leading-relaxed text-zinc-500">
+            Submissions land in the dashboard leads inbox with CSV export and live relay. The standalone HTML export
+            falls back to the visitor&apos;s mail app (mailto) since it has no backend.
+          </p>
+        )}
+      </div>
+
       <AbTestFields
         ab={section.ab}
         setAb={(ab) => update({ ab })}
@@ -1165,6 +1230,67 @@ function ContactEditor({ section, update }: EditorProps<ContactSection>) {
         base={{ headline: section.title ?? "", sub: section.subtitle ?? "", ctaLabel: section.submitLabel }}
         labels={{ headline: "Title", sub: "Subtitle", ctaLabel: "Submit label" }}
       />
+    </div>
+  )
+}
+
+/** Copyable Apps Script snippet + setup steps for the Google Sheet webhook. */
+function SheetSetupGuide({ fieldLabels }: { fieldLabels: string[] }) {
+  const snippet = [
+    "function doPost(e) {",
+    "  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();",
+    "  var data = JSON.parse(e.postData.contents);",
+    "  var keys = Object.keys(data);",
+    "  if (sheet.getLastRow() === 0) {",
+    "    sheet.appendRow(['Submitted'].concat(keys));",
+    "  }",
+    "  sheet.appendRow([new Date()].concat(keys.map(function (k) { return data[k] || ''; })));",
+    "  return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);",
+    "}",
+  ].join("\n")
+  const [copied, setCopied] = React.useState(false)
+  return (
+    <div className="space-y-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+      <ol className="list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-zinc-400">
+        <li>Open your Google Sheet</li>
+        <li>
+          Click <span className="font-semibold text-zinc-300">Extensions → Apps Script</span>
+        </li>
+        <li>Delete any existing code and paste the snippet below</li>
+        <li>
+          Click <span className="font-semibold text-zinc-300">Deploy → New deployment</span>
+        </li>
+        <li>
+          Type <span className="font-semibold text-zinc-300">Web app</span> · Execute as{" "}
+          <span className="font-semibold text-zinc-300">Me</span> · Access{" "}
+          <span className="font-semibold text-zinc-300">Anyone</span>
+        </li>
+        <li>Copy the Web App URL into the webhook field above</li>
+      </ol>
+      <p className="text-[10px] text-zinc-500">
+        Works with any field labels ({fieldLabels.slice(0, 3).map((f) => `“${f}”`).join(", ") || "none configured"}
+        {fieldLabels.length > 3 ? " …" : ""}) — headers are created on the first submit.
+      </p>
+      <div className="relative">
+        <pre className="max-h-44 overflow-auto rounded-md border border-zinc-800 bg-zinc-900/80 p-2.5 font-mono text-[10px] leading-relaxed text-zinc-300 lf-scroll">{snippet}</pre>
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard
+              .writeText(snippet)
+              .then(() => {
+                setCopied(true)
+                setTimeout(() => setCopied(false), 1600)
+              })
+              .catch(() => toast.error("Copy failed", { description: "Select the code manually instead." }))
+          }}
+          className="absolute right-1.5 top-1.5 flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900/95 px-1.5 py-0.5 text-[9px] font-semibold text-zinc-400 transition-colors hover:text-zinc-100"
+          title="Copy the Apps Script snippet"
+        >
+          {copied ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
     </div>
   )
 }

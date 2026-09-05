@@ -233,6 +233,11 @@ export interface GallerySection {
   items: GalleryItem[]
 }
 
+/** How a contact form delivers submissions. "inbox" is the legacy default —
+ *  leads land in the dashboard; "sheets" posts to a Google Apps Script Web
+ *  App (no-cors) AND mirrors into the inbox; "embed" iframes a Google Form. */
+export type ContactDelivery = "inbox" | "sheets" | "embed"
+
 export interface ContactSection {
   id: string
   type: "contact"
@@ -244,6 +249,12 @@ export interface ContactSection {
   phone?: string
   fields: string[] // labels of inputs to render
   submitLabel: string
+  /** delivery mode — unset = "inbox" (legacy configs stay identical) */
+  delivery?: ContactDelivery
+  /** Google Apps Script Web App URL (sheets mode) — POSTed no-cors on submit */
+  sheetWebhookUrl?: string
+  /** Google Form URL to embed as an iframe (embed mode) */
+  googleFormUrl?: string
   ab?: AbConfig
 }
 

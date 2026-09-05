@@ -721,3 +721,23 @@ Work Log:
 
 Stage Summary:
 - 10 dual-mode themes, 11 font pairs, auto dark/light that follows the visitor's OS live, visitor + studio toggles, and full export parity (CSS-only resolution, works JS-off) — committed as Phase 1.
+
+---
+Task ID: 6 (Phase 2)
+Agent: Super Z (main agent, sandbox)
+Task: Phase 2 — Priority 6: cookie consent + published-page tracking-script injection, v21 parity, same quality bar (Lucide icons, comfy spacing, visual-grade).
+
+Work Log:
+- types: LegalConfig.cookieConsent {enabled, message, acceptLabel, declineLabel, learnMoreUrl, learnMoreLabel, position} + TrackingConfig {headScripts, bodyScripts} on LandingConfig.
+- yaml: validLegal/validTracking validators (caps, safe defaults, drop-empty) + full round-trip; malformed input coerces or drops.
+- CookieConsent.tsx: theme-aware banner rendered INSIDE the themed root (lf vars apply in both modes) — Cookie lucide icon in accent-soft tile, message, learn-more link, Decline ghost + Accept solid buttons (h-9, comfy gaps), position top/bottom, data-lf-consent-accept/decline hooks for the vanilla export script.
+- scriptInjection.ts: parseScripts (full <script> tags with src= or inline, or bare JS), injectCustomScripts (idempotent, data-lf-custom marked, async=false ordering), CONSENT_KEY localStorage read/write.
+- PublishedPage: consent state machine (unknown → accepted/declined); banner via LandingPreview's new consent slot; custom scripts gated behind the banner when enabled (banner off → immediate injection, owner's choice).
+- Export: banner ships hidden (JS-off → no banner + no scripts, consistent); CONSENT_GATE_SCRIPT vanilla block reveals it, persists decisions, injects the parsed scripts (JSON with </ escaped) on Accept; no-banner path emits raw head/body scripts exactly as configured.
+- i18n: PAGE_TRANSLATION_KEY "__page" pseudo-section — pageTranslatablePaths (consent strings), applyLocale patches the config ROOT; LanguagesManager per-locale "translate page strings" button calling /api/ai/translate.
+- Studio: Privacy & tracking group (amber-tinted card, Cookie icon) — banner switch + message + labels + position select + learn-more URL + head/body script textareas (mono) with a live "consent-gated / banner on / no banner" status chip.
+- QA: tsc clean, eslint 0 errors, vitest 189/189 (+4).
+- E2E (agent-browser): banner visible + script gated for undecided visitors; Accept → injects (test marker ran), banner unmounts, persisted; reload after accept → script injects immediately, no banner; Decline → banner hides, script NEVER injects (reload too). Export blob: same gate via the vanilla script (undecided → revealed + gated; accept → injected + hidden + persisted). Caught + fixed a real bug — LandingPreview ignored consent.visible so the banner never unmounted after deciding.
+
+Stage Summary:
+- GDPR-style consent flow shipped end-to-end (studio config → published page → standalone export) with translation support; built-in analytics explicitly documented as cookie-free/always-on.

@@ -439,6 +439,21 @@ export function PublishedPage({ slug }: { slug: string }) {
       setEvents((n) => n + 1)
       setLeadsSent((n) => n + 1)
       void track(projectId, { type: "form_submit", label: `${section.type}: ${Object.keys(data).join(", ")}`, path: `/${slug}` })
+
+      // sheets delivery: no-cors POST to the Google Apps Script Web App
+      // (v21 parity — the browser can't read the response, but the row lands);
+      // the lead ALSO mirrors into the inbox below so nothing is lost
+      const webhook =
+        section.type === "contact" && section.delivery === "sheets" ? section.sheetWebhookUrl : undefined
+      if (webhook && /^https:\/\//i.test(webhook)) {
+        void fetch(webhook, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "content-type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ ...data, submittedAt: new Date().toISOString() }),
+        }).catch(() => undefined)
+      }
+
       void fetch("/api/leads", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -448,7 +463,11 @@ export function PublishedPage({ slug }: { slug: string }) {
         .then((j) => {
           const lead = j?.lead as { name?: string; email?: string } | undefined
           toast.success("Message sent", {
-            description: lead?.name ? `Thanks ${lead.name.split(" ")[0]} — we'll be in touch.` : "We'll be in touch.",
+            description: webhook
+              ? `Saved to your Google Sheet — and the leads inbox.`
+              : lead?.name
+                ? `Thanks ${lead.name.split(" ")[0]} — we'll be in touch.`
+                : "We'll be in touch.",
           })
         })
         .catch(() => undefined)

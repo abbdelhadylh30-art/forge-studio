@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { configToYaml, yamlToConfig, normalizeConfig } from "./yaml"
-import type { LandingConfig, Section } from "./types"
+import type { ContactSection, LandingConfig, Section } from "./types"
 import { createSection } from "./defaults"
 
 function configWith(sections: Section[], i18n?: LandingConfig["i18n"]): LandingConfig {
@@ -215,5 +215,44 @@ describe("privacy & tracking (cookie consent + custom scripts)", () => {
       sections: [{ type: "hero" }],
     })
     expect(off.legal).toBeUndefined()
+  })
+})
+
+describe("contact form delivery (inbox / sheets / embed)", () => {
+  const contactSection = (): ContactSection => createSection("contact") as ContactSection
+
+  it("round-trips the sheets webhook delivery", () => {
+    const contact = contactSection()
+    contact.delivery = "sheets"
+    contact.sheetWebhookUrl = "https://script.google.com/macros/s/ABC/exec"
+    const back = yamlToConfig(configToYaml(configWith([contact])))
+    const c = back.sections[0]
+    if (c.type !== "contact") throw new Error("expected contact")
+    expect(c.delivery).toBe("sheets")
+    expect(c.sheetWebhookUrl).toBe("https://script.google.com/macros/s/ABC/exec")
+  })
+
+  it("round-trips the embed delivery and drops URLs from other modes", () => {
+    const contact = contactSection()
+    contact.delivery = "embed"
+    contact.googleFormUrl = "https://docs.google.com/forms/d/e/X/viewform"
+    contact.sheetWebhookUrl = "https://script.google.com/macros/s/NOPE/exec" // wrong mode → dropped
+    const back = yamlToConfig(configToYaml(configWith([contact])))
+    const c = back.sections[0]
+    if (c.type !== "contact") throw new Error("expected contact")
+    expect(c.delivery).toBe("embed")
+    expect(c.googleFormUrl).toBe("https://docs.google.com/forms/d/e/X/viewform")
+    expect(c.sheetWebhookUrl).toBeUndefined()
+  })
+
+  it("coerces invalid delivery values back to inbox (unset)", () => {
+    const bad = normalizeConfig({
+      brand: { name: "X" },
+      sections: [{ type: "contact", fields: ["Name"], delivery: "carrier-pigeon", sheetWebhookUrl: "ftp://nope" }],
+    })
+    const c = bad.sections[0]
+    if (c.type !== "contact") throw new Error("expected contact")
+    expect(c.delivery).toBeUndefined()
+    expect(c.sheetWebhookUrl).toBeUndefined()
   })
 })

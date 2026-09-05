@@ -186,10 +186,26 @@ export function normalizeConfig(input: unknown): LandingConfig {
       else delete merged.note
     }
     if (type === "contact") {
-      const c = merged as unknown as { fields: string[]; submitLabel: string }
+      const c = merged as unknown as {
+        fields: string[]
+        submitLabel: string
+        delivery?: "inbox" | "sheets" | "embed"
+        sheetWebhookUrl?: string
+        googleFormUrl?: string
+      }
       c.fields = validItems(rs.fields, 2, (x) => String(x))
       if (!c.fields.length) c.fields = ["Your name", "Email address", "Message"]
       c.submitLabel = String(c.submitLabel ?? "Send message")
+      // delivery mode (unset = inbox, legacy-safe) + validated URLs
+      const dv = rs.delivery
+      c.delivery = dv === "inbox" || dv === "sheets" || dv === "embed" ? dv : undefined
+      if (!c.delivery) delete c.delivery
+      const hook = typeof rs.sheetWebhookUrl === "string" ? rs.sheetWebhookUrl.trim() : ""
+      if (c.delivery === "sheets" && /^https:\/\//i.test(hook)) c.sheetWebhookUrl = hook.slice(0, 500)
+      else delete c.sheetWebhookUrl
+      const gf = typeof rs.googleFormUrl === "string" ? rs.googleFormUrl.trim() : ""
+      if (c.delivery === "embed" && /^https:\/\//i.test(gf)) c.googleFormUrl = gf.slice(0, 500)
+      else delete c.googleFormUrl
     }
     if (type === "navbar") {
       merged.links = validItems(rs.links, 1, (x) => {
