@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Copy, ExternalLink, FilePlus2, FolderOpen, Layers, Link2, Loader2, Sparkles, Trash2 } from "lucide-react"
+import { Copy, ExternalLink, FilePlus2, FolderOpen, LayoutTemplate, Layers, Link2, Loader2, Sparkles, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
+import { IconGlyph } from "@/components/sites/preview/iconBank"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -36,7 +37,7 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
     const url = `${window.location.origin}/p/${encodeURIComponent(p.slug)}`
     try {
       await navigator.clipboard.writeText(url)
-      toast.success("Published link copied 🔗", { description: `/${p.slug} — visits there are tracked live in Analytics.` })
+      toast.success("Published link copied", { description: `/${p.slug} — visits there are tracked live in Analytics.` })
     } catch {
       toast.error("Copy failed")
     }
@@ -279,7 +280,7 @@ function CreateProjectDialog({ open, onOpenChange, onCreated }: { open: boolean;
               onClick={() => setAiMode(false)}
               className={cn("h-7 flex-1 rounded-md text-[11px] font-medium transition-colors", !aiMode ? "bg-violet-500/20 text-violet-200" : "text-zinc-500 hover:text-zinc-200")}
             >
-              📐 From template
+              <LayoutTemplate className="mr-1 inline h-3 w-3" /> From template
             </button>
             <button
               type="button"
@@ -316,7 +317,9 @@ function CreateProjectDialog({ open, onOpenChange, onCreated }: { open: boolean;
                   )}
                   aria-pressed={templateId === t.id}
                 >
-                  <span className="text-lg">{t.icon}</span>
+                  <span className="flex size-7 items-center justify-center rounded-md bg-zinc-800/80 text-violet-300">
+                    <IconGlyph name={t.icon} className="size-4" />
+                  </span>
                   <p className="text-[12px] font-semibold text-zinc-100">{t.name}</p>
                   <p className="mt-0.5 text-[9px] leading-tight text-zinc-500">{t.description}</p>
                 </button>

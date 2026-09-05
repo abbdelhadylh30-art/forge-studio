@@ -13,6 +13,14 @@ export function sid(prefix: string): string {
 export function createSection(type: SectionType): Section {
   const base = { id: sid(type), hidden: false }
   switch (type) {
+    case "announcement":
+      return {
+        ...base,
+        type,
+        style: "static",
+        message: "Now in public beta — free while it lasts",
+        link: { label: "Join the beta", href: "#cta" },
+      }
     case "navbar":
       return {
         ...base,
@@ -29,7 +37,7 @@ export function createSection(type: SectionType): Section {
         ...base,
         type,
         layout: "split-right",
-        badge: "✨ Now in public beta",
+        badge: "Now in public beta",
         headline: "Ship faster. Sleep better.",
         sub: "The fastest way to build and deploy your product. One config, production-ready code, zero lock-in.",
         cta: { label: "Get started — it's free", href: "#cta" },
@@ -74,12 +82,12 @@ export function createSection(type: SectionType): Section {
         style: "grid",
         columns: 3,
         items: [
-          { icon: "⚡", title: "Instant deploy", body: "From git push to production in 30 seconds flat." },
-          { icon: "🛡️", title: "Secure by default", body: "SSL, auth and rate limits wired from day one." },
-          { icon: "📊", title: "Built-in analytics", body: "See what works without third-party tools." },
-          { icon: "🌍", title: "Edge-ready", body: "Served from 300+ locations worldwide." },
-          { icon: "🧩", title: "Composable", body: "Every block is a plain component you own." },
-          { icon: "🎛️", title: "Fine control", body: "Tune layouts, themes and copy visually." },
+          { icon: "zap", title: "Instant deploy", body: "From git push to production in 30 seconds flat." },
+          { icon: "shield", title: "Secure by default", body: "SSL, auth and rate limits wired from day one." },
+          { icon: "chart", title: "Built-in analytics", body: "See what works without third-party tools." },
+          { icon: "globe", title: "Edge-ready", body: "Served from 300+ locations worldwide." },
+          { icon: "puzzle", title: "Composable", body: "Every block is a plain component you own." },
+          { icon: "settings", title: "Fine control", body: "Tune layouts, themes and copy visually." },
         ],
       }
     case "stats":
@@ -218,6 +226,74 @@ export function createSection(type: SectionType): Section {
         ],
         founder: { name: "Alex Rivera", role: "Founder & CEO" },
       }
+    case "problem":
+      return {
+        ...base,
+        type,
+        title: "Shipping a page still hurts",
+        subtitle: "The old way eats your week before launch day.",
+        style: "grid",
+        items: [
+          { icon: "clock", title: "Weeks of back-and-forth", body: "Design, copy, code, review — every hand-off adds delay and drift." },
+          { icon: "alert", title: "Guesswork everywhere", body: "No data on which headline or CTA actually converts, so opinions win." },
+          { icon: "lock", title: "Platform lock-in", body: "Your page lives in someone else's template — exporting means starting over." },
+        ],
+      }
+    case "solution":
+      return {
+        ...base,
+        type,
+        title: "One config, one afternoon, live",
+        subtitle: "Build the whole narrative and let the data pick the winners.",
+        style: "grid",
+        items: [
+          { icon: "zap", title: "Compose, don't code", body: "Drag sections into a story: problem, solution, proof, offer, close." },
+          { icon: "target", title: "Experiments built in", body: "Section-level A/B tests with per-variant reads, clicks and engagement." },
+          { icon: "unlock", title: "Own the output", body: "Export a self-contained HTML file or deploy — either way, it's yours." },
+        ],
+      }
+    case "video":
+      return {
+        ...base,
+        type,
+        title: "See it in motion",
+        subtitle: "A 90-second tour of the studio, the auditor and the publisher.",
+        videoUrl: "",
+        style: "cinematic",
+        caption: "Product tour — no narration needed",
+      }
+    case "comparison":
+      return {
+        ...base,
+        type,
+        title: "Forge vs. the old way",
+        subtitle: "What changes when your page is a system, not a project.",
+        usLabel: "Forge",
+        themLabel: "Old way",
+        rows: [
+          { feature: "Time to launch", us: "Afternoon", them: "2–6 weeks" },
+          { feature: "A/B testing", us: "yes", them: "no" },
+          { feature: "First-party analytics", us: "yes", them: "no" },
+          { feature: "Leads captured", us: "yes", them: "partial" },
+          { feature: "Export anywhere", us: "yes", them: "partial" },
+          { feature: "Multilingual + RTL", us: "yes", them: "no" },
+        ],
+        note: "Typical results reported by beta teams; your mileage may vary.",
+      }
+    case "guarantee":
+      return {
+        ...base,
+        type,
+        title: "The zero-risk launch",
+        subtitle: "30-day money-back guarantee",
+        body: "Launch with total confidence. If Forge isn't the fastest page you've ever shipped, tell us within 30 days and every cent comes back — no forms, no questions, no hard feelings.",
+        style: "card",
+        items: [
+          { icon: "timer", title: "30 days", body: "Full refund window" },
+          { icon: "unlock", title: "No lock-in", body: "Export and leave anytime" },
+          { icon: "life-buoy", title: "Human support", body: "Real replies within a day" },
+        ],
+      }
     case "contact":
       return {
         ...base,
@@ -333,14 +409,21 @@ export const TEMPLATES: TemplateDef[] = [
     id: "saas",
     name: "SaaS",
     description: "Hero, features, pricing, FAQ — the classic B2B SaaS page.",
-    icon: "🛰️",
+    icon: "rocket",
     build: () => assemble("Vertex", "nebula", ["navbar", "hero", "logos", "features", "stats", "testimonials", "pricing", "faq", "cta-final", "footer"]),
+  },
+  {
+    id: "narrative",
+    name: "Narrative",
+    description: "Announcement, problem → solution arc, video, comparison, guarantee — the full conversion story.",
+    icon: "flame",
+    build: () => assemble("Arc", "ember", ["announcement", "navbar", "hero", "problem", "solution", "features", "video", "testimonials", "comparison", "guarantee", "pricing", "faq", "cta-final", "footer"]),
   },
   {
     id: "mobile-app",
     name: "Mobile App",
     description: "App showcase with screenshots, reviews and download CTAs.",
-    icon: "📱",
+    icon: "smartphone",
     build: () => {
       const c = assemble("Kite", "emerald", ["navbar", "hero", "logos", "features", "gallery", "testimonials", "faq", "cta-final", "footer"])
       c.brand.tagline = "Your study companion, everywhere"
@@ -351,28 +434,28 @@ export const TEMPLATES: TemplateDef[] = [
     id: "agency",
     name: "Agency",
     description: "Bold portfolio-style page for studios and freelancers.",
-    icon: "🎨",
+    icon: "palette",
     build: () => assemble("Studio Rosé", "rose", ["navbar", "hero", "features", "gallery", "stats", "contact", "footer"]),
   },
   {
     id: "ecommerce",
     name: "Commerce",
     description: "Product launch page with social proof and offers.",
-    icon: "🛒",
-    build: () => assemble("Ember Goods", "ember", ["navbar", "hero", "logos", "features", "gallery", "testimonials", "pricing", "faq", "cta-final", "footer"]),
+    icon: "shopping-bag",
+    build: () => assemble("Ember Goods", "ember", ["announcement", "navbar", "hero", "logos", "features", "gallery", "testimonials", "pricing", "guarantee", "faq", "cta-final", "footer"]),
   },
   {
     id: "minimal",
     name: "Minimal",
     description: "One hero, one CTA. Nothing else.",
-    icon: "⬜",
+    icon: "layers",
     build: () => assemble("Mono", "mono", ["navbar", "hero", "cta-final", "footer"]),
   },
   {
     id: "docsish",
     name: "Paper Docs",
     description: "Light, calm, readable — great for developer tools.",
-    icon: "📄",
+    icon: "file",
     build: () => assemble("Lumen", "paper", ["navbar", "hero", "logos", "features", "faq", "contact", "footer"]),
   },
 ]

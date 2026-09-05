@@ -100,7 +100,7 @@ export function ImportYamlDialog() {
     try {
       const config = yamlToConfig(text)
       setConfig(config)
-      toast.success("YAML imported 📦", { description: `${config.sections.length} sections loaded into the studio` })
+      toast.success("YAML imported", { description: `${config.sections.length} sections loaded into the studio` })
       onOpenChange(false)
       setText("")
     } catch (e) {
@@ -231,7 +231,7 @@ export function ExportHtmlDialog() {
             onClick={() => {
               if (!result) return
               downloadStandaloneHtml(result.html, slug)
-              toast.success("Standalone HTML downloaded 📦", { description: `${slug || "landing"}.html · ${fmtBytes(result.bytes)} — upload it to any host` })
+              toast.success("Standalone HTML downloaded", { description: `${slug || "landing"}.html · ${fmtBytes(result.bytes)} — upload it to any host` })
             }}
           >
             {busy ? (

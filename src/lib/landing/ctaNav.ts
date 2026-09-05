@@ -19,6 +19,8 @@ export function ctaHrefFor(section: Section, label: string): string | undefined 
   }
   if (section.type === "navbar") return section.cta?.href
   if (section.type === "cta-final") return section.cta.href
+  if (section.type === "announcement") return section.link?.href
+  if (section.type === "video") return section.cta?.href
   return undefined // pricing plans & newsletter subscribes use the fallback ladder / no-op
 }
 

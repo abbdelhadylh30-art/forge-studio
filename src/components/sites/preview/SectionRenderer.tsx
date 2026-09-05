@@ -4,18 +4,24 @@ import * as React from "react"
 import type { Section } from "@/lib/landing/types"
 
 import { About } from "./sections/About"
+import { Announcement } from "./sections/Announcement"
+import { Comparison } from "./sections/Comparison"
 import { Contact } from "./sections/Contact"
 import { CtaFinal } from "./sections/CtaFinal"
 import { Faq } from "./sections/Faq"
 import { Features } from "./sections/Features"
 import { Footer } from "./sections/Footer"
 import { Gallery } from "./sections/Gallery"
+import { Guarantee } from "./sections/Guarantee"
 import { Hero } from "./sections/Hero"
 import { Logos } from "./sections/Logos"
 import { Navbar } from "./sections/Navbar"
 import { Pricing } from "./sections/Pricing"
+import { Problem } from "./sections/Problem"
+import { Solution } from "./sections/Solution"
 import { Stats } from "./sections/Stats"
 import { Testimonials } from "./sections/Testimonials"
+import { Video } from "./sections/Video"
 
 export interface SectionRendererProps {
   section: Section
@@ -45,6 +51,8 @@ export function SectionRenderer({ section, brandName, brandLogo, abOverride, onC
 
   function renderSection(section: Section) {
   switch (section.type) {
+    case "announcement":
+      return <Announcement section={section} onCtaClick={(label) => onCtaClick?.(section, label)} />
     case "navbar":
       return <Navbar section={section} brandName={brandName} logoUrl={brandLogo} onCtaClick={(label) => onCtaClick?.(section, label)} />
     case "hero":
@@ -97,6 +105,16 @@ export function SectionRenderer({ section, brandName, brandLogo, abOverride, onC
         : section
       return <About section={s} />
     }
+    case "problem":
+      return <Problem section={section} />
+    case "solution":
+      return <Solution section={section} />
+    case "video":
+      return <Video section={section} onCtaClick={(label) => onCtaClick?.(section, label)} />
+    case "comparison":
+      return <Comparison section={section} />
+    case "guarantee":
+      return <Guarantee section={section} />
     case "contact": {
       const s = abOverride
         ? {

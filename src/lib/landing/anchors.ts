@@ -61,7 +61,9 @@ export function collectAnchorLinks(config: LandingConfig): AnchorLinkRef[] {
 
   for (const s of config.sections) {
     if (s.hidden) continue
-    if (s.type === "navbar") {
+    if (s.type === "announcement") {
+      if (s.link) push(s, s.link.label, s.link.href)
+    } else if (s.type === "navbar") {
       s.links.forEach((l) => push(s, l.label, l.href))
       if (s.cta) push(s, s.cta.label, s.cta.href)
     } else if (s.type === "hero") {
@@ -69,6 +71,8 @@ export function collectAnchorLinks(config: LandingConfig): AnchorLinkRef[] {
       if (s.secondaryCta) push(s, s.secondaryCta.label, s.secondaryCta.href)
     } else if (s.type === "cta-final") {
       push(s, s.cta.label, s.cta.href)
+    } else if (s.type === "video") {
+      if (s.cta) push(s, s.cta.label, s.cta.href)
     } else if (s.type === "footer") {
       s.linkGroups.forEach((g) => g.items.forEach((l) => push(s, l.label, l.href)))
     }

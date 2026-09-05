@@ -27,6 +27,7 @@ import { SECTION_META } from "@/lib/landing/types"
 import { sectionAb } from "@/lib/landing/ab"
 import { CONTENT_PACK_COUNT } from "@/lib/landing/contentPacks"
 import type { Section } from "@/lib/landing/types"
+import { IconGlyph } from "@/components/sites/preview/iconBank"
 
 function SortableRow({ section, index }: { section: Section; index: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
@@ -50,9 +51,17 @@ function SortableRow({ section, index }: { section: Section; index: number }) {
             ? section.style
             : section.type === "gallery"
               ? section.style
-              : section.type === "footer"
+              : section.type === "announcement"
                 ? section.style
-                : null
+                : section.type === "solution"
+                  ? section.style
+                  : section.type === "video"
+                    ? section.style
+                    : section.type === "guarantee"
+                      ? section.style
+                      : section.type === "footer"
+                        ? section.style
+                        : null
 
   return (
     <div
@@ -86,7 +95,9 @@ function SortableRow({ section, index }: { section: Section; index: number }) {
           >
             <GripVertical className="h-3.5 w-3.5" />
           </span>
-          <span className="text-sm leading-none">{meta.icon}</span>
+          <span className="flex size-5 shrink-0 items-center justify-center rounded text-zinc-500">
+            <IconGlyph name={meta.icon} className="size-3.5" />
+          </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
               <span className="min-w-0 truncate text-[12px] font-medium leading-tight text-zinc-100">

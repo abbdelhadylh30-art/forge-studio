@@ -52,6 +52,7 @@ const DEVICES: [string, number][] = [["desktop", 58], ["mobile", 35], ["tablet",
 const BROWSERS: [string, number][] = [["Chrome", 62], ["Safari", 18], ["Firefox", 9], ["Edge", 7], ["Other", 4]]
 const CONTENT_SECTION_TYPES = new Set([
   "logos", "features", "stats", "testimonials", "pricing", "faq", "gallery", "contact", "cta-final",
+  "problem", "solution", "video", "comparison", "guarantee", "about",
 ])
 
 function pickWeighted<T>(pairs: [T, number][]): T {

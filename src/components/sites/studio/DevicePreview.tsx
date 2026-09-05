@@ -66,7 +66,7 @@ export function DevicePreview({ className }: { className?: string }) {
         const v = abVariants[t.section.id] ?? (t.section.type === "hero" ? abVariant : null)
         if (v) track(projectId, { type: "variant_exposure", variant: v, label: t.section.id })
       }
-      toast.info("Pageview tracked 🔎", { description: "Privacy-friendly — no cookies, anonymous visitor id." })
+      toast.info("Pageview tracked", { description: "Privacy-friendly — no cookies, anonymous visitor id." })
     }
     if (!previewMode) trackedViewRef.current = false
   }, [previewMode, projectId, device, abTests, abVariants, abVariant])
@@ -101,7 +101,7 @@ export function DevicePreview({ className }: { className?: string }) {
     // act like a real visitor click: scroll the preview to the CTA's target
     // (or open an external link) so the button visibly DOES something
     const nav = runCtaNavigation(section, ctaHrefFor(section, label))
-    toast.success("CTA click tracked 🎯", { description: nav ? `${label} → ${nav}` : label })
+    toast.success("CTA click tracked", { description: nav ? `${label} → ${nav}` : label })
   }
 
   const handleFormSubmit = (section: Section, data: Record<string, string>) => {
@@ -117,7 +117,7 @@ export function DevicePreview({ className }: { className?: string }) {
       .then((j) => {
         if (j?.lead) {
           const lead = j.lead as { name?: string; email?: string }
-          toast.success("Lead captured 📥", { description: `${lead.name || lead.email || "New contact"} — see Analytics → Leads inbox` })
+          toast.success("Lead captured", { description: `${lead.name || lead.email || "New contact"} — see Analytics → Leads inbox` })
         }
       })
       .catch(() => undefined) // lead capture is best-effort; the event above is the source of truth

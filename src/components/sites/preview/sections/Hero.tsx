@@ -4,7 +4,7 @@ import type { HeroSection } from "@/lib/landing/types"
 
 import { cn } from "@/lib/utils"
 
-import { CONTAINER, SECTION_PAD, gradientText } from "../shared"
+import { CONTAINER, SECTION_PAD, SECTION_PAD_HERO, gradientText } from "../shared"
 
 export interface HeroProps {
   section: HeroSection
@@ -181,6 +181,232 @@ export function Hero({ section, brandName, abOverride, onCtaClick }: HeroProps) 
   const stats = section.stats ?? []
   const hasImage = typeof section.image === "string" && section.image.trim().length > 0
   const layout = section.layout
+  const hasVideo = typeof section.videoUrl === "string" && section.videoUrl.trim().length > 0
+
+  // ── video background — cinematic cover with dark scrim ──────────────────
+  if (layout === "video") {
+    return (
+      <section className="relative isolate flex min-h-[72vh] items-center overflow-hidden md:min-h-[88vh]">
+        <div aria-hidden className="absolute inset-0 -z-10">
+          {hasVideo ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={hasImage ? section.image : undefined}
+              className="size-full object-cover"
+              style={{ filter: "saturate(1.05) brightness(0.9)" }}
+            >
+              <source src={section.videoUrl} />
+            </video>
+          ) : (
+            <div className="size-full" style={{ background: "var(--lf-gradient)" }} />
+          )}
+          {/* legibility scrim */}
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.7) 100%)" }}
+          />
+        </div>
+        <div className={CONTAINER}>
+          <div className="mx-auto flex max-w-2xl flex-col items-center py-20 text-center md:py-28">
+            {section.badge ? (
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">{section.badge}</span>
+            ) : null}
+            <h1 className="mt-5 text-3xl font-extrabold leading-[1.06] tracking-tight text-white sm:text-4xl md:text-6xl">{headline}</h1>
+            {sub ? <p className="mt-5 max-w-xl text-base leading-relaxed text-white/80 md:text-lg">{sub}</p> : null}
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <a
+                href={section.cta.href || "#cta"}
+                onClick={(e) => {
+                  if (onCtaClick) e.preventDefault()
+                  onCtaClick?.(ctaLabel)
+                }}
+                className="inline-flex h-11 items-center rounded-xl px-6 text-sm font-semibold text-white transition-transform duration-150 hover:scale-[1.02] active:scale-100 md:text-base"
+                style={{ background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.35)", backdropFilter: "blur(8px)" }}
+              >
+                {ctaLabel}
+              </a>
+              {secondaryCta?.label ? (
+                <a
+                  href={secondaryCta.href || "#cta"}
+                  onClick={(e) => {
+                    if (onCtaClick) e.preventDefault()
+                    onCtaClick?.(secondaryCta.label)
+                  }}
+                  className="inline-flex h-11 items-center rounded-xl px-6 text-sm font-semibold text-white/90 underline decoration-white/40 underline-offset-4 transition-colors hover:text-white md:text-base"
+                >
+                  {secondaryCta.label}
+                </a>
+              ) : null}
+            </div>
+            <StatsRow stats={stats} onPanel center />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // ── gradient — edge-to-edge brand statement ──────────────────────────
+  if (layout === "gradient") {
+    return (
+      <section className={"relative isolate overflow-hidden py-20 md:py-32"} style={{ background: "var(--lf-gradient)", color: "var(--lf-accent-contrast)" }}>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+        <div aria-hidden className="pointer-events-none absolute -left-32 -top-40 size-96 rounded-full blur-3xl" style={{ background: "rgba(255,255,255,0.2)" }} />
+        <div aria-hidden className="pointer-events-none absolute -bottom-48 -right-24 size-[28rem] rounded-full blur-3xl" style={{ background: "rgba(0,0,0,0.18)" }} />
+        <div className={CONTAINER}>
+          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            {section.badge ? <span className="rounded-full bg-white/18 px-3 py-1 text-xs font-medium">{section.badge}</span> : null}
+            <h1 className="mt-5 text-3xl font-extrabold leading-[1.06] tracking-tight sm:text-4xl md:text-6xl">{headline}</h1>
+            {sub ? <p className="mt-5 max-w-xl text-base leading-relaxed opacity-85 md:text-lg">{sub}</p> : null}
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <a
+                href={section.cta.href || "#cta"}
+                onClick={(e) => {
+                  if (onCtaClick) e.preventDefault()
+                  onCtaClick?.(ctaLabel)
+                }}
+                className="inline-flex h-11 items-center rounded-xl px-6 text-sm font-semibold transition-transform duration-150 hover:scale-[1.02] active:scale-100 md:text-base"
+                style={{ background: "var(--lf-accent-contrast)", color: "var(--lf-accent)", boxShadow: "0 18px 40px -20px rgba(0,0,0,0.45)" }}
+              >
+                {ctaLabel}
+              </a>
+              {secondaryCta?.label ? (
+                <a
+                  href={secondaryCta.href || "#cta"}
+                  onClick={(e) => {
+                    if (onCtaClick) e.preventDefault()
+                    onCtaClick?.(secondaryCta.label)
+                  }}
+                  className="inline-flex h-11 items-center rounded-xl bg-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/25 md:text-base"
+                >
+                  {secondaryCta.label}
+                </a>
+              ) : null}
+            </div>
+            <StatsRow stats={stats} onPanel center />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // ── minimal — quiet centered type, no visual chrome ───────────────────
+  if (layout === "minimal") {
+    return (
+      <section className={SECTION_PAD_HERO}>
+        <div className={CONTAINER}>
+          <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
+            {section.badge ? (
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: "var(--lf-accent)" }}>
+                {section.badge}
+              </p>
+            ) : null}
+            <h1 className="mt-4 text-3xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl md:text-5xl" style={{ color: "var(--lf-text)" }}>
+              <span style={gradientText}>{headline}</span>
+            </h1>
+            {sub ? (
+              <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed md:text-lg" style={{ color: "var(--lf-muted)" }}>
+                {sub}
+              </p>
+            ) : null}
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href={section.cta.href || "#cta"}
+                onClick={(e) => {
+                  if (onCtaClick) e.preventDefault()
+                  onCtaClick?.(ctaLabel)
+                }}
+                className="inline-flex h-11 items-center rounded-xl px-6 text-sm font-semibold transition-transform duration-150 hover:scale-[1.02] active:scale-100 md:text-base"
+                style={{ background: "var(--lf-accent)", color: "var(--lf-accent-contrast)", boxShadow: "0 18px 40px -22px var(--lf-accent)" }}
+              >
+                {ctaLabel}
+              </a>
+              {secondaryCta?.label ? (
+                <a
+                  href={secondaryCta.href || "#cta"}
+                  onClick={(e) => {
+                    if (onCtaClick) e.preventDefault()
+                    onCtaClick?.(secondaryCta.label)
+                  }}
+                  className="inline-flex h-11 items-center gap-1.5 text-sm font-semibold underline decoration-1 underline-offset-4 transition-colors md:text-base"
+                  style={{ color: "var(--lf-text)", textDecorationColor: "var(--lf-border)" }}
+                >
+                  {secondaryCta.label}
+                </a>
+              ) : null}
+            </div>
+            <StatsRow stats={stats} center />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // ── card — compact sign-up-style panel ─────────────────────────────────
+  if (layout === "card") {
+    return (
+      <section className={SECTION_PAD_HERO}>
+        <div className={CONTAINER}>
+          <div
+            className="mx-auto max-w-xl rounded-3xl border p-8 text-center shadow-2xl md:p-10"
+            style={{ borderColor: "var(--lf-border)", background: "var(--lf-surface)", boxShadow: "0 40px 80px -48px rgba(0,0,0,0.5)" }}
+          >
+            {section.badge ? (
+              <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium" style={{ background: "var(--lf-accent-soft)", color: "var(--lf-accent)" }}>
+                {section.badge}
+              </span>
+            ) : null}
+            <h1 className="mt-4 text-3xl font-extrabold leading-[1.1] tracking-tight md:text-4xl" style={{ color: "var(--lf-text)" }}>
+              {headline}
+            </h1>
+            {sub ? (
+              <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed md:text-base" style={{ color: "var(--lf-muted)" }}>
+                {sub}
+              </p>
+            ) : null}
+            <div className="mt-8 flex flex-col gap-3">
+              <a
+                href={section.cta.href || "#cta"}
+                onClick={(e) => {
+                  if (onCtaClick) e.preventDefault()
+                  onCtaClick?.(ctaLabel)
+                }}
+                className="inline-flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold transition-transform duration-150 hover:scale-[1.01] active:scale-100 md:text-base"
+                style={{ background: "var(--lf-accent)", color: "var(--lf-accent-contrast)", boxShadow: "0 18px 40px -22px var(--lf-accent)" }}
+              >
+                {ctaLabel}
+              </a>
+              {secondaryCta?.label ? (
+                <a
+                  href={secondaryCta.href || "#cta"}
+                  onClick={(e) => {
+                    if (onCtaClick) e.preventDefault()
+                    onCtaClick?.(secondaryCta.label)
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl border text-sm font-semibold transition-colors hover:[background:var(--lf-accent-soft)] md:text-base"
+                  style={{ borderColor: "var(--lf-border)", color: "var(--lf-text)" }}
+                >
+                  {secondaryCta.label}
+                </a>
+              ) : null}
+            </div>
+            <StatsRow stats={stats} center />
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   if (layout === "full-bleed") {
     return (

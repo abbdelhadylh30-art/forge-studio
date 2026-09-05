@@ -653,3 +653,35 @@ Stage Summary:
 - Fix: notFound() now fires only when !isServerless() (deterministic local/desktop DB → SEO-correct 404); on Vercel a missing row falls through to the client shell, whose /api/sites fetch hits the lambda that actually has the site. generateMetadata returns {} for missing rows (title was dead weight on both paths).
 - Re-verified: tsc clean, eslint clean; simulation suite extended to 28/28 (serverless mode: fallthrough + /tmp uploads + /api/uploads serving; local mode without VERCEL: strict 404, static upload URLs, ensureSchema provisions regardless).
 - README 404 bullet corrected to describe the split behavior.
+---
+Task ID: 3
+Agent: Super Z (main agent, sandbox)
+Task: Port the LandingForge v21 visual layer into the Sites module — 6 narrative sections (announcement ticker/countdown, problem, solution, video, comparison, guarantee), hero layout variants, gallery styles, a Lucide icon bank replacing every emoji, and a consistent section/button spacing scale. Visual-grade quality, no childish emojis, comfy spacing everywhere.
+
+Work Log:
+- Recon: cloned forge-studio from GitHub (unshallowed to full 52-commit history), moved the repo to the sandbox project root so the auto dev-server/Caddy layout applies, bun install, prisma db push (db/custom.db), .env restored from the previous session.
+- BUG FOUND during recon: globals.css was missing the entire landing-forge custom CSS block (lf-brand-font display-type rules, lf-marquee-track, lf-scroll, lf-focus, lf-label-badge, lf-glow, lf-progress-bar, entrance helpers) — they only existed inside the compiled export.css artifact, so display font pairs, marquee animation and studio polish silently degraded in the app. Restored the full block to globals.css (single source for app + export) and regenerated export.css from it — parity now guaranteed.
+- Icon bank (src/components/sites/preview/iconBank.tsx): 88 curated Lucide icons with semantic keys, IconGlyph component with legacy-emoji text fallback (old saved configs keep rendering), grouped/searchable picker groups. SECTION_META icons, template tiles, PropertiesPanel header, SectionsPanel, AddSectionDialog, ProjectsView template tiles and every feature/pain/solution/guarantee item now resolve bank keys. FeaturesEditor gained a searchable icon-picker popover (replaces the raw 2-char emoji input).
+- New sections (types + defaults + content packs + normalize guards + i18n paths + readiness checks + editors + preview components + SectionRenderer cases + anchors/ctaNav wiring + seed CONTENT_SECTION_TYPES):
+  • announcement — static / ticker (CSS marquee, hover-pause, reduced-motion safe) / countdown (live React timer; data-lf-countdown + data-deadline markup shared with the vanilla export script)
+  • problem — grid / split; rose-tinted pain chips
+  • solution — grid / split / steps (numbered timeline); gradient-capped cards
+  • video — cinematic / split / minimal; YouTube & Vimeo auto-embed, file videos with native controls, poster support, caption, CTA
+  • comparison — you-vs-them grid (responsive: cards on mobile, grid rows on desktop); yes/no/partial icon cells + text cells
+  • guarantee — card / split; shield panel + term chips
+- Hero: 4 new layouts (gradient edge-to-edge, video background with scrim + poster fallback, card, minimal) on top of the existing 4; videoUrl field with normalize guard. Fixed the latent hero-portfolio pack bug (layout "minimal" previously normalized away).
+- Gallery: 3 new styles — slider (dots + arrows, shared markup with the vanilla export script), stories (9/16 snap cards + segmented progress rail), ticker (marquee strip).
+- Spacing system (shared.tsx): SECTION_PAD_HERO / _SNUG / _BAR tokens + eyebrow kicker on SectionHeader; all new sections share the same vertical rhythm, cards gap-4/5, buttons h-11 px-6 with gap-3.
+- Export parity: INTERACTIVE_SCRIPT gained vanilla countdown, slider and stories-progress behaviors (work on the same data-* markup the React components emit). QA caught a real bug — the React markup emitted data-lf-countdown but the vanilla script read data-deadline; fixed by emitting both attributes; verified the exported blob's timer ticks.
+- AI generate prompt: full schema for the 19 section types incl. the six new ones + icon-bank key guidance + narrative-arc instruction; features icon hint switched from "a single emoji" to icon bank ids.
+- Emoji purge: 26 toasts/badges/hints across 12 Sites files stripped (scripts/emoji-sweep.py, exact-match replacements); flags/★/✓/✗ typographic glyphs kept deliberately.
+- New "Narrative" starter template (announcement → problem → solution → video → comparison → guarantee arc); Commerce template gained announcement + guarantee.
+- Tests: +8 (yaml round-trip incl. new types, layout enum + videoUrl, gallery styles, malformed-field coercion; i18n paths for announcement/problem/solution/guarantee/comparison icon-vs-text cells).
+- E2E (agent-browser): studio boot; Add-section dialog lists all 19 types with Lucide icons; announcement inserted at top; countdown ticks live in the studio AND in the exported standalone HTML (blob tab inspected); problem/solution/video/comparison/guarantee add + render + edit; icon picker search → flame applied → rendered in preview and export; hero gradient verified in studio + published page + export; readiness score 87→89 with the new checks; analytics topSections includes Announcement; published /p/vertex serves an A/B variant with the full narrative; mobile 390px zero horizontal overflow (comparison stacks to cards). Fixed the data-deadline export bug found during this pass.
+- Final: tsc clean, eslint 0 errors (1 pre-existing layout.tsx font warning), vitest 172/172.
+
+Stage Summary:
+- The Sites builder now matches LandingForge v21's visual vocabulary: 19 section types, 8 hero layouts, 5 gallery styles, live countdown + ticker, full problem→solution→guarantee narrative arc — all backed by the growth stack (A/B, analytics, leads, i18n, SEO) that LandingForge never had.
+- Zero emojis in the shipped UI: everything resolves through the Lucide icon bank, with legacy-config fallback.
+- App/export CSS parity restored (globals.css is again the single source; export.css regenerated from it).
+- The demo "Vertex" project was upgraded in-place to showcase the new narrative arc (16 sections).

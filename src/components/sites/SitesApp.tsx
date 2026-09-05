@@ -68,7 +68,7 @@ async function runBootstrap(
     const full = await fetch(`/api/sites/${target.id}`)
     const project = (await full.json()) as ProjectWithConfig
     loadProject(project.id, project.name, project.slug, project.config)
-    toast.success(`Welcome to Sites ⚒️`, { description: `Loaded “${project.name}” — drag, edit, deploy.` })
+    toast.success(`Welcome to Sites`, { description: `Loaded “${project.name}” — drag, edit, deploy.` })
   } catch (e) {
     toast.error("Startup failed", { description: e instanceof Error ? e.message : undefined })
   } finally {

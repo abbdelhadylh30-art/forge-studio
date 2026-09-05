@@ -56,7 +56,7 @@ export function Toolbar() {
 
   const openPublished = () => {
     window.open(`/p/${encodeURIComponent(slug)}`, "_blank", "noopener")
-    toast.info("Published page opened 🔗", {
+    toast.info("Published page opened", {
       description: "Visits, CTA clicks and form submits there are recorded live — refresh Analytics to see them.",
     })
   }

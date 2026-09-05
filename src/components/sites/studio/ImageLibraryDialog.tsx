@@ -156,7 +156,7 @@ export function ImageLibraryDialog({
               </div>
               <p className="text-[13px] font-semibold text-zinc-300">No images yet</p>
               <p className="max-w-xs text-[11px] leading-relaxed text-zinc-600">
-                Generate one with the ✨ button in a hero or gallery section — it lands here automatically for reuse.
+                Generate one with the sparkle button in a hero or gallery section — it lands here automatically for reuse.
               </p>
             </div>
           ) : (

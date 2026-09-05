@@ -36,6 +36,11 @@ export function translatablePaths(section: Section): string[] {
   }
 
   switch (section.type) {
+    case "announcement":
+      push("message")
+      if (section.prefixLabel) push("prefixLabel")
+      if (section.link?.label) push("link.label")
+      break
     case "navbar":
       section.links?.forEach((l, i) => {
         push(`links.${i}.label`)
@@ -97,6 +102,30 @@ export function translatablePaths(section: Section): string[] {
         push(`items.${i}.title`)
         push(`items.${i}.body`)
       })
+      break
+    case "problem":
+    case "solution":
+    case "guarantee":
+      section.items?.forEach((it, i) => {
+        push(`items.${i}.title`)
+        push(`items.${i}.body`)
+      })
+      if (section.type === "guarantee" && section.body) push("body")
+      break
+    case "video":
+      if (section.caption) push("caption")
+      if (section.cta?.label) push("cta.label")
+      break
+    case "comparison":
+      push("usLabel")
+      push("themLabel")
+      section.rows?.forEach((r, i) => {
+        push(`rows.${i}.feature`)
+        // text cells translate; icon cells (yes/no/partial) stay as-is
+        if (!["yes", "no", "partial", ""].includes(r.us.trim().toLowerCase())) push(`rows.${i}.us`)
+        if (!["yes", "no", "partial", ""].includes(r.them.trim().toLowerCase())) push(`rows.${i}.them`)
+      })
+      if (section.note) push("note")
       break
     case "contact":
       push("submitLabel")

@@ -365,7 +365,7 @@ export function PublishedPage({ slug }: { slug: string }) {
       // perform the CTA's action: smooth-scroll to its target (or open an
       // external link) — a click the visitor can SEE, not just a tracked event
       const nav = runCtaNavigation(section, ctaHrefFor(section, label))
-      toast.success("CTA click tracked 🎯", { description: nav ? `${label} → ${nav}` : label })
+      toast.success("CTA click tracked", { description: nav ? `${label} → ${nav}` : label })
     },
     [projectId, variant, variantMap, slug, relay.heartbeat]
   )
@@ -387,7 +387,7 @@ export function PublishedPage({ slug }: { slug: string }) {
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
           const lead = j?.lead as { name?: string; email?: string } | undefined
-          toast.success("Message sent ✅", {
+          toast.success("Message sent", {
             description: lead?.name ? `Thanks ${lead.name.split(" ")[0]} — we'll be in touch.` : "We'll be in touch.",
           })
         })
@@ -401,7 +401,7 @@ export function PublishedPage({ slug }: { slug: string }) {
       await navigator.clipboard.writeText(window.location.href)
       setCopied(true)
       setTimeout(() => setCopied(false), 1600)
-      toast.success("Link copied 🔗", { description: "Anyone with this URL sees the published page." })
+      toast.success("Link copied", { description: "Anyone with this URL sees the published page." })
     } catch {
       toast.error("Copy failed", { description: "Select the URL in the address bar instead." })
     }

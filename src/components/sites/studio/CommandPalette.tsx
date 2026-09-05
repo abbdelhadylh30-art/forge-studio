@@ -215,7 +215,7 @@ export function CommandPalette() {
                 const slug = useForge.getState().project.slug
                 if (!useForge.getState().project.id) return
                 window.open(`/p/${encodeURIComponent(slug)}`, "_blank", "noopener")
-                toast.info("Published page opened 🔗", { description: "Real visits there are tracked — refresh Analytics to see them." })
+                toast.info("Published page opened", { description: "Real visits there are tracked — refresh Analytics to see them." })
               })
             }
           >
@@ -310,7 +310,7 @@ export function CommandPalette() {
                     const url = publishedAnchorUrl(slug, anchor)
                     void navigator.clipboard
                       .writeText(url)
-                      .then(() => toast.success(`Deep link copied 🔗 #${anchor}`, { description: "Opens the published page scrolled straight to this section." }))
+                      .then(() => toast.success(`Deep link copied #${anchor}`, { description: "Opens the published page scrolled straight to this section." }))
                       .catch(() => toast.error("Copy failed", { description: url }))
                   })
                 }

@@ -56,6 +56,12 @@ export function auditConfig(config: LandingConfig): ReadinessReport {
   const faq = find("faq")
   const finalCta = find("cta-final")
   const contact = find("contact")
+  const announcement = find("announcement")
+  const problem = find("problem")
+  const solution = find("solution")
+  const video = find("video")
+  const comparison = find("comparison")
+  const guarantee = find("guarantee")
   const hiddenCount = sections.length - visible.length
 
   const checks: ReadinessCheck[] = []
@@ -185,6 +191,77 @@ export function auditConfig(config: LandingConfig): ReadinessReport {
       ? { id: "contact", category: "conversion", label: "Contact capture", detail: "Contact form gives visitors a low-friction path.", level: "pass" as ReadinessLevel, weight: 5, selectSectionId: contact.id }
       : { id: "contact", category: "conversion", label: "Contact capture", detail: "No contact section or form to capture intent.", level: "warn" as ReadinessLevel, weight: 5 }
   )
+
+  // ── Narrative arc (problem → solution) — only scored when the story starts ──
+  if (problem || solution) {
+    const both = Boolean(problem && solution)
+    checks.push({
+      id: "narrative-arc",
+      category: "conversion",
+      label: "Problem → solution arc",
+      detail: both
+        ? "The page argues its case: pain first, then the turn. Classic conversion structure."
+        : `${problem ? "Problem" : "Solution"} without its counterpart — pair them so the story lands.`,
+      level: both ? "pass" : "warn",
+      weight: 5,
+      selectSectionId: (problem ?? solution)?.id,
+    })
+  }
+
+  // ── Risk reversal (guarantee) — bonus, present → scored ──────────────────
+  if (guarantee) {
+    checks.push({
+      id: "guarantee",
+      category: "conversion",
+      label: "Risk reversal",
+      detail: "A guarantee de-risks the decision right before the final CTA.",
+      level: "pass",
+      weight: 5,
+      selectSectionId: guarantee.id,
+    })
+  }
+
+  // ── Media proof (video) ────────────────────────────────────────────────────
+  if (video) {
+    checks.push({
+      id: "video",
+      category: "conversion",
+      label: "Video proof",
+      detail: "A demo video carries visitors who won't read copy.",
+      level: "pass",
+      weight: 3,
+      selectSectionId: video.id,
+    })
+  }
+
+  // ── Competitive framing (comparison) ───────────────────────────────────────
+  if (comparison) {
+    checks.push({
+      id: "comparison",
+      category: "conversion",
+      label: "Competitive framing",
+      detail: "A you-vs-them table gives evaluators a reason to pick you.",
+      level: "pass",
+      weight: 3,
+      selectSectionId: comparison.id,
+    })
+  }
+
+  // ── Announcement bar — optional urgency/attention strip ─────────────────────
+  if (announcement) {
+    checks.push({
+      id: "announcement",
+      category: "structure",
+      label: "Announcement bar",
+      detail:
+        announcement.type === "announcement" && announcement.style === "countdown"
+          ? "Countdown bar live — urgency ticking at the top of every visit."
+          : "Announcement bar present — a quiet persistent broadcast above the fold.",
+      level: "pass",
+      weight: 2,
+      selectSectionId: announcement.id,
+    })
+  }
 
   checks.push({
     id: "length",

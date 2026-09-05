@@ -78,7 +78,7 @@ export function DeployDialog() {
         const data = (await res.json()) as { deploy: DeployRecord | null }
         if (data.deploy) setDeploy(data.deploy)
         if (data.deploy && (data.deploy.status === "live" || data.deploy.status === "failed")) {
-          if (data.deploy.status === "live") toast.success("Deployed 🚀", { description: data.deploy.url })
+          if (data.deploy.status === "live") toast.success("Deployed", { description: data.deploy.url })
           else toast.error("Deploy failed")
         }
       } catch {
@@ -126,7 +126,7 @@ export function DeployDialog() {
       await navigator.clipboard.writeText(publishedUrl)
       setCopiedPub(true)
       setTimeout(() => setCopiedPub(false), 1800)
-      toast.success("Published link copied 🔗", { description: "Visits there are tracked live in Analytics." })
+      toast.success("Published link copied", { description: "Visits there are tracked live in Analytics." })
     } catch {
       toast.error("Clipboard unavailable")
     }

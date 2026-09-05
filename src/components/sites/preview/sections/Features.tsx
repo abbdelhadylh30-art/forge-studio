@@ -7,6 +7,7 @@ import type { FeatureItem, FeaturesSection } from "@/lib/landing/types"
 
 import { cn } from "@/lib/utils"
 
+import { IconGlyph } from "../iconBank"
 import { CONTAINER, SECTION_PAD, SectionHeader } from "../shared"
 
 export interface FeaturesProps {
@@ -49,10 +50,10 @@ function FeatureCard({ item, big = false, chart = false, className }: FeatureCar
       style={{ background: "var(--lf-surface)", borderColor: "var(--lf-border)" }}
     >
       <div
-        className={cn("flex items-center justify-center rounded-xl", big ? "size-14 text-3xl" : "size-10 text-xl")}
+        className={cn("flex items-center justify-center rounded-xl", big ? "size-14" : "size-10")}
         style={{ background: "var(--lf-accent-soft)" }}
       >
-        <span aria-hidden>{item.icon}</span>
+        <IconGlyph name={item.icon} className={cn("text-[var(--lf-accent)]", big ? "size-6" : "size-5")} />
       </div>
       <h3 className={cn("mt-4 font-semibold", big ? "text-lg md:text-xl" : "text-base")} style={{ color: "var(--lf-text)" }}>
         {item.title}
@@ -127,10 +128,10 @@ function FeatureCarousel({ items }: { items: FeatureItem[] }) {
               style={{ background: "rgba(255,255,255,0.03)", borderRadius: "var(--lf-radius, 12px)" }}
             >
               <div
-                className="flex size-10 items-center justify-center rounded-xl text-xl"
+                className="flex size-10 items-center justify-center rounded-xl"
                 style={{ background: "var(--lf-accent-soft)" }}
               >
-                <span aria-hidden>{item.icon}</span>
+                <IconGlyph name={item.icon} className="size-5 text-[var(--lf-accent)]" />
               </div>
               <h3 className="mt-4 text-base font-semibold" style={{ color: "var(--lf-text)" }}>
                 {item.title}
@@ -222,10 +223,10 @@ export function Features({ section }: FeaturesProps) {
                 style={i > 0 ? { borderColor: "var(--lf-border)" } : undefined}
               >
                 <div
-                  className="mx-auto flex size-16 shrink-0 items-center justify-center rounded-2xl text-3xl sm:mx-0"
+                  className="mx-auto flex size-16 shrink-0 items-center justify-center rounded-2xl sm:mx-0"
                   style={{ background: "var(--lf-accent-soft)" }}
                 >
-                  <span aria-hidden>{item.icon}</span>
+                  <IconGlyph name={item.icon} className="size-7 text-[var(--lf-accent)]" />
                 </div>
                 <div className="text-center sm:text-left">
                   <h3 className="text-lg font-semibold" style={{ color: "var(--lf-text)" }}>
@@ -269,9 +270,7 @@ export function Features({ section }: FeaturesProps) {
                       : { background: "var(--lf-surface)", borderColor: "var(--lf-border)", color: "var(--lf-muted)" }
                   }
                 >
-                  <span aria-hidden className="mr-1.5">
-                    {item.icon}
-                  </span>
+                  <IconGlyph name={item.icon} className="mr-1.5 inline size-4 align-[-0.125em]" />
                   {item.title}
                 </button>
               ))}
@@ -282,10 +281,10 @@ export function Features({ section }: FeaturesProps) {
               style={{ background: "var(--lf-surface)", borderColor: "var(--lf-border)" }}
             >
               <div
-                className="flex size-16 shrink-0 items-center justify-center rounded-2xl text-4xl md:size-20"
+                className="flex size-16 shrink-0 items-center justify-center rounded-2xl md:size-20"
                 style={{ background: "var(--lf-accent-soft)" }}
               >
-                <span aria-hidden>{current.icon}</span>
+                <IconGlyph name={current.icon} className="size-8 text-[var(--lf-accent)] md:size-9" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold md:text-xl" style={{ color: "var(--lf-text)" }}>

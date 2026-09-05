@@ -502,10 +502,63 @@
 .pf-press { transition: transform 0.1s ease; }
 .pf-press:active { transform: scale(0.97); }
 
-/* ─── Ticker animation for Announcement bar ─── */
+/* ═══ Landing Sites (landing-forge) — shared custom CSS ═══
+   Preview, published page and standalone export all load the SAME rules
+   (globals.css here; export.css is compiled from this file). Keep every
+   landing-specific class in this block. */
+
+/* Brand font pairs — headings inside the preview root follow the display stack */
+.lf-brand-font h1,
+.lf-brand-font h2,
+.lf-brand-font h3 {
+  font-family: var(--lf-font-display, inherit);
+}
+
+/* Infinite marquee (testimonials) — pause on hover */
+@keyframes lf-marquee { 0% { transform: translate(0); } to { transform: translate(-50%); } }
+.lf-marquee-track { animation: 30s linear infinite lf-marquee; }
+.lf-marquee-track:hover { animation-play-state: paused; }
+
+/* Announcement-bar ticker — two duplicated copies, translate -50% loops seamlessly */
 @keyframes lfTicker {
   from { transform: translateX(0); }
-  to { transform: translateX(-20%); }
+  to { transform: translateX(-50%); }
+}
+.lf-ticker-track { display: flex; width: max-content; animation: 22s linear infinite lfTicker; }
+.lf-ticker-track:hover { animation-play-state: paused; }
+
+/* Deploy log progress */
+@keyframes lf-progress { 0% { width: 0%; } to { width: 100%; } }
+.lf-progress-bar { animation: 12s linear forwards lf-progress; }
+
+/* Studio scrollbar (panels) */
+.lf-scroll { scrollbar-width: thin; scrollbar-color: rgba(139, 92, 246, 0.35) transparent; }
+.lf-scroll::-webkit-scrollbar { width: 7px; height: 7px; }
+.lf-scroll::-webkit-scrollbar-track { background: transparent; }
+.lf-scroll::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3) padding-box content-box; border: 2px solid transparent; border-radius: 999px; }
+.lf-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.55) padding-box content-box; }
+
+/* Entrance helpers (dashboard) */
+@keyframes lf-fade-up { 0% { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.lf-fade-up { animation: .35s cubic-bezier(.22,1,.36,1) both lf-fade-up; }
+@keyframes lf-fade-in { 0% { opacity: 0; } to { opacity: 1; } }
+.lf-fade-in { animation: .25s ease-out both lf-fade-in; }
+.lf-fade-up-stagger > * { animation: .4s cubic-bezier(.22,1,.36,1) both lf-fade-up; }
+
+/* Focus ring for landing buttons */
+.lf-focus:focus-visible { outline-offset: 2px; border-radius: inherit; outline: 2px solid rgba(167, 139, 250, 0.7); }
+
+/* Pulsing glow (live indicators) */
+@keyframes lf-glow-pulse { 0%, 100% { box-shadow: 0 0 20px 2px rgba(167, 139, 250, 0.25); } 50% { box-shadow: 0 0 32px 6px rgba(217, 70, 239, 0.4); } }
+.lf-glow { animation: 3.2s ease-in-out infinite lf-glow-pulse; }
+
+/* Studio selection badge pop-in */
+@keyframes lf-badge-pop { 0% { opacity: 0; transform: translateY(-3px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.lf-label-badge { animation: .18s cubic-bezier(.22,1,.36,1) both lf-badge-pop; }
+
+/* Reduced motion — freeze every landing animation */
+@media (prefers-reduced-motion: reduce) {
+  .lf-marquee-track, .lf-ticker-track, .lf-glow, .lf-progress-bar { animation: none !important; }
 }
 
 /* ── landing-forge section entrance animations (preview + export parity) ── */

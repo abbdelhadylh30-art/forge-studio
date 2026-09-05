@@ -1,31 +1,16 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// /api/ai/generate — prompt → landing config (real LLM via z-ai-web-dev-sdk)
-//
-// POST /api/ai/generate
-// body: { prompt: string, templateId?: string }
-// → 200 { config: LandingConfig }   (normalized — safe to save straight away)
-// → 400 missing prompt | 500 { error } if the model output can't be parsed
-//      (one automatic retry with a "raw JSON only" nudge is attempted)
-// ─────────────────────────────────────────────────────────────────────────────
-import ZAI from "z-ai-web-dev-sdk"
-import { NextRequest, NextResponse } from "next/server"
-import { extractJson, normalizeConfig } from "@/lib/landing/yaml"
-import { guard, HttpError, readJsonBody, str } from "@/lib/landing/server"
-import type { LandingConfig } from "@/lib/landing/types"
+#!/usr/bin/env python3
+"""Replace the AI-generate LLM schema block with the expanded section union."""
+from pathlib import Path
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+p = Path("/home/z/my-project/src/app/api/ai/generate/route.ts")
+lines = p.read_text(encoding="utf-8").splitlines(keepends=True)
 
-const SYSTEM_PROMPT = `You are landing-forge, an expert landing-page copywriter & information architect. Given a product description, respond with ONLY a valid JSON object (no markdown fences, no commentary) matching this TypeScript type:
+# locate the schema block: starts at the 'Section is a tagged union' line,
+# ends at the line ending with `etc.\`` (the template literal terminator)
+start = next(i for i, l in enumerate(lines) if "Section is a tagged union" in l)
+end = next(i for i, l in enumerate(lines) if i >= start and "etc.`" in l)
 
-{
-  "brand": { "name": string, "tagline": string },
-  "themeId": "nebula" | "ember" | "emerald" | "rose" | "mono" | "paper",
-  "seo": { "title": string, "description": string },
-  "sections": Section[]
-}
-
-Section is a tagged union — every section object carries a "type" field with one of these exact values and fields:
+NEW_SCHEMA = '''Section is a tagged union — every section object carries a "type" field with one of these exact values and fields:
 - "announcement": { "type": "announcement", "style": "static" | "ticker" | "countdown", "message": string, "link": { "label": string, "href": string }, "deadline": string (ISO datetime, countdown style only), "prefixLabel": string } — the top urgency bar
 - "navbar": { "type": "navbar", "links": [{ "label": string, "href": string }], "cta": { "label": string, "href": string } }
 - "hero": { "type": "hero", "layout": "split-right" | "split-left" | "center" | "full-bleed" | "gradient" | "card" | "minimal", "badge": string, "headline": string, "sub": string, "cta": { "label": string, "href": string }, "secondaryCta": { "label": string, "href": string }, "image": "", "stats": [{ "value": string, "label": string }] }
@@ -46,48 +31,8 @@ Section is a tagged union — every section object carries a "type" field with o
 - "footer": { "type": "footer", "style": "minimal" | "mega" | "newsletter", "tagline": string, "linkGroups": [{ "group": string, "items": [{ "label": string, "href": string }] }], "social": string[], "copyright": string }
 
 Rules: navbar first (announcement may precede it), hero right after, footer last; 6-12 sections total; when the product solves a real pain, prefer the narrative arc problem → solution → features/proof → comparison → guarantee → cta-final; 3-6 items per list; copy must be specific, punchy, marketing-grade (short headlines <=8 words); if the user writes in another language, write ALL copy in that language; pick themeId that matches the vibe; href "#" or "#features" etc.}`
+'''
 
-async function callLLM(userContent: string): Promise<string> {
-  const zai = await ZAI.create()
-  const completion = await zai.chat.completions.create({
-    messages: [
-      { role: "assistant", content: SYSTEM_PROMPT },
-      { role: "user", content: userContent },
-    ],
-    thinking: { type: "disabled" },
-  })
-  return completion.choices[0]?.message?.content ?? ""
-}
-
-export async function POST(req: NextRequest) {
-  return guard(async () => {
-    const body = await readJsonBody(req)
-    const prompt = str(body.prompt)?.trim()
-    if (!prompt) throw new HttpError(400, "Field 'prompt' is required (non-empty string)")
-    const templateId = str(body.templateId)
-
-    let userContent = prompt
-    if (templateId) userContent += `\n(Preferred starting structure: the "${templateId}" template.)`
-
-    let config: LandingConfig | null = null
-    let lastError = "unknown error"
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const content = await callLLM(
-        attempt === 0 ? userContent : `${userContent}\n\nRespond with raw JSON only.`
-      )
-      try {
-        config = normalizeConfig(extractJson(content))
-        break
-      } catch (e) {
-        lastError = e instanceof Error ? e.message : String(e)
-      }
-    }
-    if (!config) {
-      return NextResponse.json(
-        { error: `AI response could not be parsed as a landing config (${lastError}). Try rephrasing your prompt.` },
-        { status: 500 }
-      )
-    }
-    return NextResponse.json({ config })
-  })
-}
+lines[start:end + 1] = [NEW_SCHEMA]
+p.write_text("".join(lines), encoding="utf-8")
+print(f"Replaced lines {start + 1}..{end + 1}")

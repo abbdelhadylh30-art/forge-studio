@@ -25,7 +25,7 @@ export function useSaveProject() {
       })
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `Save failed (${res.status})`)
       markSaved()
-      if (!opts?.silent) toast.success("Project saved 💾", { description: project.name })
+      if (!opts?.silent) toast.success("Project saved", { description: project.name })
     } catch (e) {
       if (!opts?.silent) {
         toast.error("Save failed", { description: e instanceof Error ? e.message : undefined })

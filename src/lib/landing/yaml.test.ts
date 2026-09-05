@@ -62,3 +62,70 @@ describe("yaml round-trip", () => {
     expect(bad.i18n).toBeUndefined()
   })
 })
+
+describe("narrative sections (announcement / problem / solution / video / comparison / guarantee)", () => {
+  it("round-trips all six new section types", () => {
+    const sections = [
+      createSection("announcement"),
+      createSection("problem"),
+      createSection("solution"),
+      createSection("video"),
+      createSection("comparison"),
+      createSection("guarantee"),
+    ] as Section[]
+    const back = yamlToConfig(configToYaml(configWith(sections)))
+    expect(back.sections.map((s) => s.type)).toEqual([
+      "announcement", "problem", "solution", "video", "comparison", "guarantee",
+    ])
+  })
+
+  it("preserves the hero layout enum incl. the new variants + videoUrl", () => {
+    const hero = createSection("hero")
+    if (hero.type !== "hero") throw new Error("expected hero")
+    hero.layout = "video"
+    hero.videoUrl = "https://example.com/loop.mp4"
+    const back = yamlToConfig(configToYaml(configWith([hero])))
+    const out = back.sections[0]
+    if (out.type !== "hero") throw new Error("expected hero")
+    expect(out.layout).toBe("video")
+    expect(out.videoUrl).toBe("https://example.com/loop.mp4")
+  })
+
+  it("preserves the extended gallery styles", () => {
+    const gallery = createSection("gallery")
+    if (gallery.type !== "gallery") throw new Error("expected gallery")
+    gallery.style = "slider"
+    const back = yamlToConfig(configToYaml(configWith([gallery])))
+    const out = back.sections[0]
+    if (out.type !== "gallery") throw new Error("expected gallery")
+    expect(out.style).toBe("slider")
+  })
+
+  it("coerces malformed narrative fields back to safe defaults", () => {
+    const bad = normalizeConfig({
+      brand: { name: "X" },
+      sections: [
+        { type: "announcement", style: "weird", message: "Hello", deadline: "not-a-date", link: { label: "Go" } },
+        { type: "problem", style: "steps", items: [{ icon: "clock", title: "A", body: "B" }] },
+        { type: "video", style: "sideways", videoUrl: "  " },
+        { type: "comparison", rows: [{ feature: "F", us: "yes", them: "no" }] },
+      ],
+    })
+    expect(bad.sections).toHaveLength(4)
+    const announcement = bad.sections[0]
+    if (announcement.type !== "announcement") throw new Error("expected announcement")
+    expect(announcement.style).toBe("static")
+    expect(announcement.deadline).toBeUndefined()
+    expect(announcement.link?.label).toBe("Go")
+    const problem = bad.sections[1]
+    if (problem.type !== "problem") throw new Error("expected problem")
+    expect(problem.style).toBe("grid")
+    const video = bad.sections[2]
+    if (video.type !== "video") throw new Error("expected video")
+    expect(video.style).toBe("cinematic")
+    expect(video.videoUrl).toBe("")
+    const comparison = bad.sections[3]
+    if (comparison.type !== "comparison") throw new Error("expected comparison")
+    expect(comparison.rows).toEqual([{ feature: "F", us: "yes", them: "no" }])
+  })
+})

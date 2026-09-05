@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { IconGlyph } from "@/components/sites/preview/iconBank"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -57,12 +58,14 @@ export function AddSectionDialog() {
   const add = (packId: string) => {
     const pack = CONTENT_PACKS[type].find((p) => p.id === packId)
     const label = SECTION_META[type].label
-    // insert before the first footer-ish section when possible
+    // insert before the first footer-ish section when possible;
+    // the announcement bar belongs at the very top
     const sections = useForge.getState().config.sections
     let insertAt = sections.length
     const lastIdx = sections.length - 1
     const footerish = sections.findIndex((s) => s.type === "footer" || s.type === "cta-final")
-    if (footerish !== -1) insertAt = footerish
+    if (type === "announcement") insertAt = 0
+    else if (footerish !== -1) insertAt = footerish
     else if (lastIdx >= 0 && sections[lastIdx].type === "contact") insertAt = lastIdx
     addSection(type, insertAt, pack?.patch)
     closeDialog()
@@ -123,7 +126,9 @@ export function AddSectionDialog() {
                         "min-w-[8.5rem] flex-1 md:min-w-0"
                       )}
                     >
-                      <span className="text-base leading-none">{meta.icon}</span>
+                      <span className={cn("flex size-5 shrink-0 items-center justify-center rounded", selected ? "text-violet-200" : "text-zinc-500")}>
+                        <IconGlyph name={meta.icon} className="size-3.5" />
+                      </span>
                       <span className="min-w-0 flex-1 truncate text-[12px] font-medium">{meta.label}</span>
                       <span
                         className={cn(

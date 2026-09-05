@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -40,6 +41,16 @@ import type {
 import { ImageLibraryDialog } from "./ImageLibraryDialog"
 import { AB_VARIANT_B_SUGGESTIONS } from "@/lib/landing/ab"
 import type { AbConfig } from "@/lib/landing/types"
+import { ICON_PICKER_GROUPS, IconGlyph } from "@/components/sites/preview/iconBank"
+import type {
+  AnnouncementSection,
+  ComparisonSection,
+  GuaranteeSection,
+  PainItem,
+  ProblemSection,
+  SolutionSection,
+  VideoSection,
+} from "@/lib/landing/types"
 
 // ─── Field primitives ────────────────────────────────────────────────────────
 
@@ -84,7 +95,7 @@ function AiImageField({
       const data = (await res.json()) as { url?: string; error?: string }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Image generation failed")
       onChange(data.url)
-      toast.success("Image generated ✨", { description: "Applied to the section — undo if you dislike it." })
+      toast.success("Image generated", { description: "Applied to the section — undo if you dislike it." })
     } catch (e) {
       setError(e instanceof Error ? e.message : "Image generation failed")
     } finally {
@@ -103,7 +114,7 @@ function AiImageField({
       const data = (await res.json()) as { url?: string; error?: string }
       if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed")
       onChange(data.url)
-      toast.success("Image uploaded ⬆", { description: "Saved to the library and applied here — undo if you change your mind." })
+      toast.success("Image uploaded", { description: "Saved to the library and applied here — undo if you change your mind." })
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed")
     } finally {
@@ -232,6 +243,80 @@ function Field({ label, children, hint }: { label: string; children: React.React
   )
 }
 
+/** Icon bank picker — grouped Lucide icon grid for item icon fields. */
+function IconPickerField({ label, value, onChange, hint }: { label: string; value: string; onChange: (icon: string) => void; hint?: string }) {
+  const [open, setOpen] = React.useState(false)
+  const [q, setQ] = React.useState("")
+  const groups = React.useMemo(() => {
+    if (!q.trim()) return ICON_PICKER_GROUPS
+    const needle = q.trim().toLowerCase()
+    return ICON_PICKER_GROUPS.map((g) => ({ ...g, keys: g.keys.filter((k) => k.includes(needle)) })).filter((g) => g.keys.length > 0)
+  }, [q])
+  return (
+    <Field label={label} hint={hint}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="icon-bank-popover"
+            aria-haspopup="listbox"
+            className="flex h-8 w-full items-center justify-between gap-2 rounded-md border border-zinc-700/80 bg-zinc-900/60 px-2.5 text-left text-[13px] text-zinc-200 transition-colors hover:border-violet-500/50"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="flex size-5 items-center justify-center rounded bg-zinc-800 text-violet-300">
+                <IconGlyph name={value} className="size-3.5" />
+              </span>
+              <span className="truncate font-mono text-[11px] text-zinc-300">{value || "pick…"}</span>
+            </span>
+            <ChevronsUpDown className="h-3 w-3 shrink-0 text-zinc-500" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent id="icon-bank-popover" align="start" className="lf-scroll w-64 border-zinc-800 bg-zinc-900 p-0 text-zinc-100 shadow-xl">
+          <div className="border-b border-zinc-800 p-2">
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search icons…"
+              className="h-7 border-zinc-700 bg-zinc-950/60 text-[12px] text-zinc-100 placeholder:text-zinc-600"
+            />
+          </div>
+          <div className="lf-scroll max-h-72 overflow-y-auto p-2">
+            {groups.map((g) => (
+              <div key={g.group} className="mb-2 last:mb-0">
+                <p className="mb-1 px-1 text-[9px] font-bold uppercase tracking-wider text-zinc-600">{g.group}</p>
+                <div className="grid grid-cols-7 gap-1">
+                  {g.keys.map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      title={k}
+                      aria-label={`Icon: ${k}`}
+                      onClick={() => {
+                        onChange(k)
+                        setOpen(false)
+                        setQ("")
+                      }}
+                      className={cn(
+                        "flex size-8 items-center justify-center rounded-md border transition-colors",
+                        k === value ? "border-violet-500 bg-violet-500/15 text-violet-200" : "border-transparent text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100",
+                      )}
+                    >
+                      <IconGlyph name={k} className="size-4" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {groups.length === 0 ? <p className="p-3 text-center text-[11px] text-zinc-500">No icons match “{q}”.</p> : null}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </Field>
+  )
+}
+
 function TextField({
   label,
   value,
@@ -240,6 +325,7 @@ function TextField({
   hint,
   mono,
   maxLength,
+  type,
 }: {
   label: string
   value: string
@@ -248,10 +334,13 @@ function TextField({
   hint?: string
   mono?: boolean
   maxLength?: number
+  /** optional input type (e.g. datetime-local) */
+  type?: string
 }) {
   return (
     <Field label={label} hint={hint}>
       <Input
+        type={type}
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}
@@ -537,7 +626,7 @@ function AbTestFields({
     <div className="space-y-3 rounded-lg border border-violet-500/25 bg-violet-500/5 p-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[12px] font-semibold text-violet-200">🧪 A/B test this {sectionTypeName}</p>
+          <p className="text-[12px] font-semibold text-violet-200">A/B test this {sectionTypeName}</p>
           <p className="text-[10px] text-zinc-500">Weighted variants with auto-winner</p>
         </div>
         <Switch
@@ -668,10 +757,14 @@ function HeroEditor({ section, update }: EditorProps<HeroSection>) {
           { value: "split-right", label: "Split — visual right" },
           { value: "split-left", label: "Split — visual left" },
           { value: "center", label: "Centered" },
-          { value: "full-bleed", label: "Full-bleed gradient" },
+          { value: "full-bleed", label: "Full-bleed — rounded gradient card" },
+          { value: "gradient", label: "Gradient — edge-to-edge statement" },
+          { value: "video", label: "Video background — cinematic" },
+          { value: "card", label: "Card — compact sign-up panel" },
+          { value: "minimal", label: "Minimal — quiet, type only" },
         ]}
       />
-      <TextField label="Badge" value={section.badge ?? ""} onChange={(v) => update({ badge: v })} placeholder="✨ Now in public beta" />
+      <TextField label="Badge" value={section.badge ?? ""} onChange={(v) => update({ badge: v })} placeholder="Now in public beta" />
       <TextAreaField label="Headline" value={section.headline} onChange={(v) => update({ headline: v })} rows={2} maxLength={90} />
       <TextAreaField label="Sub copy" value={section.sub} onChange={(v) => update({ sub: v })} rows={3} maxLength={200} />
       <CtaFields cta={section.cta} onChange={(cta) => update({ cta })} />
@@ -689,6 +782,16 @@ function HeroEditor({ section, update }: EditorProps<HeroSection>) {
         suggestion={`Wide hero marketing shot for ${brand.name}: ${section.badge || section.headline || brand.tagline || "product"}. Modern, premium, cinematic lighting, on-theme.`}
         size="1440x768"
       />
+      {section.layout === "video" ? (
+        <TextField
+          label="Background video URL"
+          value={section.videoUrl ?? ""}
+          onChange={(v) => update({ videoUrl: v })}
+          placeholder="https://…/hero.mp4 (mp4/webm)"
+          mono
+          hint="Autoplaying muted loop behind the headline — falls back to the gradient when empty, uses the hero image as poster."
+        />
+      ) : null}
       <SwitchField
         label="Sticky mobile CTA"
         checked={section.stickyCta !== false}
@@ -772,15 +875,13 @@ function FeaturesEditor({ section, update }: EditorProps<FeaturesSection>) {
         label="Features"
         items={section.items}
         onChange={(items) => update({ items })}
-        createItem={() => ({ icon: "⚡", title: "New feature", body: "Describe the benefit." })}
-        itemTitle={(f) => `${f.icon} ${f.title}`}
+        createItem={() => ({ icon: "zap", title: "New feature", body: "Describe the benefit." })}
+        itemTitle={(f) => f.title}
         addLabel="Add feature"
         renderFields={(f, u) => (
           <div className="space-y-2">
-            <div className="grid grid-cols-[64px_1fr] gap-2">
-              <Input value={f.icon} onChange={(e) => u({ icon: e.target.value.slice(0, 2) })} className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
-              <Input value={f.title} onChange={(e) => u({ title: e.target.value })} className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
-            </div>
+            <IconPickerField label="Icon" value={f.icon} onChange={(icon) => u({ icon })} />
+            <Input value={f.title} onChange={(e) => u({ title: e.target.value })} placeholder="Feature title" className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
             <Textarea value={f.body} rows={2} onChange={(e) => u({ body: e.target.value })} className="resize-none border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
           </div>
         )}
@@ -984,6 +1085,9 @@ function GalleryEditor({ section, update }: EditorProps<GallerySection>) {
         options={[
           { value: "masonry", label: "Masonry" },
           { value: "carousel", label: "Carousel (swipeable)" },
+          { value: "slider", label: "Slider (dots + arrows)" },
+          { value: "stories", label: "Stories (tall cards, progress)" },
+          { value: "ticker", label: "Ticker (auto-scrolling strip)" },
         ]}
       />
       <ListEditor
@@ -1115,6 +1219,245 @@ function AboutEditor({ section, update }: EditorProps<AboutSection>) {
   )
 }
 
+// ─── Narrative sections: announcement / problem / solution / video / comparison / guarantee ───
+
+function AnnouncementEditor({ section, update }: EditorProps<AnnouncementSection>) {
+  const deadlineValue = section.deadline && !Number.isNaN(Date.parse(section.deadline))
+    ? new Date(section.deadline).toISOString().slice(0, 16)
+    : ""
+  return (
+    <div className="space-y-4">
+      <SelectField
+        label="Style"
+        value={section.style}
+        onChange={(v) => update({ style: v })}
+        options={[
+          { value: "static", label: "Static — one line" },
+          { value: "ticker", label: "Ticker — infinite scroll" },
+          { value: "countdown", label: "Countdown — live timer" },
+        ]}
+      />
+      <TextField label="Message" value={section.message} onChange={(v) => update({ message: v })} placeholder="Now in public beta" maxLength={140} />
+      {section.style === "countdown" ? (
+        <>
+          <TextField
+            label="Deadline"
+            type="datetime-local"
+            value={deadlineValue}
+            onChange={(v) => update({ deadline: v ? new Date(v).toISOString() : undefined })}
+            hint="Local time — stored as UTC. When it passes, the timer sits at 00:00:00."
+          />
+          <TextField label="Prefix label" value={section.prefixLabel ?? ""} onChange={(v) => update({ prefixLabel: v })} placeholder="Early access ends in" />
+        </>
+      ) : null}
+      {section.link ? (
+        <CtaFields cta={section.link} onChange={(link) => update({ link })} onRemove={() => update({ link: undefined })} removeLabel="Remove link" />
+      ) : (
+        <Button variant="outline" size="sm" className="h-7 w-full border-dashed border-zinc-700 text-[11px] text-zinc-400" onClick={() => update({ link: { label: "Learn more", href: "#cta" } })}>
+          <Plus className="mr-1 h-3 w-3" /> Add link
+        </Button>
+      )}
+    </div>
+  )
+}
+
+/** Shared item editor for problem/solution/guarantee lists (icon + title + body). */
+function PainItemFields({ item, u }: { item: PainItem; u: (patch: Partial<PainItem>) => void }) {
+  return (
+    <div className="space-y-2">
+      <IconPickerField label="Icon" value={item.icon} onChange={(icon) => u({ icon })} />
+      <Input value={item.title} onChange={(e) => u({ title: e.target.value })} placeholder="Item title" className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
+      <Textarea value={item.body} rows={2} onChange={(e) => u({ body: e.target.value })} placeholder="One sharp sentence." className="resize-none border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
+    </div>
+  )
+}
+
+function ProblemEditor({ section, update }: EditorProps<ProblemSection>) {
+  return (
+    <div className="space-y-4">
+      <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
+      <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} />
+      <SelectField
+        label="Style"
+        value={section.style}
+        onChange={(v) => update({ style: v })}
+        options={[
+          { value: "grid", label: "Grid — pain cards" },
+          { value: "split", label: "Split — sticky intro + rows" },
+        ]}
+      />
+      <ListEditor
+        label="Pain points"
+        items={section.items}
+        onChange={(items) => update({ items })}
+        createItem={() => ({ icon: "alert", title: "New pain point", body: "What does it cost them?" })}
+        itemTitle={(it) => it.title}
+        addLabel="Add pain point"
+        renderFields={(it, u) => <PainItemFields item={it} u={u} />}
+      />
+    </div>
+  )
+}
+
+function SolutionEditor({ section, update }: EditorProps<SolutionSection>) {
+  return (
+    <div className="space-y-4">
+      <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
+      <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} />
+      <SelectField
+        label="Style"
+        value={section.style}
+        onChange={(v) => update({ style: v })}
+        options={[
+          { value: "grid", label: "Grid — capped cards" },
+          { value: "split", label: "Split — sticky intro + cards" },
+          { value: "steps", label: "Steps — numbered timeline" },
+        ]}
+      />
+      <ListEditor
+        label="Solution points"
+        items={section.items}
+        onChange={(items) => update({ items })}
+        createItem={() => ({ icon: "check", title: "New solution", body: "How you remove the pain." })}
+        itemTitle={(it) => it.title}
+        addLabel="Add solution"
+        renderFields={(it, u) => <PainItemFields item={it} u={u} />}
+      />
+    </div>
+  )
+}
+
+function VideoEditor({ section, update }: EditorProps<VideoSection>) {
+  return (
+    <div className="space-y-4">
+      <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
+      <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} />
+      <SelectField
+        label="Style"
+        value={section.style}
+        onChange={(v) => update({ style: v })}
+        options={[
+          { value: "cinematic", label: "Cinematic — full-width 21:10" },
+          { value: "split", label: "Split — copy + video" },
+          { value: "minimal", label: "Minimal — video only, snug" },
+        ]}
+      />
+      <TextField
+        label="Video URL"
+        value={section.videoUrl}
+        onChange={(v) => update({ videoUrl: v })}
+        placeholder="YouTube link, Vimeo link, or https://…/clip.mp4"
+        mono
+        hint="YouTube & Vimeo links are auto-embedded; file URLs play with native controls."
+      />
+      <TextField label="Caption" value={section.caption ?? ""} onChange={(v) => update({ caption: v })} placeholder="Product tour — 90 seconds" />
+      {section.style !== "minimal" ? (
+        <AiImageField
+          label="Poster image (file videos)"
+          value={section.poster ?? ""}
+          onChange={(poster) => update({ poster })}
+          suggestion={`Poster frame for the ${section.title || "product"} video — decisive moment, rich color, cinematic.`}
+          size="1344x768"
+        />
+      ) : null}
+      {section.cta ? (
+        <CtaFields cta={section.cta} onChange={(cta) => update({ cta })} onRemove={() => update({ cta: undefined })} removeLabel="Remove CTA" />
+      ) : (
+        <Button variant="outline" size="sm" className="h-7 w-full border-dashed border-zinc-700 text-[11px] text-zinc-400" onClick={() => update({ cta: { label: "Start building free", href: "#cta" } })}>
+          <Plus className="mr-1 h-3 w-3" /> Add CTA
+        </Button>
+      )}
+    </div>
+  )
+}
+
+/** Cell editor — icon state select + custom text fallback. */
+function ComparisonCellFields({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const isIcon = ["yes", "no", "partial"].includes((value ?? "").trim().toLowerCase())
+  return (
+    <div className="grid grid-cols-[112px_1fr] gap-2">
+      <Select
+        value={isIcon ? value.trim().toLowerCase() : "text"}
+        onValueChange={(v) => onChange(v === "text" ? "Custom text" : v)}
+      >
+        <SelectTrigger className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[12px] text-zinc-200">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="border-zinc-800 bg-zinc-900 text-zinc-100">
+          <SelectItem value="yes" className="text-[12px]">✓ Yes</SelectItem>
+          <SelectItem value="no" className="text-[12px]">✗ No</SelectItem>
+          <SelectItem value="partial" className="text-[12px]">– Partial</SelectItem>
+          <SelectItem value="text" className="text-[12px]">Text…</SelectItem>
+        </SelectContent>
+      </Select>
+      <Input
+        value={isIcon ? "" : value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={label}
+        disabled={isIcon}
+        className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100 disabled:opacity-40"
+      />
+    </div>
+  )
+}
+
+function ComparisonEditor({ section, update }: EditorProps<ComparisonSection>) {
+  return (
+    <div className="space-y-4">
+      <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
+      <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} />
+      <div className="grid grid-cols-2 gap-2">
+        <TextField label="Us (column)" value={section.usLabel} onChange={(v) => update({ usLabel: v })} placeholder="Your product" />
+        <TextField label="Them (column)" value={section.themLabel} onChange={(v) => update({ themLabel: v })} placeholder="Alternative" />
+      </div>
+      <ListEditor
+        label="Rows"
+        items={section.rows}
+        onChange={(rows) => update({ rows })}
+        createItem={() => ({ feature: "New comparison row", us: "yes", them: "no" })}
+        itemTitle={(r) => r.feature}
+        addLabel="Add row"
+        renderFields={(r, u) => (
+          <div className="space-y-2">
+            <Input value={r.feature} onChange={(e) => u({ feature: e.target.value })} placeholder="Feature name" className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
+            <ComparisonCellFields label="Our value" value={r.us} onChange={(v) => u({ us: v })} />
+            <ComparisonCellFields label="Their value" value={r.them} onChange={(v) => u({ them: v })} />
+          </div>
+        )}
+      />
+      <TextField label="Footnote" value={section.note ?? ""} onChange={(v) => update({ note: v })} placeholder="Source or disclaimer" />
+    </div>
+  )
+}
+
+function GuaranteeEditor({ section, update }: EditorProps<GuaranteeSection>) {
+  return (
+    <div className="space-y-4">
+      <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
+      <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} placeholder="30-day money-back guarantee" />
+      <SelectField
+        label="Style"
+        value={section.style}
+        onChange={(v) => update({ style: v })}
+        options={[
+          { value: "card", label: "Card — centered promise panel" },
+          { value: "split", label: "Split — promise + terms" },
+        ]}
+      />
+      <TextAreaField label="Promise" value={section.body ?? ""} onChange={(v) => update({ body: v })} rows={4} hint="Plain paragraphs — separate with a blank line." />
+      <ListEditor
+        label="Terms"
+        items={section.items}
+        onChange={(items) => update({ items })}
+        createItem={() => ({ icon: "timer", title: "30 days", body: "Full refund window" })}
+        itemTitle={(it) => it.title}
+        addLabel="Add term"
+        renderFields={(it, u) => <PainItemFields item={it} u={u} />}
+      />
+    </div>
+  )
+}
+
 function CtaFinalEditor({ section, update }: EditorProps<CtaFinalSection>) {
   return (
     <div className="space-y-4">
@@ -1237,7 +1580,7 @@ function TranslateSectionField({ section }: { section: Section }) {
       next.i18n.translations[locale][section.id] = data.translations
       setConfig(next)
       const count = Object.keys(data.translations).length
-      toast.success(`Translated to ${locale.toUpperCase()} 🌐`, { description: `${count} field${count === 1 ? "" : "s"} — preview with the language switcher in the toolbar.` })
+      toast.success(`Translated to ${locale.toUpperCase()}`, { description: `${count} field${count === 1 ? "" : "s"} — preview with the language switcher in the toolbar.` })
     } catch (e) {
       toast.error("Translation failed", { description: e instanceof Error ? e.message : undefined })
     } finally {
@@ -1298,6 +1641,8 @@ function SectionEditor({ section }: { section: Section }) {
     useForge.getState().updateSection(section.id, patch as Partial<Section>)
   }
   switch (section.type) {
+    case "announcement":
+      return <AnnouncementEditor section={section} update={update as unknown as (p: Partial<AnnouncementSection>) => void} />
     case "navbar":
       return <NavbarEditor section={section} update={update as unknown as (p: Partial<NavbarSection>) => void} />
     case "hero":
@@ -1318,6 +1663,16 @@ function SectionEditor({ section }: { section: Section }) {
       return <GalleryEditor section={section} update={update as unknown as (p: Partial<GallerySection>) => void} />
     case "about":
       return <AboutEditor section={section} update={update as unknown as (p: Partial<AboutSection>) => void} />
+    case "problem":
+      return <ProblemEditor section={section} update={update as unknown as (p: Partial<ProblemSection>) => void} />
+    case "solution":
+      return <SolutionEditor section={section} update={update as unknown as (p: Partial<SolutionSection>) => void} />
+    case "video":
+      return <VideoEditor section={section} update={update as unknown as (p: Partial<VideoSection>) => void} />
+    case "comparison":
+      return <ComparisonEditor section={section} update={update as unknown as (p: Partial<ComparisonSection>) => void} />
+    case "guarantee":
+      return <GuaranteeEditor section={section} update={update as unknown as (p: Partial<GuaranteeSection>) => void} />
     case "contact":
       return <ContactEditor section={section} update={update as unknown as (p: Partial<ContactSection>) => void} />
     case "cta-final":
@@ -1780,7 +2135,9 @@ export function PropertiesPanel({ className }: { className?: string }) {
           ) : (
             <div key={selectedId} className="lf-fade-in space-y-4 p-3">
               <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-2.5">
-                <span className="text-lg leading-none">{SECTION_META[selected.type].icon}</span>
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-violet-500/10 text-violet-300">
+                  <IconGlyph name={SECTION_META[selected.type].icon} className="size-4" />
+                </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-zinc-100">{SECTION_META[selected.type].label}</p>
                   <p className="truncate font-mono text-[10px] text-zinc-500">{selected.id.slice(0, 22)}</p>

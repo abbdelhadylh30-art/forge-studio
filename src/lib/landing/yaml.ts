@@ -31,12 +31,37 @@ export function normalizeConfig(input: unknown): LandingConfig {
     if (abOk) merged.ab = abOk
     else delete merged.ab
     // per-type guards
+    if (type === "announcement") {
+      merged.style = ["static", "ticker", "countdown"].includes(rs.style as string) ? rs.style : "static"
+      merged.message = String(rs.message ?? "")
+      const link = validCta(rs.link)
+      if (link) merged.link = link
+      else delete merged.link
+      const dl = typeof rs.deadline === "string" ? rs.deadline.trim() : ""
+      if (dl && !Number.isNaN(Date.parse(dl))) merged.deadline = dl.slice(0, 32)
+      else delete merged.deadline
+      if (typeof rs.prefixLabel === "string" && rs.prefixLabel.trim()) merged.prefixLabel = rs.prefixLabel.slice(0, 60)
+      else delete merged.prefixLabel
+    }
     if (type === "hero") {
       const layout = rs.layout
-      merged.layout = ["split-right", "split-left", "center", "full-bleed"].includes(layout as string)
+      merged.layout = [
+        "split-right",
+        "split-left",
+        "center",
+        "full-bleed",
+        "minimal",
+        "gradient",
+        "video",
+        "card",
+      ].includes(layout as string)
         ? layout
         : "split-right"
       merged.cta = validCta(rs.cta) ?? (fresh as { cta: { label: string; href: string } }).cta
+      // background video URL (video layout) — trim, cap, drop when empty
+      const vu = typeof rs.videoUrl === "string" ? rs.videoUrl.trim() : ""
+      if (vu) merged.videoUrl = vu.slice(0, 500)
+      else delete merged.videoUrl
       // sticky mobile CTA: boolean opt-out (default ON — only `false` sticks)
       if (rs.stickyCta === false) merged.stickyCta = false
       else delete merged.stickyCta
@@ -44,7 +69,7 @@ export function normalizeConfig(input: unknown): LandingConfig {
     if (type === "features") {
       merged.style = ["grid", "alternating", "bento", "tabs", "carousel"].includes(rs.style as string) ? rs.style : "grid"
       merged.items = validItems(rs.items, 3, (x) => ({
-        icon: String((x as Record<string, unknown>).icon ?? "⚡"),
+        icon: String((x as Record<string, unknown>).icon ?? "zap"),
         title: String((x as Record<string, unknown>).title ?? "Feature"),
         body: String((x as Record<string, unknown>).body ?? ""),
       }))
@@ -93,7 +118,7 @@ export function normalizeConfig(input: unknown): LandingConfig {
       })
     }
     if (type === "gallery") {
-      merged.style = ["masonry", "carousel"].includes(rs.style as string) ? rs.style : "masonry"
+      merged.style = ["masonry", "carousel", "slider", "stories", "ticker"].includes(rs.style as string) ? rs.style : "masonry"
       merged.items = validItems(rs.items, 4, (x) => {
         const o = x as Record<string, unknown>
         return {
@@ -103,6 +128,51 @@ export function normalizeConfig(input: unknown): LandingConfig {
           caption: String(o.caption ?? ""),
         }
       })
+    }
+    if (type === "problem" || type === "solution" || type === "guarantee") {
+      const styles: Record<string, string[]> = {
+        problem: ["grid", "split"],
+        solution: ["grid", "split", "steps"],
+        guarantee: ["card", "split"],
+      }
+      merged.style = styles[type].includes(rs.style as string) ? rs.style : styles[type][0]
+      merged.items = validItems(rs.items, 3, (x) => {
+        const o = x as Record<string, unknown>
+        return {
+          icon: String(o.icon ?? "sparkles"),
+          title: String(o.title ?? "Item"),
+          body: String(o.body ?? ""),
+        }
+      })
+      if (type === "guarantee") {
+        if (typeof rs.body === "string" && rs.body.trim()) merged.body = rs.body.slice(0, 1200)
+        else delete merged.body
+      }
+    }
+    if (type === "video") {
+      merged.style = ["cinematic", "split", "minimal"].includes(rs.style as string) ? rs.style : "cinematic"
+      merged.videoUrl = typeof rs.videoUrl === "string" ? rs.videoUrl.trim().slice(0, 500) : ""
+      if (typeof rs.poster === "string" && rs.poster.trim()) merged.poster = rs.poster.slice(0, 500)
+      else delete merged.poster
+      if (typeof rs.caption === "string" && rs.caption.trim()) merged.caption = rs.caption.slice(0, 200)
+      else delete merged.caption
+      const cta = validCta(rs.cta)
+      if (cta) merged.cta = cta
+      else delete merged.cta
+    }
+    if (type === "comparison") {
+      merged.usLabel = String(rs.usLabel ?? "Us").slice(0, 40) || "Us"
+      merged.themLabel = String(rs.themLabel ?? "Them").slice(0, 40) || "Them"
+      merged.rows = validItems(rs.rows, 3, (x) => {
+        const o = x as Record<string, unknown>
+        return {
+          feature: String(o.feature ?? o.label ?? "Feature"),
+          us: String(o.us ?? "yes"),
+          them: String(o.them ?? "no"),
+        }
+      })
+      if (typeof rs.note === "string" && rs.note.trim()) merged.note = rs.note.slice(0, 300)
+      else delete merged.note
     }
     if (type === "contact") {
       const c = merged as unknown as { fields: string[]; submitLabel: string }

@@ -50,6 +50,21 @@ export interface SectionAnimationFields {
 }
 
 // ── Sections ─────────────────────────────────────────────────────────────────
+export interface AnnouncementSection {
+  id: string
+  type: "announcement"
+  hidden?: boolean
+  anchor?: string // custom anchor id override (defaults to the section type)
+  style: "static" | "ticker" | "countdown"
+  message: string
+  /** optional inline action rendered at the end of the bar */
+  link?: Cta
+  /** countdown target — ISO datetime (countdown style) */
+  deadline?: string
+  /** label before the countdown digits, e.g. "Early access ends in" */
+  prefixLabel?: string
+}
+
 export interface NavbarSection {
   id: string
   type: "navbar"
@@ -65,13 +80,15 @@ export interface HeroSection {
   type: "hero"
   hidden?: boolean
   anchor?: string // custom anchor id override (defaults to the section type)
-  layout: "split-right" | "split-left" | "center" | "full-bleed"
+  layout: "split-right" | "split-left" | "center" | "full-bleed" | "minimal" | "gradient" | "video" | "card"
   badge?: string
   headline: string
   sub: string
   cta: Cta
   secondaryCta?: Cta
   image?: string // url or empty
+  /** background video for the "video" layout (mp4/webm URL or empty) */
+  videoUrl?: string
   stats?: { value: string; label: string }[]
   /** sticky mobile CTA bar on the published page (default ON when undefined) */
   stickyCta?: boolean
@@ -88,7 +105,7 @@ export interface LogosSection {
 }
 
 export interface FeatureItem {
-  icon: string // emoji
+  icon: string // icon bank key ("zap") — legacy emoji values still render
   title: string
   body: string
 }
@@ -195,7 +212,7 @@ export interface GallerySection {
   anchor?: string // custom anchor id override (defaults to the section type)
   title?: string
   subtitle?: string
-  style: "masonry" | "carousel"
+  style: "masonry" | "carousel" | "slider" | "stories" | "ticker"
   items: GalleryItem[]
 }
 
@@ -263,7 +280,86 @@ export interface AboutSection {
   items: AboutItem[]
 }
 
+// ── Narrative sections (problem → solution arc) ─────────────────────────────
+export interface PainItem {
+  icon: string // icon bank key
+  title: string
+  body: string
+}
+
+export interface ProblemSection {
+  id: string
+  type: "problem"
+  hidden?: boolean
+  anchor?: string
+  title?: string
+  subtitle?: string
+  style: "grid" | "split"
+  items: PainItem[]
+}
+
+export interface SolutionSection {
+  id: string
+  type: "solution"
+  hidden?: boolean
+  anchor?: string
+  title?: string
+  subtitle?: string
+  style: "grid" | "split" | "steps"
+  items: PainItem[]
+}
+
+export interface VideoSection {
+  id: string
+  type: "video"
+  hidden?: boolean
+  anchor?: string
+  title?: string
+  subtitle?: string
+  /** mp4/webm file URL or YouTube/Vimeo link (auto-embedded) */
+  videoUrl: string
+  /** poster image for file videos (YouTube provides its own) */
+  poster?: string
+  style: "cinematic" | "split" | "minimal"
+  caption?: string
+  cta?: Cta
+}
+
+export interface ComparisonRow {
+  feature: string
+  /** "yes" | "no" | "partial" render as icons; any other string renders as text */
+  us: string
+  them: string
+}
+
+export interface ComparisonSection {
+  id: string
+  type: "comparison"
+  hidden?: boolean
+  anchor?: string
+  title?: string
+  subtitle?: string
+  usLabel: string
+  themLabel: string
+  rows: ComparisonRow[]
+  note?: string
+}
+
+export interface GuaranteeSection {
+  id: string
+  type: "guarantee"
+  hidden?: boolean
+  anchor?: string
+  title?: string
+  subtitle?: string
+  /** the promise itself (multi-paragraph, \n\n separated) */
+  body?: string
+  style: "card" | "split"
+  items: PainItem[]
+}
+
 export type Section = (
+  | AnnouncementSection
   | NavbarSection
   | HeroSection
   | LogosSection
@@ -274,6 +370,11 @@ export type Section = (
   | FaqSection
   | GallerySection
   | AboutSection
+  | ProblemSection
+  | SolutionSection
+  | VideoSection
+  | ComparisonSection
+  | GuaranteeSection
   | ContactSection
   | CtaFinalSection
   | FooterSection
@@ -283,6 +384,7 @@ export type Section = (
 export type SectionType = Section["type"]
 
 export const SECTION_TYPES: SectionType[] = [
+  "announcement",
   "navbar",
   "hero",
   "logos",
@@ -293,25 +395,36 @@ export const SECTION_TYPES: SectionType[] = [
   "faq",
   "gallery",
   "about",
+  "problem",
+  "solution",
+  "video",
+  "comparison",
+  "guarantee",
   "contact",
   "cta-final",
   "footer",
 ]
 
 export const SECTION_META: Record<SectionType, { label: string; icon: string; description: string }> = {
-  navbar: { label: "Navbar", icon: "🧭", description: "Sticky top navigation with brand + CTA" },
-  hero: { label: "Hero", icon: "✨", description: "Big headline, sub copy, CTAs, image" },
-  logos: { label: "Logo Wall", icon: "🏢", description: "Trusted-by company strip" },
-  features: { label: "Features", icon: "⚡", description: "Icon grid / bento / alternating" },
-  stats: { label: "Stats", icon: "📊", description: "Big numbers with labels" },
-  testimonials: { label: "Testimonials", icon: "💬", description: "Quotes — grid, marquee, spotlight, video, logo-wall" },
-  pricing: { label: "Pricing", icon: "💳", description: "Plans with annual toggle" },
-  faq: { label: "FAQ", icon: "❓", description: "Accordion or two-column Q&A" },
-  gallery: { label: "Gallery", icon: "🖼️", description: "Masonry or carousel visuals" },
-  about: { label: "About", icon: "🧑‍💼", description: "Founder letter, timeline, or mission" },
-  contact: { label: "Contact", icon: "📮", description: "Contact form + details" },
-  "cta-final": { label: "Final CTA", icon: "🚀", description: "Closing call-to-action banner" },
-  footer: { label: "Footer", icon: "🧱", description: "Links, social, newsletter" },
+  announcement: { label: "Announcement", icon: "megaphone", description: "Slim top bar — static, ticker or live countdown" },
+  navbar: { label: "Navbar", icon: "compass", description: "Sticky top navigation with brand + CTA" },
+  hero: { label: "Hero", icon: "sparkles", description: "Big headline, sub copy, CTAs, image — 8 layouts" },
+  logos: { label: "Logo Wall", icon: "briefcase", description: "Trusted-by company strip" },
+  features: { label: "Features", icon: "zap", description: "Icon grid / bento / alternating / carousel" },
+  stats: { label: "Stats", icon: "chart", description: "Big numbers with labels" },
+  testimonials: { label: "Testimonials", icon: "quote", description: "Quotes — grid, marquee, spotlight, video, logo-wall" },
+  pricing: { label: "Pricing", icon: "credit-card", description: "Plans with annual toggle" },
+  faq: { label: "FAQ", icon: "message", description: "Accordion or two-column Q&A" },
+  gallery: { label: "Gallery", icon: "camera", description: "Masonry, carousel, slider, stories, ticker" },
+  about: { label: "About", icon: "users", description: "Founder letter, timeline, or mission" },
+  problem: { label: "Problem", icon: "alert", description: "Pain points that set up your story" },
+  solution: { label: "Solution", icon: "lightbulb", description: "The turn — how you fix it" },
+  video: { label: "Video", icon: "play", description: "Cinematic, split or minimal video block" },
+  comparison: { label: "Comparison", icon: "layout", description: "You vs. them feature table" },
+  guarantee: { label: "Guarantee", icon: "shield-check", description: "Risk reversal — promise, terms, badge" },
+  contact: { label: "Contact", icon: "mail", description: "Contact form + details" },
+  "cta-final": { label: "Final CTA", icon: "rocket", description: "Closing call-to-action banner" },
+  footer: { label: "Footer", icon: "layers", description: "Links, social, newsletter" },
 }
 
 // ── Multilingual (i18n) ─────────────────────────────────────────────────────────

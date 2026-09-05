@@ -131,3 +131,47 @@ describe("translatedSectionIds", () => {
     expect(translatedSectionIds(cfg, "fr").size).toBe(0)
   })
 })
+
+describe("narrative sections translatable paths", () => {
+  it("collects announcement message + link label", () => {
+    const announcement = createSection("announcement")
+    const paths = translatablePaths(announcement)
+    expect(paths).toContain("message")
+    expect(paths).toContain("link.label")
+  })
+
+  it("collects problem / solution / guarantee item fields and the guarantee body", () => {
+    const problem = createSection("problem")
+    expect(translatablePaths(problem)).toContain("items.0.title")
+    expect(translatablePaths(problem)).toContain("items.0.body")
+    const solution = createSection("solution")
+    expect(translatablePaths(solution)).toContain("items.0.title")
+    const guarantee = createSection("guarantee")
+    expect(translatablePaths(guarantee)).toContain("body")
+    expect(translatablePaths(guarantee)).toContain("items.0.body")
+  })
+
+  it("collects comparison labels + text cells but not icon cells", () => {
+    const comparison = createSection("comparison")
+    if (comparison.type !== "comparison") throw new Error("expected comparison")
+    comparison.rows = [
+      { feature: "Feature A", us: "yes", them: "no" },
+      { feature: "Feature B", us: "partial", them: "partial" },
+      { feature: "Feature C", us: "Fast", them: "Slow" },
+    ]
+    const paths = translatablePaths(comparison)
+    expect(paths).toContain("usLabel")
+    expect(paths).toContain("themLabel")
+    expect(paths).toContain("rows.0.feature")
+    // icon cells (yes/no/partial) stay untranslated; text cells translate
+    expect(paths).not.toContain("rows.0.us")
+    expect(paths).not.toContain("rows.0.them")
+    expect(paths).toContain("rows.2.us")
+    expect(paths).toContain("rows.2.them")
+  })
+
+  it("collects video caption + cta label when present", () => {
+    const video = createSection("video")
+    expect(translatablePaths(video)).toContain("caption")
+  })
+})

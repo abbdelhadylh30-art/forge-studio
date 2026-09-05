@@ -33,7 +33,7 @@ const ACCENT2 = "#f0abfc"
 const GREEN = "#34d399"
 
 function countryFlag(code: string): string {
-  if (!/^[A-Z]{2}$/.test(code)) return "🌐"
+  if (!/^[A-Z]{2}$/.test(code)) return "—"
   return String.fromCodePoint(...[...code].map((c) => 127397 + c.charCodeAt(0)))
 }
 
@@ -669,7 +669,7 @@ export function DashboardView() {
       })
       const out = (await res.json()) as { pageviews?: number; events?: number; leads?: number; mode?: string; error?: string }
       if (!res.ok) throw new Error(out.error)
-      toast.success(mode === "append" ? "Demo traffic appended 🌍" : "Demo traffic generated 🌍", {
+      toast.success(mode === "append" ? "Demo traffic appended" : "Demo traffic generated", {
         description: `+${fmtNum(out.pageviews ?? 0)} pageviews · +${fmtNum(out.events ?? 0)} events${mode === "append" ? " — history kept" : ` · ${out.leads ?? 0} leads`}`,
       })
       await load()
@@ -712,7 +712,7 @@ export function DashboardView() {
         body: JSON.stringify({ projectId, type: "promote_winner", label: `Promoted ${test.sectionLabel} variant ${test.winner}`, variant: test.winner }),
       })
     }
-    toast.success(`Variant ${test.winner} promoted 👑`, { description: `Winning copy applied to the ${test.sectionLabel.toLowerCase()} section; test paused.` })
+    toast.success(`Variant ${test.winner} promoted`, { description: `Winning copy applied to the ${test.sectionLabel.toLowerCase()} section; test paused.` })
     await load()
   }
 
@@ -1156,7 +1156,7 @@ export function DashboardView() {
                         type="button"
                         onClick={() => {
                           downloadLeadsCsv(leads, projectName || "project")
-                          toast.success("Leads CSV exported 📄", { description: `${leads.length} submissions — one row each, all fields included.` })
+                          toast.success("Leads CSV exported", { description: `${leads.length} submissions — one row each, all fields included.` })
                         }}
                         className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-[10px] font-semibold text-zinc-400 transition-colors hover:border-violet-500/40 hover:text-zinc-200"
                         title="Export all submissions as CSV (spreadsheet-ready)"

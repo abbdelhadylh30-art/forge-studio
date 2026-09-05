@@ -17,6 +17,42 @@ export interface ContentPack {
 }
 
 export const CONTENT_PACKS: Record<SectionType, ContentPack[]> = {
+  announcement: [
+    {
+      id: "announce-static",
+      name: "Classic bar",
+      description: "One line, one link — the safe default for any page.",
+      meta: "static · link",
+      patch: {},
+    },
+    {
+      id: "announce-ticker",
+      name: "Scrolling ticker",
+      description: "Infinite marquee for launches, press mentions, milestones.",
+      meta: "ticker · infinite",
+      patch: {
+        style: "ticker",
+        message: "Featured in TechCrunch · 12,000 pages shipped · 99.9% uptime · new: section-level A/B tests",
+        link: undefined,
+      },
+    },
+    {
+      id: "announce-countdown",
+      name: "Live countdown",
+      description: "Real ticking timer to a deadline — urgency on autopilot.",
+      meta: "countdown · live",
+      patch: {
+        style: "countdown",
+        message: "Early-access pricing ends in",
+        prefixLabel: "",
+        deadline: (() => {
+          const d = new Date(Date.now() + 3 * 86_400_000)
+          return d.toISOString().slice(0, 10) + "T12:00:00"
+        })(),
+        link: { label: "Lock the price", href: "#cta" },
+      },
+    },
+  ],
   navbar: [
     {
       id: "nav-classic",
@@ -66,7 +102,7 @@ export const CONTENT_PACKS: Record<SectionType, ContentPack[]> = {
       meta: "split-left · image slot",
       patch: {
         layout: "split-left",
-        badge: "🆕 Just dropped — v2.0",
+        badge: "Just dropped — v2.0",
         headline: "The upgrade everyone was waiting for.",
         sub: "Rebuilt from scratch: 2× faster, beautifully dark, and finally available to everyone. First 500 orders get the launch price.",
         cta: { label: "Get the launch price", href: "#cta" },
@@ -85,7 +121,7 @@ export const CONTENT_PACKS: Record<SectionType, ContentPack[]> = {
       meta: "center · date badge",
       patch: {
         layout: "center",
-        badge: "📅 Live on Thursday, Dec 12 · 10:00 ET",
+        badge: "Live Thursday, Dec 12 · 10:00 ET",
         headline: "Ship your first landing page before lunch.",
         sub: "A free 45-minute live session — build, theme and deploy a real page with us. Recording sent to everyone registered.",
         cta: { label: "Save my seat", href: "#cta" },
@@ -465,6 +501,146 @@ export const CONTENT_PACKS: Record<SectionType, ContentPack[]> = {
           { year: "2024", title: "First 1,000 pages", body: "The community adopted the YAML format and never looked back." },
           { year: "2025", title: "Forge Studio", body: "Builder, auditor and analytics unified in one studio." },
           { year: "2026", title: "Today", body: "Pages shipped from 40+ countries — and counting." },
+        ],
+      },
+    },
+  ],
+  problem: [
+    {
+      id: "problem-grid",
+      name: "Pain grid",
+      description: "Three sharp pains in a card grid — the setup of your story.",
+      meta: "grid · 3 pains",
+      patch: {},
+    },
+    {
+      id: "problem-split",
+      name: "Split deep-dive",
+      description: "Sticky intro left, hairline pain rows right — for longer arcs.",
+      meta: "split · editorial",
+      patch: {
+        style: "split",
+        title: "The hidden tax of every launch",
+        subtitle: "It never shows up on the invoice — but you pay it every time.",
+        items: [
+          { icon: "clock", title: "The coordination tax", body: "Five people, three tools, one page — every change ripples through all of them." },
+          { icon: "eye", title: "The blind-spot tax", body: "You can't see which section loses readers, so you redesign everything." },
+          { icon: "calendar", title: "The waiting tax", body: "Launch dates slip while copy approvals bounce between inboxes." },
+        ],
+      },
+    },
+  ],
+  solution: [
+    {
+      id: "solution-grid",
+      name: "Turn grid",
+      description: "Gradient-capped cards — the moment the story turns.",
+      meta: "grid · 3 wins",
+      patch: {},
+    },
+    {
+      id: "solution-steps",
+      name: "Numbered steps",
+      description: "A 01/02/03 timeline — great for how-it-works flows.",
+      meta: "steps · timeline",
+      patch: {
+        style: "steps",
+        title: "From blank page to live in three moves",
+        subtitle: "No hand-offs, no tickets, no waiting.",
+        items: [
+          { icon: "blocks", title: "Pick your story", body: "Start from a template or let AI draft the whole narrative for you." },
+          { icon: "wand", title: "Make it yours", body: "Swap copy, themes, layouts and images inline — the page is the editor." },
+          { icon: "rocket", title: "Ship and learn", body: "Publish with tracking, A/B tests and SEO wired from the first view." },
+        ],
+      },
+    },
+  ],
+  video: [
+    {
+      id: "video-cinematic",
+      name: "Cinematic",
+      description: "Full-width 21:10 statement block with an optional CTA.",
+      meta: "cinematic · CTA",
+      patch: {},
+    },
+    {
+      id: "video-split",
+      name: "Split pitch",
+      description: "Copy left, video right — for demos that need explaining.",
+      meta: "split · 4:3",
+      patch: {
+        style: "split",
+        title: "Watch the 90-second tour",
+        subtitle: "The whole flow: draft, edit, publish, measure.",
+        cta: { label: "Start building free", href: "#cta" },
+      },
+    },
+    {
+      id: "video-minimal",
+      name: "Quiet embed",
+      description: "Just the video and a caption — no chrome, snug spacing.",
+      meta: "minimal · snug",
+      patch: {
+        style: "minimal",
+        title: "",
+        subtitle: "",
+        videoUrl: "",
+        caption: "Product tour",
+      },
+    },
+  ],
+  comparison: [
+    {
+      id: "compare-table",
+      name: "Classic table",
+      description: "You vs. them, icons and values — the honest scoreboard.",
+      meta: "table · 6 rows",
+      patch: {},
+    },
+    {
+      id: "compare-migration",
+      name: "Switching pitch",
+      description: "Frame the old tool by name for migrators.",
+      meta: "table · migration",
+      patch: {
+        title: "Why teams switch to Forge",
+        subtitle: "Same page, different system.",
+        usLabel: "Forge",
+        themLabel: "Page builders",
+        rows: [
+          { feature: "First-party analytics", us: "yes", them: "no" },
+          { feature: "Section-level A/B tests", us: "yes", them: "no" },
+          { feature: "Leads inbox", us: "yes", them: "partial" },
+          { feature: "Multilingual + RTL", us: "yes", them: "no" },
+          { feature: "Export clean HTML", us: "yes", them: "partial" },
+          { feature: "Monthly cost", us: "$0 to start", them: "$25–99" },
+        ],
+        note: "Comparison based on publicly listed features at the time of writing.",
+      },
+    },
+  ],
+  guarantee: [
+    {
+      id: "guarantee-card",
+      name: "Promise card",
+      description: "Centered shield panel with terms — risk reversal in one glance.",
+      meta: "card · 3 terms",
+      patch: {},
+    },
+    {
+      id: "guarantee-split",
+      name: "Split promise",
+      description: "Longer promise copy left, term chips right.",
+      meta: "split · editorial",
+      patch: {
+        style: "split",
+        title: "Try it for 30 days. On us.",
+        subtitle: "The Forge guarantee",
+        body: "Every plan carries the same promise: if Forge doesn't make launching faster for you, email us within 30 days and we refund the full amount — no exit interview, no fine print, no hard feelings.",
+        items: [
+          { icon: "timer", title: "30-day window", body: "Counted from your first launch" },
+          { icon: "headphones", title: "Human replies", body: "Support answers within a day" },
+          { icon: "unlock", title: "Leave anytime", body: "Export your pages on the way out" },
         ],
       },
     },
