@@ -772,3 +772,19 @@ Work Log:
 
 Stage Summary:
 - The readiness audit is now a single launch checklist covering structure, SEO, conversion AND standalone-export behavior — the last of the ported v21 priorities.
+
+---
+Task ID: 9 (Phase 5)
+Agent: Super Z (main agent, sandbox)
+Task: Phase 5 — final E2E sweep, complete update guide, push to GitHub (Vercel auto-deploy).
+
+Work Log:
+- Final sweep (agent-browser): published /p/vertex at 390px — zero horizontal overflow with the consent banner showing; form submit landed in the leads inbox ("Final Tester" + earlier "E2E Tester" both present) while analytics tracked the visit; readiness dialog renders the Standalone export group with working fix actions.
+- README: Landing Sites section rewritten for v1.6 (19 section types, 10 dual-mode themes, consent, delivery, icon bank) + a complete "Updating to v1.6" guide covering all six feature areas with exact UI locations, legacy-safety notes, YAML/Prisma upgrade notes.
+- package.json 1.5.0 → 1.6.0. Committed as 4b294c7 (5 commits total this release).
+- PUSH BLOCKED: no GitHub credentials in this session (the previous session's token was chat-pasted and is not stored). All commits are ready on local main — the user can push directly or provide a fresh token to complete the Vercel deploy.
+
+Stage Summary:
+- All 8 ported priorities are complete: announcement bar, hero variants, narrative sections, gallery styles (shipped earlier at fb18816) + dual-mode themes, cookie consent + tracking, Sheets webhook/form delivery, export readiness (this release).
+- Quality gates: tsc clean, ESLint 0 errors, 193/193 vitest, full browser E2E across studio → published page → standalone export.
+- Remaining for the user: push to GitHub (token needed) → Vercel auto-deploys; optional Turso/Postgres migration for durable serverless data; OG-builder retirement (multi-page + canvas editing) is a future phase.
