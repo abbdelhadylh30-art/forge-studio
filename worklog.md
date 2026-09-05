@@ -847,3 +847,19 @@ Work Log:
 Stage Summary:
 - Zip deliverables ready in download/ (source 2.2MB / full backup 55MB, both integrity-verified and restore-tested).
 - Push to GitHub/Vercel: BLOCKED on credentials — user must paste a fresh GitHub token (old chat-pasted token was never stored and should be rotated). Vercel production already serves v1.6.0; the 4 pending commits are docs/scripts only.
+---
+Task ID: 14
+Agent: Super Z (main agent, sandbox)
+Task: Push to GitHub/Vercel with the user-provided token + deliver the full-backup zip (reported not visible in the download panel).
+
+Work Log:
+- Pushed 0aeedd0..ed290ce to origin/main (6 commits: worklog entries, demo-yaml-export script, file-mode auto-commits — no app-code changes) using an inline credential helper (token NOT stored to disk or remote URL).
+- GitHub combined status: Vercel = success; latest Production deployment created 2026-09-05T14:22:44Z.
+- Live probes: / 200, /p/vertex 200, /api/health ok.
+- Zip delivery issue: the 55MB full-backup zip exists on disk but was not visible to the user (likely download-panel size sync limit). Split it into 3 parts (24M + 24M + 6.2M) with `split -b 24m`; rejoin verified — concatenated md5 identical to the original (3c02efc025095c9541ee12a73753386b). Added REJOIN-INSTRUCTIONS.txt (Mac/Linux/Windows commands + md5 check).
+- The 2.2MB source zip is unchanged and should sync fine.
+
+Stage Summary:
+- GitHub + Vercel fully up to date at ed290ce; production healthy.
+- Full-backup zip now deliverable as 3 rejoined parts + instructions in download/.
+- Security: this is the second plaintext chat token — user must rotate both after use.
