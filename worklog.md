@@ -833,3 +833,17 @@ Stage Summary:
 - Full YAML round-trip proven live in the Studio UI: export → text-editor edit → import → page rebuilds → re-import original → restored.
 - Artifacts: download/vertex-demo.yml (original), download/vertex-edited.yml (edited), before/after/restored screenshots.
 - E2E learning recorded: agent-browser refs go stale after DOM mutations (re-snapshot before each click); programmatic textarea injection needs TextDecoder for UTF-8.
+---
+Task ID: 13
+Agent: Super Z (main agent, sandbox)
+Task: Push latest state to GitHub/Vercel + package the whole project as zipfiles.
+
+Work Log:
+- Git state: origin/main at 0aeedd0; local main 4 commits ahead (2 worklog entries, demo-yaml-export script, one noisy auto-commit of file-mode/binaries — no app-code changes). Push attempted → fatal: no GitHub credentials in this session (no env vars, no ~/.git-credentials, no token in .env). Push remains blocked pending a fresh user token; production is already live at v1.6.0 and unaffected by the pending commits.
+- Built download/forge-studio-v1.6.0-source.zip (2.2MB) via `git archive HEAD` — exactly the tracked repo state (= GitHub content), clean prefix folder.
+- Built download/forge-studio-v1.6.0-full-backup.zip (55MB, 2,253 files) — entire project dir incl. .git history (13MB), db/custom.db (SQLite data), upload/landingForge.html (v21 source), skills/ reference assets; excluded node_modules (1.8G), .next (294M), download/, tool-results/.
+- Verified: both zips pass `unzip -t` integrity; full backup test-restored to a temp dir — git log works (HEAD = a7122d8), working tree clean; cleanup done.
+
+Stage Summary:
+- Zip deliverables ready in download/ (source 2.2MB / full backup 55MB, both integrity-verified and restore-tested).
+- Push to GitHub/Vercel: BLOCKED on credentials — user must paste a fresh GitHub token (old chat-pasted token was never stored and should be rotated). Vercel production already serves v1.6.0; the 4 pending commits are docs/scripts only.
