@@ -802,3 +802,17 @@ Work Log:
 Stage Summary:
 - v1.6 is live in production on forge-studio-green.vercel.app.
 - Security: the GitHub token was pasted in plaintext chat — rotate it after use.
+---
+Task ID: 11
+Agent: Super Z (main agent, sandbox)
+Task: Session continuation — provide English translation of the task summary, then verify the true project state after context handoff.
+
+Work Log:
+- Translated the Chinese task summary to English for the user (the carried-over summary was stale: it said "no port code written, start Phase 0").
+- Cross-checked the worklog + git: all 8 ported priorities were already completed, committed (b47fda1..4b294c7) and pushed; local main sits at c83ea6a (worklog-only commit on top).
+- git status: 45 files show as modified with 0 insertions/0 deletions — file-mode noise only, no content changes pending.
+- Live probes: forge-studio-green.vercel.app — / 200, /p/vertex 200, /api/export/css 200 and the stylesheet contains all v21 visual-layer classes (lf-marquee-track, lf-anim, lf-brand-font, lf-label-badge, lf-glow).
+
+Stage Summary:
+- v1.6.0 remains fully deployed and healthy in production. No porting work is outstanding; the correct status is "done" — not "Phase 0 pending".
+- Outstanding user actions: rotate the GitHub token (pasted in plaintext), optional Turso/Postgres migration, OG-builder retirement as a future phase.
