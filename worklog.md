@@ -685,3 +685,17 @@ Stage Summary:
 - Zero emojis in the shipped UI: everything resolves through the Lucide icon bank, with legacy-config fallback.
 - App/export CSS parity restored (globals.css is again the single source; export.css regenerated from it).
 - The demo "Vertex" project was upgraded in-place to showcase the new narrative arc (16 sections).
+---
+Task ID: 4
+Agent: Super Z (main agent, sandbox)
+Task: Push the v21 visual-layer port to GitHub and verify the Vercel production deployment.
+
+Work Log:
+- Pushed main (7832c87..fb18816) with the user-provided GitHub token — remote verified at fb188163e1654ae456acc0265d6b88025076c063.
+- Vercel auto-deploy triggered by the push: GitHub combined status "Vercel → success" (deployment HGbtFf5BcfF58WMnF3cuW7kPjeBW, Production).
+- Live probe: https://forge-studio-green.vercel.app/ → 200, serves Forge Studio; /p/vertex → 200 (client-shell fall-through is the documented serverless behavior — the fresh deployment's per-instance SQLite is empty until the Sites first-run bootstrap creates the demo site).
+- The earlier vcp_… Vercel token from the prior session is no longer valid (CLI rejects it) — not needed anyway; repo-connected auto-deploy handles releases.
+
+Stage Summary:
+- fb18816 is live in production on Vercel.
+- Security note: the GitHub token was pasted in plaintext chat — recommended rotating it after use.
