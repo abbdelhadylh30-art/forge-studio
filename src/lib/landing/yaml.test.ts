@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { configToYaml, yamlToConfig, normalizeConfig } from "./yaml"
+import { auditConfig } from "./readiness"
 import type { ContactSection, LandingConfig, Section } from "./types"
 import { createSection } from "./defaults"
 
@@ -254,5 +255,39 @@ describe("contact form delivery (inbox / sheets / embed)", () => {
     if (c.type !== "contact") throw new Error("expected contact")
     expect(c.delivery).toBeUndefined()
     expect(c.sheetWebhookUrl).toBeUndefined()
+  })
+})
+
+describe("readiness export checks", () => {
+  it("audits contact delivery per mode + consent gating + og image", () => {
+    const contact = createSection("contact") as ContactSection
+    const cfg = configWith([contact, createSection("hero")])
+    // inbox + email → warn (mailto fallback works)
+    contact.email = "hi@example.com"
+    let report = auditConfig(cfg)
+    const inboxCheck = report.checks.find((c) => c.id === "export-form")
+    expect(inboxCheck?.category).toBe("export")
+    expect(inboxCheck?.level).toBe("warn")
+    // sheets + valid webhook → pass
+    contact.delivery = "sheets"
+    contact.sheetWebhookUrl = "https://script.google.com/macros/s/X/exec"
+    report = auditConfig(cfg)
+    expect(report.checks.find((c) => c.id === "export-form")?.level).toBe("pass")
+    // sheets + missing webhook → fail
+    contact.sheetWebhookUrl = undefined
+    report = auditConfig(cfg)
+    expect(report.checks.find((c) => c.id === "export-form")?.level).toBe("fail")
+    // consent-gated scripts → pass; ungated → warn
+    cfg.tracking = { headScripts: "<script>ga()</script>", bodyScripts: "" }
+    report = auditConfig(cfg)
+    expect(report.checks.find((c) => c.id === "export-scripts")?.level).toBe("warn")
+    cfg.legal = { cookieConsent: { enabled: true, message: "ok", acceptLabel: "Accept", declineLabel: "Decline", position: "bottom" } }
+    report = auditConfig(cfg)
+    expect(report.checks.find((c) => c.id === "export-scripts")?.level).toBe("pass")
+    // no og image + no hero image → warn
+    expect(report.checks.find((c) => c.id === "export-og")?.level).toBe("warn")
+    // every check still feeds a score in 0-100
+    expect(report.score).toBeGreaterThanOrEqual(0)
+    expect(report.score).toBeLessThanOrEqual(100)
   })
 })

@@ -741,3 +741,20 @@ Work Log:
 
 Stage Summary:
 - GDPR-style consent flow shipped end-to-end (studio config → published page → standalone export) with translation support; built-in analytics explicitly documented as cookie-free/always-on.
+
+---
+Task ID: 7 (Phase 3)
+Agent: Super Z (main agent, sandbox)
+Task: Phase 3 — Priority 7: Google Sheets webhook as an optional contact-form target (+ Google Form embed + export mailto fallback), v21 parity, same quality bar.
+
+Work Log:
+- types: ContactSection.delivery ("inbox" | "sheets" | "embed", unset = inbox legacy-safe) + sheetWebhookUrl + googleFormUrl; yaml validators keep URLs only in their matching mode.
+- Contact.tsx: embed mode renders a themed iframe (auto embedded=true for docs.google.com viewform URLs, 640px, ExternalLink footnote, placeholder card without a URL); sheets mode keeps the form but swaps the submit icon to Lucide Sheet; form now emits data-lf-contact-form / data-lf-webhook / data-lf-mailto / data-lf-sent-label for the vanilla export.
+- PublishedPage: sheets submissions POST no-cors (text/plain, no preflight) to the Apps Script Web App AND mirror into /api/leads — dashboard inbox keeps working; toast says "Saved to your Google Sheet — and the leads inbox."
+- Export: INTERACTIVE_SCRIPT gained a contact-form block — webhook POST with the field labels harvested from the markup, mailto fallback (prefilled subject/body) for inbox-only exports, "Message sent — …" button feedback + form.reset().
+- Studio: Delivery group in the Contact editor — mode select, webhook URL, collapsible 6-step Apps Script setup guide (dynamic-field snippet, copy button), Google Form URL, inbox explanation.
+- QA: tsc clean, eslint clean, vitest 192/192 (+3).
+- E2E (agent-browser): added a Contact section to the demo; switched to sheets with an httpbin webhook — published page submit fired BOTH POSTs (webhook 200 + /api/leads 200); exported blob carried data-lf-webhook and its vanilla submit posted to the webhook with "Message sent — saved to your Sheet" + reset; embed mode rendered the iframe with embedded=true appended; demo reset to inbox afterwards.
+
+Stage Summary:
+- Forms now deliver three ways (inbox / Sheet / embedded Google Form) with honest standalone-HTML behavior (webhook or mailto) — no dead forms in exports anymore.

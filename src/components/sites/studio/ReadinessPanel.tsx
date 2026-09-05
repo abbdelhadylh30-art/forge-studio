@@ -52,6 +52,7 @@ const CATEGORY_LABEL: Record<ReadinessCheck["category"], string> = {
   structure: "Page structure",
   seo: "SEO",
   conversion: "Conversion",
+  export: "Standalone export",
 }
 
 /** Score ring (SVG) — animated stroke + centered number/grade. */
@@ -127,8 +128,8 @@ export function ReadinessDialog() {
   const report = React.useMemo(() => auditConfig(config), [config])
 
   const grouped = React.useMemo(() => {
-    const order: ReadinessCheck["category"][] = ["structure", "seo", "conversion"]
-    return order.map((cat) => ({ cat, items: report.checks.filter((c) => c.category === cat) }))
+    const order: ReadinessCheck["category"][] = ["structure", "seo", "conversion", "export"]
+    return order.map((cat) => ({ cat, items: report.checks.filter((c) => c.category === cat) })).filter((g) => g.items.length > 0)
   }, [report])
 
   const onFix = (check: ReadinessCheck) => {
@@ -161,7 +162,7 @@ export function ReadinessDialog() {
                 <Gauge className="h-4 w-4 text-violet-300" /> Landing readiness
               </DialogTitle>
               <DialogDescription className="mt-0.5 text-[12px] text-zinc-500">
-                Launch audit — structure, SEO and conversion essentials. Click a check to jump to the fix.
+                Launch audit — structure, SEO, conversion essentials and what the standalone HTML export will do. Click a check to jump to the fix.
               </DialogDescription>
             </div>
             <button

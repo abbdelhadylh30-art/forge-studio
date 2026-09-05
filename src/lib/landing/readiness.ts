@@ -6,7 +6,7 @@ export type ReadinessLevel = "pass" | "warn" | "fail"
 
 export interface ReadinessCheck {
   id: string
-  category: "structure" | "seo" | "conversion"
+  category: "structure" | "seo" | "conversion" | "export"
   label: string
   detail: string
   level: ReadinessLevel
@@ -38,6 +38,20 @@ const DESC_MIN = 70
 const DESC_MAX = 160
 const HEADLINE_MIN = 20
 const HEADLINE_MAX = 90
+
+/** Share-image presence (mirrors the export's og:image fallback chain —
+ *  explicit ogImage → hero image → gallery image; placeholder art excluded). */
+function pickShareImageLike(config: LandingConfig): string | null {
+  if (config.seo?.ogImage) return config.seo.ogImage
+  const hero = config.sections.find((s) => s.type === "hero")
+  if (hero && hero.type === "hero" && hero.image && /^https?:/.test(hero.image)) return hero.image
+  const gallery = config.sections.find((s) => s.type === "gallery")
+  if (gallery && gallery.type === "gallery") {
+    const img = gallery.items?.find((i) => i.src && /^https?:/.test(i.src))
+    if (img?.src) return img.src
+  }
+  return null
+}
 
 /**
  * Audit a landing config for launch readiness — structure, SEO and conversion
@@ -349,6 +363,154 @@ export function auditConfig(config: LandingConfig): ReadinessReport {
     label: "Brand name",
     detail: config.brand.name.trim() ? `“${config.brand.name}” is set.` : "Brand name is empty.",
     level: config.brand.name.trim() ? "pass" : "fail",
+    weight: 2,
+  })
+
+  // ── Standalone export — what the single HTML file will and won't do ────────
+  if (contact) {
+    const c = contact as { delivery?: string; sheetWebhookUrl?: string; googleFormUrl?: string; email?: string }
+    const delivery = c.delivery ?? "inbox"
+    if (delivery === "sheets") {
+      const hookOk = Boolean(c.sheetWebhookUrl && /^https:\/\//i.test(c.sheetWebhookUrl))
+      checks.push({
+        id: "export-form",
+        category: "export",
+        label: "Export form → Google Sheet",
+        detail: hookOk
+          ? "Submissions POST straight to your Apps Script webhook — works from any host."
+          : "Sheets delivery without a webhook URL — the exported form would be dead. Paste the Web App URL.",
+        level: hookOk ? "pass" : "fail",
+        weight: 4,
+        selectSectionId: contact.id,
+      })
+    } else if (delivery === "embed") {
+      const embedOk = Boolean(c.googleFormUrl && /^https:\/\//i.test(c.googleFormUrl))
+      checks.push({
+        id: "export-form",
+        category: "export",
+        label: "Export form → embedded Google Form",
+        detail: embedOk
+          ? "The frame handles its own submissions — fully self-contained in the export."
+          : "Embed mode without a form URL — add it or the section ships as a placeholder card.",
+        level: embedOk ? "pass" : "fail",
+        weight: 4,
+        selectSectionId: contact.id,
+      })
+    } else {
+      const mailtoOk = Boolean(c.email)
+      checks.push({
+        id: "export-form",
+        category: "export",
+        label: "Export form delivery",
+        detail: mailtoOk
+          ? `No backend in a standalone file — submissions open the visitor's mail app as a prefilled draft to ${c.email}. Set a Sheet webhook for silent capture.`
+          : "Inbox-only delivery with no contact email — the exported form has nowhere to go. Set a webhook, an embedded form, or an email.",
+        level: mailtoOk ? "warn" : "fail",
+        weight: 4,
+        selectSectionId: contact.id,
+      })
+    }
+  }
+
+  if (announcement) {
+    const a = announcement as { style?: string; deadline?: string }
+    if (a.style === "countdown") {
+      const deadlineOk = Boolean(a.deadline && !Number.isNaN(Date.parse(a.deadline)))
+      checks.push({
+        id: "export-countdown",
+        category: "export",
+        label: "Countdown in the export",
+        detail: deadlineOk
+          ? "The timer ticks live in the exported file — same vanilla engine as the app."
+          : "Countdown style without a valid deadline — the exported bar renders static.",
+        level: deadlineOk ? "pass" : "warn",
+        weight: 2,
+        selectSectionId: announcement.id,
+      })
+    }
+  }
+
+  const interactiveGallery = visible.find(
+    (s) => (s.type === "gallery" && (s.style === "slider" || s.style === "stories")) || s.type === "faq" || s.type === "testimonials",
+  )
+  if (interactiveGallery) {
+    checks.push({
+      id: "export-interactive",
+      category: "export",
+      label: "Interactive blocks stay alive",
+      detail:
+        interactiveGallery.type === "gallery"
+          ? "Gallery slider/stories keep their gestures + progress rail — pure vanilla JS in the file."
+          : "FAQ accordion / testimonial interactions run from the inlined script — no framework shipped.",
+      level: "pass",
+      weight: 2,
+      selectSectionId: interactiveGallery.id,
+    })
+  }
+
+  {
+    const locales = config.i18n?.locales?.length ?? 1
+    checks.push({
+      id: "export-locale",
+      category: "export",
+      label: "Locale in the export",
+      detail:
+        locales > 1
+          ? `${locales} locales configured — each export ships ONE at a time (pick it in the dialog). The published page keeps the live switcher.`
+          : "Single locale — the export matches the published page exactly.",
+      level: locales > 1 ? "warn" : "pass",
+      weight: 2,
+    })
+  }
+
+  {
+    const hasWebfont = Boolean(config.brand.font?.startsWith("g-"))
+    checks.push({
+      id: "export-fonts",
+      category: "export",
+      label: "Fonts in the export",
+      detail: hasWebfont
+        ? "Webfont pair streams from Google Fonts with preconnects — same face as the studio, system stack as offline fallback."
+        : "System font stack — zero network requests, renders identically everywhere.",
+      level: "pass",
+      weight: 1,
+    })
+  }
+
+  {
+    const scripts = Boolean(config.tracking?.headScripts?.trim() || config.tracking?.bodyScripts?.trim())
+    const banner = config.legal?.cookieConsent?.enabled === true
+    if (scripts) {
+      checks.push({
+        id: "export-scripts",
+        category: "export",
+        label: "Custom scripts in the export",
+        detail: banner
+          ? "GA4/Pixel/chat tags ship consent-gated — they only run after the visitor accepts."
+          : "Custom tags inject immediately on load — no consent banner is enabled (GDPR caution).",
+        level: banner ? "pass" : "warn",
+        weight: 3,
+      })
+    } else if (banner) {
+      checks.push({
+        id: "export-scripts",
+        category: "export",
+        label: "Consent banner in the export",
+        detail: "The banner ships hidden and reveals via script — JS-off visitors see no banner and load no scripts.",
+        level: "pass",
+        weight: 2,
+      })
+    }
+  }
+
+  checks.push({
+    id: "export-og",
+    category: "export",
+    label: "Social share image",
+    detail: pickShareImageLike(config)
+      ? "og:image/Twitter card ship — link previews render with artwork."
+      : "No social image set — link previews stay text-only. Set one in Page → SEO (hero images work too).",
+    level: pickShareImageLike(config) ? "pass" : "warn",
     weight: 2,
   })
 
