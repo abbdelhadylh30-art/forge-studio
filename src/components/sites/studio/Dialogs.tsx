@@ -431,7 +431,8 @@ export function AiImproveDialog() {
 // ── Theme fine-tuning (P5) ─────────────────────────────────────────────────────
 
 import { Slider } from "@/components/ui/slider"
-import { RotateCcw, SlidersHorizontal } from "lucide-react"
+import { Camera, History, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react"
+import { deleteSnapshot, describeAge, listSnapshots, MAX_SNAPSHOT_SLOTS, saveSnapshot, type SiteSnapshot } from "@/lib/landing/snapshots"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ThemeTweaks } from "@/lib/landing/types"
 
@@ -588,6 +589,151 @@ export function ThemeTweaksDialog() {
               Done
             </Button>
           </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Version snapshots — named save-points (5 slots) on top of undo/redo.
+ *  Restore flows through setConfig so ⌘Z still brings the working state back. */
+export function SnapshotsDialog() {
+  const { open, onOpenChange } = useUiDialog("snapshots")
+  const project = useForge((s) => s.project)
+  const config = useForge((s) => s.config)
+  const setConfig = useForge((s) => s.setConfig)
+  const [snapshots, setSnapshots] = React.useState<SiteSnapshot[]>([])
+  const [name, setName] = React.useState("")
+  const nameInput = React.useRef<HTMLInputElement | null>(null)
+
+  // refresh the slot list whenever the dialog (re)opens
+  React.useEffect(() => {
+    if (open) setSnapshots(project.id ? listSnapshots(project.id) : [])
+  }, [open, project.id])
+
+  const save = () => {
+    if (!project.id) return
+    const snap = saveSnapshot(project.id, name, config)
+    if (!snap) {
+      toast.error("Name the snapshot first", { description: "A short label like “Before pricing rework” works best." })
+      nameInput.current?.focus()
+      return
+    }
+    setName("")
+    setSnapshots(listSnapshots(project.id))
+    toast.success(`Snapshot “${snap.name}” saved`, {
+      description: `${snap.config.sections.length} sections captured — restore any time from this dialog.`,
+    })
+  }
+
+  const restore = (snap: SiteSnapshot) => {
+    setConfig(snap.config)
+    toast.success(`Restored “${snap.name}”`, { description: "Undo (⌘Z) brings back the state you just left." })
+  }
+
+  const remove = (snap: SiteSnapshot) => {
+    if (!project.id) return
+    deleteSnapshot(project.id, snap.id)
+    setSnapshots(listSnapshots(project.id))
+    toast.info(`Snapshot “${snap.name}” deleted`)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md border-zinc-800 bg-zinc-950">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-zinc-100">
+            <History className="h-4 w-4 text-violet-300" /> Version snapshots
+          </DialogTitle>
+          <DialogDescription className="text-zinc-400">
+            Named save-points alongside the 60-step undo history. {MAX_SNAPSHOT_SLOTS} slots per project — re-saving a
+            name overwrites it, a full roster retires the oldest.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* save row */}
+        <div className="flex items-center gap-2">
+          <Input
+            ref={nameInput}
+            value={name}
+            onChange={(e) => setName(e.target.value.slice(0, 60))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                save()
+              }
+            }}
+            placeholder="Snapshot name — e.g. Before hero rework"
+            aria-label="Snapshot name"
+            className="h-8 border-zinc-800 bg-zinc-900 text-[12px] text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-violet-500/60"
+          />
+          <Button
+            size="sm"
+            className="h-8 shrink-0 gap-1.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-[11px] text-white hover:from-violet-600 hover:to-fuchsia-600"
+            onClick={save}
+            disabled={!project.id}
+          >
+            <Camera className="h-3 w-3" /> Save
+          </Button>
+        </div>
+
+        {/* slots */}
+        <div className="max-h-[46vh] space-y-2 overflow-y-auto pr-1">
+          {snapshots.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/40 p-6 text-center">
+              <Camera className="h-5 w-5 text-zinc-600" aria-hidden />
+              <p className="text-[12px] font-semibold text-zinc-300">No snapshots yet</p>
+              <p className="max-w-[260px] text-[10px] leading-relaxed text-zinc-500">
+                Name the current state above — useful before a big theme switch, copy rewrite, or restructuring.
+              </p>
+            </div>
+          ) : (
+            snapshots.map((snap) => (
+              <div
+                key={snap.id}
+                className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 transition-colors hover:border-violet-500/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-semibold text-zinc-100">{snap.name}</p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-zinc-500">
+                    <span>{describeAge(snap.savedAt)}</span>
+                    <span aria-hidden>·</span>
+                    <span>
+                      {snap.config.sections.length} section{snap.config.sections.length === 1 ? "" : "s"}
+                    </span>
+                    <span aria-hidden>·</span>
+                    <span className="truncate">{getTheme(snap.config.themeId).name}</span>
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 shrink-0 gap-1.5 border-zinc-700 bg-zinc-950 text-[11px] text-zinc-300 hover:border-violet-500/60 hover:text-violet-200"
+                  onClick={() => restore(snap)}
+                >
+                  <RotateCcw className="h-3 w-3" /> Restore
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 text-zinc-500 hover:text-rose-300"
+                  aria-label={`Delete snapshot ${snap.name}`}
+                  onClick={() => remove(snap)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+
+        <DialogFooter className="items-center !justify-between sm:!justify-between">
+          <p className="text-[11px] text-zinc-500">
+            {snapshots.length}/{MAX_SNAPSHOT_SLOTS} slots used — stored locally per project
+          </p>
+          <Button size="sm" className="h-7 bg-violet-500 text-[11px] text-white hover:bg-violet-600" onClick={() => onOpenChange(false)}>
+            Done
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

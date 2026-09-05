@@ -1,0 +1,34 @@
+brand:
+  name: CarouselQA
+  tagline: v1.9 feature matrix
+  faviconUrl: "https://example.com/favicon.png"
+theme: nebula
+seo:
+  title: CarouselQA - v1.9
+  description: Hero carousel, favicon, keywords, form success + redirect.
+  keywords: "landing page, carousel, e2e"
+sections:
+  - type: navbar
+  - type: hero
+    layout: split-right
+    headline: Hero carousel live
+    sub: Three slides, zoom transition, 3s auto-advance.
+    image: "https://picsum.photos/seed/lf-qa-1/1440/768"
+    images:
+      - "https://picsum.photos/seed/lf-qa-2/1440/768"
+      - "https://picsum.photos/seed/lf-qa-3/1440/768"
+    carousel: zoom
+    carouselInterval: 3
+    cta:
+      label: See it spin
+      href: "#cta"
+  - type: contact
+    title: Talk to us
+    email: qa@example.com
+    fields:
+      - "Your name"
+      - "Email address"
+      - "Message"
+    submitLabel: Send it
+    successMessage: "Thanks - the QA team got it"
+    redirectUrl: "/downloads"

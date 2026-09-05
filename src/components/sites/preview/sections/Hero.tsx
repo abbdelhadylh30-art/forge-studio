@@ -1,5 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
 import type { HeroSection } from "@/lib/landing/types"
 
 import { cn } from "@/lib/utils"
@@ -169,6 +172,94 @@ function HeroMock({ brandName }: { brandName: string }) {
           </span>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Auto-rotating hero image carousel — stacked slides, one class contract
+ *  (.lf-cs / .lf-cs-on) shared with the vanilla export script so the static
+ *  HTML animates identically (fade / zoom / slide / flip via [data-lf-anim]). */
+function HeroCarousel({
+  images,
+  anim,
+  interval,
+  alt,
+}: {
+  images: string[]
+  anim: string
+  interval: number
+  alt: string
+}) {
+  const [active, setActive] = useState(0)
+  const count = images.length
+  const activeIdx = Math.min(active, Math.max(count - 1, 0))
+  const go = (i: number) => setActive(((i % count) + count) % count)
+
+  useEffect(() => {
+    if (interval <= 0 || count < 2) return
+    const t = setInterval(() => setActive((a) => (a + 1) % count), interval * 1000)
+    return () => clearInterval(t)
+  }, [interval, count])
+
+  return (
+    <div className="relative" data-lf-carousel data-lf-anim={anim} data-lf-interval={interval}>
+      <div
+        className="lf-cs-frame aspect-video overflow-hidden rounded-2xl border"
+        style={{ borderColor: "var(--lf-border)", boxShadow: "0 36px 70px -36px rgba(0,0,0,0.35)" }}
+      >
+        {images.map((src, i) => (
+          <div key={`${src.slice(-24)}-${i}`} data-lf-carousel-slide className={cn("lf-cs", i === activeIdx && "lf-cs-on")}>
+            <img
+              src={src}
+              alt={i === 0 ? alt : `${alt} — slide ${i + 1}`}
+              loading={i === 0 ? undefined : "lazy"}
+              className="size-full object-cover"
+            />
+          </div>
+        ))}
+      </div>
+
+      {count > 1 ? (
+        <>
+          <button
+            type="button"
+            aria-label="Previous slide"
+            data-lf-prev
+            onClick={() => go(activeIdx - 1)}
+            className="absolute left-3 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border shadow-lg transition-colors hover:[border-color:var(--lf-accent)]"
+            style={{ background: "var(--lf-bg)", borderColor: "var(--lf-border)", color: "var(--lf-text)" }}
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next slide"
+            data-lf-next
+            onClick={() => go(activeIdx + 1)}
+            className="absolute right-3 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border shadow-lg transition-colors hover:[border-color:var(--lf-accent)]"
+            style={{ background: "var(--lf-bg)", borderColor: "var(--lf-border)", color: "var(--lf-text)" }}
+          >
+            <ChevronRight className="size-4" />
+          </button>
+          <div className="mt-4 flex items-center justify-center gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                data-lf-dot
+                aria-label={`Go to slide ${i + 1}`}
+                aria-current={i === activeIdx}
+                onClick={() => go(i)}
+                className="h-1.5 rounded-full transition-all duration-200"
+                style={{
+                  width: i === activeIdx ? 20 : 6,
+                  background: i === activeIdx ? "var(--lf-accent)" : "var(--lf-border)",
+                }}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }
@@ -536,16 +627,32 @@ export function Hero({ section, brandName, abOverride, onCtaClick }: HeroProps) 
     </div>
   )
 
-  const visual = hasImage ? (
-    <div
-      className="overflow-hidden rounded-2xl border"
-      style={{ borderColor: "var(--lf-border)", boxShadow: "0 36px 70px -36px rgba(0,0,0,0.35)" }}
-    >
-      <img src={section.image} alt={headline} className="aspect-video w-full object-cover" />
-    </div>
-  ) : (
-    <HeroMock brandName={brandName} />
-  )
+  const visual = (() => {
+    // carousel: hero.image (slide 1) + images[] extras — 2+ total activates rotation
+    const extras = (section.images ?? []).map((s) => (s ?? "").trim()).filter(Boolean)
+    const slides = hasImage ? [section.image!.trim(), ...extras] : extras
+    if (slides.length >= 2) {
+      return (
+        <HeroCarousel
+          images={slides}
+          anim={section.carousel ?? "fade"}
+          interval={section.carouselInterval ?? 5}
+          alt={headline}
+        />
+      )
+    }
+    if (hasImage) {
+      return (
+        <div
+          className="overflow-hidden rounded-2xl border"
+          style={{ borderColor: "var(--lf-border)", boxShadow: "0 36px 70px -36px rgba(0,0,0,0.35)" }}
+        >
+          <img src={section.image} alt={headline} className="aspect-video w-full object-cover" />
+        </div>
+      )
+    }
+    return <HeroMock brandName={brandName} />
+  })()
 
   if (layout === "center") {
     return (

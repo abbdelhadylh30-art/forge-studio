@@ -15,6 +15,7 @@ export type DialogId =
   | "deploy"
   | "readiness"
   | "theme-tweaks"
+  | "snapshots"
   | "shortcuts"
   | null
 

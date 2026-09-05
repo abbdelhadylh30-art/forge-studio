@@ -104,6 +104,13 @@ export interface HeroSection {
   cta: Cta
   secondaryCta?: Cta
   image?: string // url or empty
+  /** extra carousel slides (slide 2..n) — with 2+ total images the hero
+   *  visual becomes an auto-rotating carousel (image stays slide 1) */
+  images?: string[]
+  /** carousel transition style (unset = fade) */
+  carousel?: "slide" | "fade" | "zoom" | "flip"
+  /** seconds per slide; 0 = manual only (arrows + dots). unset = 5 */
+  carouselInterval?: number
   /** background video for the "video" layout (mp4/webm URL or empty) */
   videoUrl?: string
   stats?: { value: string; label: string }[]
@@ -254,6 +261,10 @@ export interface ContactSection {
   submitLabel: string
   /** layout — unset = "split" (copy + details left, form right; legacy look) */
   style?: "split" | "centered" | "sidebar"
+  /** custom success message (default "Message sent") */
+  successMessage?: string
+  /** URL to open after a successful submit — https:// or a relative path */
+  redirectUrl?: string
   /** delivery mode — unset = "inbox" (legacy configs stay identical) */
   delivery?: ContactDelivery
   /** Google Apps Script Web App URL (sheets mode) — POSTed no-cors on submit */
@@ -612,6 +623,8 @@ export interface LandingConfig {
     tagline?: string
     /** brand logo shown in the navbar / footer (URL — upload, library or AI) */
     logoUrl?: string
+    /** custom favicon — tab icon on the published page + HTML export */
+    faviconUrl?: string
     /** custom accent hex — overrides the theme's accent (and derived tints) */
     accent?: string
     /** curated display/body font pair id (see FONT_PAIRS) */
@@ -637,6 +650,8 @@ export interface LandingConfig {
     noIndex?: boolean
     /** explicit social-share image URL — falls back to hero/gallery imagery */
     ogImage?: string
+    /** comma-separated meta keywords — emitted in the published page + export */
+    keywords?: string
   }
   sections: Section[]
 }

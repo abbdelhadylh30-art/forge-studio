@@ -33,6 +33,8 @@ export function Contact({ section, onFormSubmit }: ContactProps) {
 
   const delivery = section.delivery ?? "inbox"
   const style = section.style ?? "split"
+  const successMessage = section.successMessage?.trim() || "Message sent"
+  const redirectUrl = section.redirectUrl?.trim() || ""
 
   const setValue = (field: string, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }))
@@ -51,10 +53,17 @@ export function Contact({ section, onFormSubmit }: ContactProps) {
 
     onFormSubmit?.({ ...values })
     setStatus("success")
-    timerRef.current = setTimeout(() => {
-      setStatus("idle")
-      setValues({})
-    }, 2500)
+    if (redirectUrl) {
+      // let the success state paint, then hand off to the thank-you page
+      timerRef.current = setTimeout(() => {
+        window.location.href = redirectUrl
+      }, 900)
+    } else {
+      timerRef.current = setTimeout(() => {
+        setStatus("idle")
+        setValues({})
+      }, 2500)
+    }
   }
 
   // ── embed mode: iframe a Google Form (submissions flow through Google) ──
@@ -110,7 +119,8 @@ export function Contact({ section, onFormSubmit }: ContactProps) {
       data-lf-contact-form
       data-lf-webhook={delivery === "sheets" ? section.sheetWebhookUrl || "" : ""}
       data-lf-mailto={section.email || ""}
-      data-lf-sent-label="Message sent"
+      data-lf-sent-label={successMessage}
+      data-lf-redirect={redirectUrl}
       className="rounded-2xl border p-6 md:p-7"
       style={{ background: "var(--lf-surface)", borderColor: "var(--lf-border)" }}
     >
@@ -173,7 +183,8 @@ export function Contact({ section, onFormSubmit }: ContactProps) {
         {status === "success" ? (
           <>
             <Check className="size-4" />
-            Message sent{delivery === "sheets" ? " — saved to your Sheet" : ""}
+            {successMessage}
+            {delivery === "sheets" && !section.successMessage ? " — saved to your Sheet" : ""}
           </>
         ) : (
           <>

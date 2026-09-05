@@ -73,6 +73,25 @@ export function normalizeConfig(input: unknown): LandingConfig {
       const vu = typeof rs.videoUrl === "string" ? rs.videoUrl.trim() : ""
       if (vu) merged.videoUrl = vu.slice(0, 500)
       else delete merged.videoUrl
+      // carousel: extra slides + transition + interval (2+ total images activates it)
+      const extra = Array.isArray(rs.images)
+        ? rs.images.map((x) => String(x ?? "").trim()).filter(Boolean).slice(0, 6)
+        : []
+      if (extra.length >= 1) (merged as Record<string, unknown>).images = extra
+      else delete (merged as Record<string, unknown>).images
+      // transition + interval are meaningless without extra slides — drop them
+      const car = extra.length >= 1 ? rs.carousel : undefined
+      if (car === "slide" || car === "fade" || car === "zoom" || car === "flip") {
+        ;(merged as Record<string, unknown>).carousel = car
+      } else delete (merged as Record<string, unknown>).carousel
+      const ci =
+        extra.length >= 1
+          ? typeof rs.carouselInterval === "number"
+            ? rs.carouselInterval
+            : parseInt(String(rs.carouselInterval ?? ""), 10)
+          : NaN
+      if (Number.isFinite(ci)) (merged as Record<string, unknown>).carouselInterval = Math.min(15, Math.max(0, Math.round(ci)))
+      else delete (merged as Record<string, unknown>).carouselInterval
       // sticky mobile CTA: boolean opt-out (default ON — only `false` sticks)
       if (rs.stickyCta === false) merged.stickyCta = false
       else delete merged.stickyCta
@@ -235,6 +254,8 @@ export function normalizeConfig(input: unknown): LandingConfig {
         fields: string[]
         submitLabel: string
         style?: "split" | "centered" | "sidebar"
+        successMessage?: string
+        redirectUrl?: string
         delivery?: "inbox" | "sheets" | "embed"
         sheetWebhookUrl?: string
         googleFormUrl?: string
@@ -244,6 +265,13 @@ export function normalizeConfig(input: unknown): LandingConfig {
       c.submitLabel = String(c.submitLabel ?? "Send message")
       // layout — unset = "split" (the legacy two-column look)
       c.style = rs.style === "centered" || rs.style === "sidebar" ? rs.style : "split"
+      // success message + post-submit redirect (https:// or leading-/ relative)
+      const sm = typeof rs.successMessage === "string" ? rs.successMessage.trim() : ""
+      if (sm) c.successMessage = sm.slice(0, 120)
+      else delete c.successMessage
+      const ru = typeof rs.redirectUrl === "string" ? rs.redirectUrl.trim() : ""
+      if (ru && (/^https?:\/\//i.test(ru) || ru.startsWith("/"))) c.redirectUrl = ru.slice(0, 500)
+      else delete c.redirectUrl
       // delivery mode (unset = inbox, legacy-safe) + validated URLs
       const dv = rs.delivery
       c.delivery = dv === "inbox" || dv === "sheets" || dv === "embed" ? dv : undefined
@@ -311,6 +339,8 @@ export function normalizeConfig(input: unknown): LandingConfig {
   const brandOut: LandingConfig["brand"] = { name, tagline: String(brand.tagline ?? "") }
   const logoUrl = typeof brand.logoUrl === "string" ? brand.logoUrl.trim() : ""
   if (logoUrl) brandOut.logoUrl = logoUrl
+  const faviconUrl = typeof brand.faviconUrl === "string" ? brand.faviconUrl.trim() : ""
+  if (faviconUrl) brandOut.faviconUrl = faviconUrl.slice(0, 500)
   const accent = typeof brand.accent === "string" ? brand.accent.trim() : ""
   if (isValidAccent(accent)) brandOut.accent = accent.startsWith("#") ? accent : `#${accent}`
   if (typeof brand.font === "string" && isFontPairId(brand.font)) brandOut.font = brand.font
@@ -338,6 +368,8 @@ export function normalizeConfig(input: unknown): LandingConfig {
   if (seo.noIndex === true) seoOut.noIndex = true
   const ogImage = typeof seo.ogImage === "string" ? seo.ogImage.trim() : ""
   if (ogImage) seoOut.ogImage = ogImage.slice(0, 400)
+  const keywords = typeof seo.keywords === "string" ? seo.keywords.trim() : ""
+  if (keywords) seoOut.keywords = keywords.slice(0, 400)
 
   const out: LandingConfig = {
     version: 1,
@@ -561,6 +593,7 @@ export function configToYaml(config: LandingConfig): string {
       name: config.brand.name,
       tagline: config.brand.tagline || undefined,
       logoUrl: config.brand.logoUrl || undefined,
+      faviconUrl: config.brand.faviconUrl || undefined,
       accent: config.brand.accent || undefined,
       font: config.brand.font || undefined,
       mode: config.brand.mode || undefined,

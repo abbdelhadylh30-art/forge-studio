@@ -16,7 +16,7 @@ import { AddSectionDialog } from "@/components/sites/studio/AddSectionDialog"
 import { useSaveProject } from "@/components/sites/studio/useSaveProject"
 import { CommandPalette, ShortcutsDialog } from "@/components/sites/studio/CommandPalette"
 import { ReadinessDialog } from "@/components/sites/studio/ReadinessPanel"
-import { AiGenerateDialog, AiImproveDialog, ExportYamlDialog, ImportYamlDialog, ExportHtmlDialog, ThemeTweaksDialog } from "@/components/sites/studio/Dialogs"
+import { AiGenerateDialog, AiImproveDialog, ExportYamlDialog, ImportYamlDialog, ExportHtmlDialog, ThemeTweaksDialog, SnapshotsDialog } from "@/components/sites/studio/Dialogs"
 import { DeployDialog } from "@/components/sites/studio/DeployDialog"
 import { ImageLibraryDialog } from "@/components/sites/studio/ImageLibraryDialog"
 import { ConnectionGuard } from "@/components/sites/shared/ConnectionGuard"
@@ -204,7 +204,7 @@ export function SitesApp() {
               <span className="text-zinc-600">/ 100</span>
             </button>
           )}
-          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v1.5</span>
+          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v1.9</span>
           <Link
             href="https://github.com/abbdelhadylh30-art/forge-studio"
             target="_blank"
@@ -247,6 +247,7 @@ export function SitesApp() {
       <DeployDialog />
       <ReadinessDialog />
       <ThemeTweaksDialog />
+      <SnapshotsDialog />
       <ShortcutsDialog />
       <CommandPalette />
 

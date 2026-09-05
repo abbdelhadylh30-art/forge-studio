@@ -575,3 +575,21 @@
   .lf-anim { opacity: 1 !important; }
   .lf-anim.lf-in { animation: none !important; }
 }
+
+/* ── hero carousel (preview + export parity) ─────────────────────────────────
+   Stacked slides; the engine (React useState or the vanilla export script)
+   toggles .lf-cs-on on the active slide. One class contract, four looks:
+   fade / zoom / slide / flip — set via [data-lf-anim] on the root. */
+.lf-cs-frame { position: relative; perspective: 1200px; }
+.lf-cs { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .8s ease, transform .8s cubic-bezier(.22,1,.36,1), visibility 0s linear .8s; will-change: transform, opacity; }
+.lf-cs.lf-cs-on { opacity: 1; visibility: visible; transition-delay: 0s; }
+[data-lf-anim="fade"]  .lf-cs { transform: none; }
+[data-lf-anim="zoom"]  .lf-cs { transform: scale(1.1); }
+[data-lf-anim="zoom"]  .lf-cs.lf-cs-on { transform: scale(1); }
+[data-lf-anim="slide"] .lf-cs { transform: translateX(14%); }
+[data-lf-anim="slide"] .lf-cs.lf-cs-on { transform: translateX(0); }
+[data-lf-anim="flip"]  .lf-cs { transform: rotateY(-55deg) translateZ(-60px); transform-origin: left center; }
+[data-lf-anim="flip"]  .lf-cs.lf-cs-on { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .lf-cs { transition: none !important; }
+}

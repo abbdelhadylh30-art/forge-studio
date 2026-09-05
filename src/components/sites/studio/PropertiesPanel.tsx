@@ -794,6 +794,77 @@ function HeroEditor({ section, update }: EditorProps<HeroSection>) {
         suggestion={`Wide hero marketing shot for ${brand.name}: ${section.badge || section.headline || brand.tagline || "product"}. Modern, premium, cinematic lighting, on-theme.`}
         size="1440x768"
       />
+      {section.layout !== "video" && section.layout !== "gradient" && section.layout !== "minimal" ? (
+        <div className="space-y-2">
+          <Label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Carousel slides ({(section.images ?? []).length})</Label>
+          <p className="text-[10px] leading-relaxed text-zinc-600">
+            The hero image is slide 1 — two or more total slides turn the visual into an auto-rotating carousel.
+          </p>
+          {(section.images ?? []).map((src, i) => (
+            <div key={`slide-${i}`} className="space-y-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 p-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-zinc-300">Slide {i + 2}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-zinc-500 hover:text-rose-300"
+                  aria-label="Remove slide"
+                  onClick={() => update({ images: (section.images ?? []).filter((_, idx) => idx !== i) })}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+              <AiImageField
+                label="Image"
+                value={src}
+                onChange={(next) => {
+                  const slides = (section.images ?? []).slice()
+                  slides[i] = next
+                  update({ images: slides })
+                }}
+                suggestion={`Carousel slide ${i + 2} for ${brand.name}: same family as the hero shot, different moment or angle, cohesive color grade.`}
+                size="1440x768"
+              />
+            </div>
+          ))}
+          {(section.images ?? []).length < 5 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-full border-dashed border-zinc-700 bg-transparent text-[11px] text-zinc-400 hover:border-violet-500/50 hover:text-violet-300"
+              onClick={() => update({ images: [...(section.images ?? []), ""] })}
+            >
+              <Plus className="mr-1 h-3 w-3" /> Add slide
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {(section.images ?? []).length > 0 || (section.image ?? "").trim().length > 0 ? (
+        <div className="grid grid-cols-2 gap-2">
+          <SelectField
+            label="Transition"
+            value={section.carousel ?? "fade"}
+            onChange={(v) => update({ carousel: v === "fade" ? undefined : (v as HeroSection["carousel"]) })}
+            options={[
+              { value: "fade", label: "Fade" },
+              { value: "slide", label: "Slide" },
+              { value: "zoom", label: "Zoom" },
+              { value: "flip", label: "Flip" },
+            ]}
+          />
+          <SelectField
+            label="Seconds / slide"
+            value={String(section.carouselInterval ?? 5)}
+            onChange={(v) => update({ carouselInterval: v === "5" ? undefined : Number(v) })}
+            options={[
+              { value: "3", label: "3s" },
+              { value: "5", label: "5s" },
+              { value: "8", label: "8s" },
+              { value: "0", label: "Manual only" },
+            ]}
+          />
+        </div>
+      ) : null}
       {section.layout === "video" ? (
         <TextField
           label="Background video URL"
@@ -1184,6 +1255,23 @@ function ContactEditor({ section, update }: EditorProps<ContactSection>) {
         placeholder="Field label"
       />
       <TextField label="Submit label" value={section.submitLabel} onChange={(v) => update({ submitLabel: v })} />
+      <TextField
+        label="Success message"
+        value={section.successMessage ?? ""}
+        onChange={(v) => update({ successMessage: v || undefined })}
+        placeholder="Message sent"
+        maxLength={120}
+        hint='Shown on the button after submit (default "Message sent").'
+      />
+      <TextField
+        label="Redirect after submit"
+        value={section.redirectUrl ?? ""}
+        onChange={(v) => update({ redirectUrl: v || undefined })}
+        placeholder="https://thanks.example.com or /thank-you"
+        maxLength={300}
+        mono
+        hint="Opens right after the success flash — https:// URL or a /path. Leave empty to stay on the page. Applies on the published page and webhook exports."
+      />
 
       {/* ── Delivery — where submissions go ─────────────────────────────── */}
       <div className="space-y-3 rounded-xl border border-zinc-800/80 bg-gradient-to-b from-emerald-500/[0.03] to-transparent p-3">
@@ -2637,6 +2725,23 @@ function PageSettings() {
         onChange={(ogImage) => updateSeo({ ogImage: ogImage || undefined })}
         maxLength={300}
         hint="Absolute URL used for link previews (Open Graph + Twitter card). Falls back to the hero image."
+      />
+      <TextField
+        label="Favicon URL"
+        value={config.brand.faviconUrl ?? ""}
+        onChange={(faviconUrl) => updateBrand({ faviconUrl: faviconUrl || undefined })}
+        placeholder="https://example.com/icon.png"
+        maxLength={500}
+        mono
+        hint="Tab icon on the published page + HTML export (PNG / SVG / ICO). Leave empty for the browser default."
+      />
+      <TextField
+        label="SEO keywords"
+        value={config.seo.keywords ?? ""}
+        onChange={(keywords) => updateSeo({ keywords: keywords || undefined })}
+        placeholder="analytics, dashboard, saas"
+        maxLength={400}
+        hint="Comma-separated — a minor ranking signal, emitted in the published page + export."
       />
       <LanguagesManager config={config} />
       <PrivacyTrackingManager />

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Command as CommandIcon, Code2, Download, Globe, Monitor, Moon, Palette, Redo2, Rocket, Save, SlidersHorizontal, Sparkles, Sun, Undo2, Upload, Wand2 } from "lucide-react"
+import { Camera, Command as CommandIcon, Code2, Download, Globe, Monitor, Moon, Palette, Redo2, Rocket, Save, SlidersHorizontal, Sparkles, Sun, Undo2, Upload, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -92,6 +92,16 @@ export function Toolbar() {
         </Button>
         <Button variant="ghost" size="icon" className="lf-focus h-7 w-7 text-zinc-400 hover:text-zinc-100 disabled:opacity-30" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
           <Redo2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lf-focus h-7 w-7 text-zinc-400 hover:text-violet-200"
+          onClick={() => openDialog("snapshots")}
+          aria-label="Version snapshots"
+          title="Version snapshots — 5 named save-points on top of undo/redo"
+        >
+          <Camera className="h-3.5 w-3.5" />
         </Button>
       </div>
 

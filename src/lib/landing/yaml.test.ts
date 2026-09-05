@@ -565,3 +565,100 @@ describe("theme fine-tuning (P5 themeTweaks)", () => {
     expect(configToYaml(configWith([createSection("hero")]))).not.toContain("themeTweaks")
   })
 })
+
+describe("v1.9 — hero carousel (extra slides + transition + interval)", () => {
+  it("round-trips carousel fields on the hero section", () => {
+    const cfg = configWith([createSection("hero")])
+    const hero = cfg.sections[0] as unknown as Record<string, unknown>
+    hero.image = "https://cdn.example.com/hero.png"
+    hero.images = ["https://cdn.example.com/slide-2.png", "https://cdn.example.com/slide-3.png"]
+    hero.carousel = "zoom"
+    hero.carouselInterval = 8
+    const back = yamlToConfig(configToYaml(cfg))
+    const h = back.sections[0] as unknown as Record<string, unknown>
+    expect(h.image).toBe("https://cdn.example.com/hero.png")
+    expect(h.images).toEqual(["https://cdn.example.com/slide-2.png", "https://cdn.example.com/slide-3.png"])
+    expect(h.carousel).toBe("zoom")
+    expect(h.carouselInterval).toBe(8)
+  })
+
+  it("clamps the interval, caps slides at 6 and drops invalid transitions", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      sections: [
+        {
+          type: "hero",
+          image: "https://cdn.example.com/hero.png",
+          images: ["a", "", "b", "c", "d", "e", "f", "g"],
+          carousel: "spin",
+          carouselInterval: 99,
+        },
+      ],
+    })
+    const h = out.sections[0] as unknown as Record<string, unknown>
+    expect((h.images as string[]).length).toBe(6) // 7 valid extras + blank dropped → cap 6
+    expect(h.carousel).toBeUndefined() // not a known transition
+    expect(h.carouselInterval).toBe(15) // clamped to the 0–15 window
+  })
+
+  it("drops carousel extras when no extra slides exist", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      sections: [{ type: "hero", image: "https://cdn.example.com/hero.png", images: [], carousel: "slide" }],
+    })
+    const h = out.sections[0] as unknown as Record<string, unknown>
+    expect(h.images).toBeUndefined()
+    expect(h.carousel).toBeUndefined()
+  })
+})
+
+describe("v1.9 — favicon + seo keywords", () => {
+  it("round-trips brand.faviconUrl and seo.keywords", () => {
+    const cfg = configWith([createSection("hero")])
+    ;(cfg.brand as Record<string, unknown>).faviconUrl = "https://cdn.example.com/icon.png"
+    cfg.seo.keywords = "analytics, dashboard, saas"
+    const back = yamlToConfig(configToYaml(cfg))
+    expect(back.brand.faviconUrl).toBe("https://cdn.example.com/icon.png")
+    expect(back.seo.keywords).toBe("analytics, dashboard, saas")
+  })
+
+  it("trims and drops empty values", () => {
+    const out = normalizeConfig({
+      brand: { name: "X", faviconUrl: "   " },
+      seo: { title: "t", keywords: "   " },
+      sections: [{ type: "hero" }],
+    })
+    expect(out.brand.faviconUrl).toBeUndefined()
+    expect(out.seo.keywords).toBeUndefined()
+  })
+})
+
+describe("v1.9 — contact success message + redirect", () => {
+  it("round-trips successMessage and a valid redirectUrl", () => {
+    const cfg = configWith([createSection("contact")])
+    const contact = cfg.sections[0] as unknown as Record<string, unknown>
+    contact.successMessage = "Thanks — we reply within a day"
+    contact.redirectUrl = "https://thanks.example.com"
+    const back = yamlToConfig(configToYaml(cfg))
+    const c = back.sections[0] as unknown as Record<string, unknown>
+    expect(c.successMessage).toBe("Thanks — we reply within a day")
+    expect(c.redirectUrl).toBe("https://thanks.example.com")
+  })
+
+  it("accepts relative redirects, rejects other schemes", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      sections: [
+        { type: "contact", fields: ["Name"], submitLabel: "Go", redirectUrl: "/thank-you" },
+      ],
+    })
+    const c = out.sections[0] as unknown as Record<string, unknown>
+    expect(c.redirectUrl).toBe("/thank-you")
+
+    const bad = normalizeConfig({
+      brand: { name: "X" },
+      sections: [{ type: "contact", fields: ["Name"], submitLabel: "Go", redirectUrl: "javascript:alert(1)" }],
+    })
+    expect((bad.sections[0] as unknown as Record<string, unknown>).redirectUrl).toBeUndefined()
+  })
+})

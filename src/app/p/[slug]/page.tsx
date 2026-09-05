@@ -45,12 +45,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const image = firstImage(config)
     const url = `${siteOrigin()}/p/${slug}`
     const noIndex = config.seo?.noIndex === true
+    // favicon — tab icon (falls back to the app default when unset)
+    const faviconUrl = config.brand.faviconUrl?.trim()
+    // keywords — split the comma list, drop empties
+    const keywords = config.seo?.keywords
+      ?.split(",")
+      .map((k) => k.trim())
+      .filter(Boolean)
 
     return {
       title,
       description,
       alternates: { canonical: url },
       robots: noIndex ? { index: false, follow: false } : undefined,
+      icons: faviconUrl ? { icon: [{ url: faviconUrl }] } : undefined,
+      keywords: keywords?.length ? keywords : undefined,
       openGraph: {
         title,
         description,

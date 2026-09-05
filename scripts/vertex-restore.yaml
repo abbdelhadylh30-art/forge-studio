@@ -1,0 +1,230 @@
+brand:
+  name: Vertex
+  tagline: Ship beautiful pages in minutes
+theme: nebula
+seo:
+  title: Vertex — Ship faster
+  description: Vertex helps you launch production-ready landing pages from one config file.
+sections:
+  - id: navbar-mtowbf59dscqv
+    type: navbar
+    links:
+      - label: Features
+        href: '#features'
+      - label: Pricing
+        href: '#pricing'
+      - label: FAQ
+        href: '#faq'
+    cta:
+      label: Get started
+      href: '#cta'
+  - id: hero-mtowbf59em21j
+    type: hero
+    layout: split-right
+    badge: Now in public beta
+    headline: Ship faster. Sleep better.
+    sub: >-
+      The fastest way to build and deploy your product. One config, production-ready code, zero
+      lock-in.
+    cta:
+      label: Get started — it's free
+      href: '#cta'
+    secondaryCta:
+      label: View demo
+      href: '#features'
+    image: ''
+    stats:
+      - value: 30s
+        label: from push to prod
+      - value: 12k+
+        label: pages shipped
+      - value: 99.9%
+        label: uptime
+    ab:
+      enabled: false
+      metric: cta_click
+      autoWinner: true
+      sampleSize: 1000
+      variants:
+        - id: ab-mtowbf59f2hr7
+          name: A
+          headline: Ship faster. Sleep better.
+          sub: ''
+          ctaLabel: ''
+          weight: 50
+        - id: ab-mtowbf59g1e6y
+          name: B
+          headline: Deploy your product in 30 seconds
+          sub: ''
+          ctaLabel: ''
+          weight: 50
+  - id: logos-mtowbf59hixws
+    type: logos
+    title: Trusted by teams at
+    items:
+      - Vertex
+      - Northloop
+      - Kite
+      - Fathom
+      - Arcadia
+      - Lumen
+  - id: features-mtowbf59ip9c4
+    type: features
+    title: Everything you need
+    subtitle: Powerful primitives that stay out of your way.
+    style: grid
+    columns: 3
+    items:
+      - icon: zap
+        title: Instant deploy
+        body: From git push to production in 30 seconds flat.
+      - icon: shield
+        title: Secure by default
+        body: SSL, auth and rate limits wired from day one.
+      - icon: chart
+        title: Built-in analytics
+        body: See what works without third-party tools.
+      - icon: globe
+        title: Edge-ready
+        body: Served from 300+ locations worldwide.
+      - icon: puzzle
+        title: Composable
+        body: Every block is a plain component you own.
+      - icon: settings
+        title: Fine control
+        body: Tune layouts, themes and copy visually.
+  - id: stats-mtowbf59jx0p6
+    type: stats
+    title: ''
+    items:
+      - value: 12k+
+        label: landing pages shipped
+        delta: +18% this quarter
+      - value: 30s
+        label: average build time
+        delta: -40% vs last year
+      - value: 98%
+        label: would recommend
+        delta: +6 pts
+      - value: '42'
+        label: countries served
+        delta: +5 new
+  - id: testimonials-mtowbf59k06nx
+    type: testimonials
+    title: Loved by builders
+    subtitle: Real teams, real shipping speed.
+    style: grid
+    items:
+      - quote: >-
+          We shipped our launch page in an afternoon. The A/B testing alone paid for itself in a
+          week.
+        author: Alice Nakamura
+        role: CTO, Vertex
+        initials: AN
+        rating: 5
+      - quote: Finally a builder that outputs code I'm not embarrassed to own.
+        author: Diego Marín
+        role: Founder, Kite
+        initials: DM
+        rating: 5
+      - quote: The analytics dashboard replaced two paid tools for us.
+        author: Priya Sharma
+        role: Growth, Fathom
+        initials: PS
+        rating: 4
+  - id: pricing-mtowbf59luaho
+    type: pricing
+    title: Simple pricing
+    subtitle: Start free, upgrade when you ship.
+    annualToggle: true
+    annualDiscountLabel: Save 20% annually
+    plans:
+      - name: Free
+        price: $0
+        period: /mo
+        description: For side projects
+        features:
+          - 1 landing page
+          - Community support
+          - Basic analytics
+        ctaLabel: Start free
+      - name: Pro
+        price: $29
+        period: /mo
+        description: For serious shipping
+        features:
+          - Unlimited pages
+          - A/B testing
+          - Advanced analytics
+          - Custom domains
+        highlighted: true
+        ctaLabel: Go Pro
+      - name: Team
+        price: $79
+        period: /mo
+        description: For teams
+        features:
+          - Everything in Pro
+          - 5 seats
+          - Priority deploys
+          - SSO
+        ctaLabel: Contact sales
+  - id: faq-mtowbf59m4vie
+    type: faq
+    title: Frequently asked questions
+    subtitle: Everything else you might wonder.
+    style: accordion
+    items:
+      - q: Do I need a credit card to start?
+        a: No. The free tier doesn't require any payment info.
+      - q: Do I own the generated code?
+        a: Yes — everything is exported as a clean Next.js project you fully own.
+      - q: Can I self-host?
+        a: Absolutely. Deploy to Vercel, Netlify, Cloudflare or your own Docker setup.
+      - q: How does A/B testing work?
+        a: >-
+          Define weighted variants in your hero. After your sample size is reached, the winner is
+          auto-promoted.
+  - id: cta-final-mtowbf59n1hxe
+    type: cta-final
+    headline: Ready to ship?
+    sub: Join thousands of builders shipping beautiful pages in minutes.
+    cta:
+      label: Start free trial
+      href: '#cta'
+    note: No credit card required
+  - id: footer-mtowbf59o76gl
+    type: footer
+    style: mega
+    tagline: Beautiful landing pages from one config file.
+    linkGroups:
+      - group: Product
+        items:
+          - label: Features
+            href: '#features'
+          - label: Pricing
+            href: '#pricing'
+          - label: Changelog
+            href: '#'
+      - group: Company
+        items:
+          - label: About
+            href: '#'
+          - label: Blog
+            href: '#'
+          - label: Careers
+            href: '#'
+      - group: Legal
+        items:
+          - label: Privacy
+            href: '#'
+          - label: Terms
+            href: '#'
+    socialLinks:
+      - platform: X
+        url: ''
+      - platform: GitHub
+        url: ''
+      - platform: Discord
+        url: ''
+    copyright: © 2025 Forge. All rights reserved.
