@@ -927,3 +927,24 @@ Stage Summary:
 - v1.8.0 shipped: 7 sections gained 15 new style variants (25 total section styles across the 8 restyled types), plus the themeTweaks fine-tuning system with live preview + export parity.
 - Artifacts: download/v18-*.png (studio tabs, problem tabs, guarantee badge, fine-tune dialog, export full/gallery).
 - P6 (hero carousel) + P7 (favicon/keywords/form success/redirect/version snapshots) remain for v1.9.
+---
+Task ID: 19
+Agent: Super Z (main agent, sandbox)
+Task: v1.9 — port P6 hero carousel + P7 small settings from LandingForge v21; finish and ship the PORT-BACKLOG.
+
+Work Log:
+- Session handoff audit: found v1.7 (P1–P3) and v1.8 (P4–P5) shipped and pushed; a background process had auto-committed P6 + partial P7 plumbing as d53f404 with a garbage UUID message (unpushed, un-QA'd, no worklog entry).
+- Real defects found in that auto-commit: yaml.ts's inline contact type was missing successMessage/redirectUrl (4 tsc errors) — hidden by a stale tsconfig.tsbuildinfo incremental cache (removed it; fresh tsc now part of the gate). configToYaml did not emit brand.faviconUrl; carousel transition fields survived with zero extra slides; export.css (237,113 bytes) predated the .lf-cs classes.
+- E2E-tooling lesson recorded: the Bash tool's output display eats ANSI-like "[<letter>" sequences — store.ts's "const [moved]" only LOOKED corrupted (hex-dump proved the bytes fine); trust Read/hexdump over bash echo for bracket content.
+- P6 completed: HeroCarousel (stacked slides, .lf-cs/.lf-cs-on contract, fade/zoom/slide/flip via [data-lf-anim], 0–15s interval, arrows + dots, reduced-motion safe) + vanilla export script for identical standalone behavior + per-slide editor (AiImageField, Transition, Seconds/slide) + yaml guards (6-slide cap, interval clamp, transition dropped without slides).
+- P7 completed: faviconUrl + keywords studio fields (Settings editor) → published page metadata (icons + keywords) + export link/meta; contact successMessage + redirectUrl → live post-submit navigation in the React preview and in webhook exports (data-lf-redirect); version snapshots lib (localStorage per project, 5 slots, name-dedupe, oldest retirement, corruption-tolerant) + SnapshotsDialog (camera button beside undo/redo, uiStore wiring, restore through setConfig = undoable) + SitesApp badge v1.9 + package.json 1.9.0.
+- export.css regenerated via @tailwindcss/cli (294,704 bytes, .lf-cs layer in).
+- Gates: tsc 0 errors, ESLint clean (one pre-existing pages-router font warning in layout.tsx, untouched file), vitest 230/230 (17 new tests).
+- Browser E2E (agent-browser + dev server): snapshots save → theme switch to Ember → restore → Nebula back (config-level revert; project meta is intentionally outside snapshots); imported a v1.9 matrix YAML (scripts/e2e-v19-features.yaml) — carousel renders 3 slides/zoom/3s + dots + arrows, auto-rotation verified with native `agent-browser wait` (shell sleep throttles the backgrounded page — timers pause, environment artifact); contact submit fired the live redirect to /downloads (success message + data-lf-sent-label verified first); export blob (320,219 bytes) checked for every marker: favicon link, keywords meta, carousel root/script/anim/interval/dots, redirect attr, custom sent label, .lf-cs CSS; hero editor shows Carousel slides (2) + Transition + Seconds/slide; studio state restored to the Vertex demo (scripts/vertex-restore.yaml re-imported, project renamed back).
+- Git hygiene: soft-reset the UUID commit d53f404 and folded everything into a single proper v1.9 commit (1c03459). PORT-BACKLOG.md statuses all marked SHIPPED — P1–P7 complete.
+
+Stage Summary:
+- v1.9.0 shipped: hero carousel with export parity, favicon/keywords/success-message/redirect settings, 5-slot version snapshots. PORT-BACKLOG P1–P7 fully closed.
+- 3 releases this arc: v1.7 (offer/legal/social), v1.8 (15 style variants + theme tweaks), v1.9 (carousel + settings + snapshots).
+- Artifacts: download/v19-carousel-studio.png, download/v19-snapshots-dialog.png, scripts/e2e-v19-features.yaml.
+- Pending: push 4d5ea8a + 1c03459 to GitHub → Vercel deploy (needs the user's token — the previous one was chat-pasted and must be rotated).
