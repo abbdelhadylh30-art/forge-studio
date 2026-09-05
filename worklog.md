@@ -788,3 +788,17 @@ Stage Summary:
 - All 8 ported priorities are complete: announcement bar, hero variants, narrative sections, gallery styles (shipped earlier at fb18816) + dual-mode themes, cookie consent + tracking, Sheets webhook/form delivery, export readiness (this release).
 - Quality gates: tsc clean, ESLint 0 errors, 193/193 vitest, full browser E2E across studio → published page → standalone export.
 - Remaining for the user: push to GitHub (token needed) → Vercel auto-deploys; optional Turso/Postgres migration for durable serverless data; OG-builder retirement (multi-page + canvas editing) is a future phase.
+
+---
+Task ID: 10
+Agent: Super Z (main agent, sandbox)
+Task: Push the v1.6 commits to GitHub with the user-provided token + verify the Vercel production deployment.
+
+Work Log:
+- Pushed b47fda1..0aeedd0 (5 commits: dual-mode themes, cookie consent + tracking, form destinations, export readiness checklist, v1.6 docs + version bump) with the fresh token.
+- GitHub combined status flipped pending → success (Vercel production deployment).
+- Live probes: / 200 (Forge Studio serves), /p/vertex 200 (client-shell fall-through — documented serverless behavior, per-instance SQLite is empty until the Sites first-run bootstrap seeds the demo), /api/export/css 200 and the compiled stylesheet carries the v21 visual layer (lf-marquee-track, lf-anim, lf-brand-font, lf-label-badge, lf-glow all present).
+
+Stage Summary:
+- v1.6 is live in production on forge-studio-green.vercel.app.
+- Security: the GitHub token was pasted in plaintext chat — rotate it after use.
