@@ -878,3 +878,17 @@ Work Log:
 Stage Summary:
 - Zip delivery now works over HTTP through the running app (verified end-to-end); panel limitation documented.
 - No repo pollution: public/downloads/ gitignored, downloads page untracked.
+---
+Task ID: 16
+Agent: Super Z (main agent, sandbox)
+Task: Gap analysis — what else from LandingForge v21 needs porting to the Sites module.
+
+Work Log:
+- Systematically mapped the v21 single file: page sections (announcement/hero/problem/solution/video/comparison/guarantee/offer/form/reviews/gallery/faq/final-cta + sticky nav), admin tabs (content/themes/layout/settings/legal), all per-section style selectors, modals (tip/heroImage/gallery/iconPicker/shareLink/exportChecklist/legalPreview), theme presets (~14) and fonts (5), form destination (formsubmit.co / Apps Script), social platforms (8 with URLs), countdown engine, hero carousel animations (slide/fade/zoom/flip).
+- Diffed against Sites' current surface (SECTION_TYPES ×19, style variants in yaml.ts, themes.ts, googleFonts.ts, i18n RTL, Footer.tsx social rendering, exportHtml).
+- Verified real gaps by reading code: offer section absent (pricing ≠ offer), legal pages absent, Footer SocialButton renders decorative non-clickable buttons, comparison/guarantee/faq/problem/solution style variants missing several, no user-tunable theme sliders, hero single image, no favicon/keywords/form-redirect fields.
+- Wrote the prioritized backlog to PORT-BACKLOG.md (P1–P7 with a suggested v1.7/v1.8/v1.9 release split).
+
+Stage Summary:
+- 7 priority gaps identified; biggest: P1 offer section (high-conversion block), P2 legal pages export, P3 functional social links.
+- Coverage map documented in PORT-BACKLOG.md including the "already covered, no action" list to prevent re-porting.
