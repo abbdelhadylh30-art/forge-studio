@@ -4,7 +4,18 @@ import { isValidAccent, isFontPairId } from "./themes"
 import type { LandingConfig, Section, SectionType, ThemeId } from "./types"
 import { SECTION_TYPES } from "./types"
 
-const THEME_IDS: ThemeId[] = ["nebula", "ember", "emerald", "rose", "mono", "paper"]
+const THEME_IDS: ThemeId[] = [
+  "nebula",
+  "ember",
+  "emerald",
+  "rose",
+  "mono",
+  "paper",
+  "slate",
+  "ocean",
+  "gold",
+  "midnight",
+]
 
 /**
  * Coerce arbitrary / partial / AI-generated data into a valid LandingConfig.
@@ -219,6 +230,10 @@ export function normalizeConfig(input: unknown): LandingConfig {
   const accent = typeof brand.accent === "string" ? brand.accent.trim() : ""
   if (isValidAccent(accent)) brandOut.accent = accent.startsWith("#") ? accent : `#${accent}`
   if (typeof brand.font === "string" && isFontPairId(brand.font)) brandOut.font = brand.font
+  // color-scheme override — unset = the theme's preferred mode (legacy-safe)
+  if (brand.mode === "auto" || brand.mode === "dark" || brand.mode === "light") {
+    brandOut.mode = brand.mode
+  }
 
   // i18n (multilingual publishing) — validated locales + translations map
   const i18nOut = validI18n(raw.i18n)
@@ -360,6 +375,7 @@ export function configToYaml(config: LandingConfig): string {
       logoUrl: config.brand.logoUrl || undefined,
       accent: config.brand.accent || undefined,
       font: config.brand.font || undefined,
+      mode: config.brand.mode || undefined,
     },
     theme: config.themeId,
     seo: { ...config.seo },

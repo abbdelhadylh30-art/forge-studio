@@ -1,14 +1,17 @@
 "use client"
 
+import type { CSSProperties } from "react"
+
 import type { HeroSection, LandingConfig, Section } from "@/lib/landing/types"
 import { SECTION_META } from "@/lib/landing/types"
 
-import { themeStyle } from "@/lib/landing/themes"
+import { getFontPair, getTheme, themeStyle } from "@/lib/landing/themes"
 import { useGoogleFonts } from "@/lib/landing/googleFonts"
 import { abOverrideFor } from "@/lib/landing/ab"
 
 import { cn } from "@/lib/utils"
 
+import { useResolvedMode } from "./useThemeMode"
 import { SectionRenderer } from "./SectionRenderer"
 
 export interface LandingPreviewProps {
@@ -24,6 +27,12 @@ export interface LandingPreviewProps {
   selectionMode?: boolean
   selectedSectionId?: string | null
   onSectionSelect?: (id: string) => void
+  /** Visitor's manual dark/light override (published page chrome toggle). */
+  modeOverride?: "dark" | "light" | null
+  /** Export path: emit data-lf-theme/data-lf-mode attributes instead of inline
+   *  vars — the standalone HTML ships a <style> block (see themeVarsCss) that
+   *  resolves the mode purely in CSS, including prefers-color-scheme. */
+  themeViaCss?: boolean
 }
 
 /**
@@ -43,11 +52,15 @@ export function LandingPreview({
   selectionMode = false,
   selectedSectionId = null,
   onSectionSelect,
+  modeOverride,
+  themeViaCss = false,
 }: LandingPreviewProps) {
   const hero = config.sections.find((s): s is HeroSection => s.type === "hero" && s.ab?.enabled === true)
   // ✦ webfont pairs: stream the css2 stylesheet (system stacks stay the
   // fallback if the network is unavailable)
   useGoogleFonts(config.brand.font)
+  // dual-mode themes: resolve dark/light (auto follows the system, live)
+  const { mode } = useResolvedMode(config.themeId, config.brand.mode, modeOverride)
   const ab = hero?.ab
   // hero variant: per-section map wins, legacy prop is the fallback
   const heroVariantName = (hero && abVariants?.[hero.id]) || abVariant || null
@@ -139,49 +152,37 @@ export function LandingPreview({
     </button>
   )
 
+  // export path: font stack inline, color vars delivered by the CSS block
+  if (themeViaCss) {
+    return (
+      <div
+        data-lf-theme={config.themeId}
+        data-lf-mode={config.brand.mode ?? getTheme(config.themeId).mode}
+        className={cn("lf-root lf-brand-font w-full min-h-full", selectionMode && "select-none", className)}
+        style={{ fontFamily: getFontPair(config.brand.font).body } as CSSProperties}
+      >
+        {visible.map((section, i) => renderSection(section, i))}
+      </div>
+    )
+  }
+
   return (
     <div
-      style={themeStyle(config.themeId, config.brand.accent, config.brand.font)}
+      style={themeStyle(config.themeId, config.brand.accent, config.brand.font, mode)}
       className={cn("lf-brand-font w-full min-h-full", selectionMode && "select-none", className)}
     >
-      {visible.map((section, i) => {
-        const anchor = anchorFor(section, i)
-        if (section.type === "navbar") {
-          if (selectionMode) {
-            return (
-              <div key={section.id} className="relative">
-                <div className="pointer-events-none">
-                  <SectionRenderer
-                    section={section}
-                    brandName={config.brand.name}
-                    brandLogo={config.brand.logoUrl}
-                    abOverride={overrideFor(section)}
-                    onCtaClick={onCtaClick}
-                    onFormSubmit={onFormSubmit}
-                  />
-                </div>
-                <SelectOverlay section={section} />
-              </div>
-            )
-          }
-          return (
-            <SectionRenderer
-              key={section.id}
-              section={section}
-              brandName={config.brand.name}
-              brandLogo={config.brand.logoUrl}
-              abOverride={overrideFor(section)}
-              onCtaClick={onCtaClick}
-              onFormSubmit={onFormSubmit}
-            />
-          )
-        }
-        // band index = number of content (non-navbar) sections before this one
-        const band = visible.slice(0, i).filter((s) => s.type !== "navbar").length % 2
-        const bg = band === 0 ? "var(--lf-bg)" : "var(--lf-bg-alt)"
+      {visible.map((section, i) => renderSection(section, i))}
+    </div>
+  )
+
+  /** Shared section loop — used by both delivery paths (inline vars + export CSS). */
+  function renderSection(section: Section, i: number) {
+    const anchor = anchorFor(section, i)
+    if (section.type === "navbar") {
+      if (selectionMode) {
         return (
-          <div key={section.id} id={anchor} style={{ background: bg }} className={cn(selectionMode ? "relative" : "scroll-mt-16")}>
-            <div className={selectionMode ? "pointer-events-none" : undefined}>
+          <div key={section.id} className="relative">
+            <div className="pointer-events-none">
               <SectionRenderer
                 section={section}
                 brandName={config.brand.name}
@@ -191,12 +192,41 @@ export function LandingPreview({
                 onFormSubmit={onFormSubmit}
               />
             </div>
-            {selectionMode && <SelectOverlay section={section} />}
+            <SelectOverlay section={section} />
           </div>
         )
-      })}
-    </div>
-  )
+      }
+      return (
+        <SectionRenderer
+          key={section.id}
+          section={section}
+          brandName={config.brand.name}
+          brandLogo={config.brand.logoUrl}
+          abOverride={overrideFor(section)}
+          onCtaClick={onCtaClick}
+          onFormSubmit={onFormSubmit}
+        />
+      )
+    }
+    // band index = number of content (non-navbar) sections before this one
+    const band = visible.slice(0, i).filter((s) => s.type !== "navbar").length % 2
+    const bg = band === 0 ? "var(--lf-bg)" : "var(--lf-bg-alt)"
+    return (
+      <div key={section.id} id={anchor} style={{ background: bg }} className={cn(selectionMode ? "relative" : "scroll-mt-16")}>
+        <div className={selectionMode ? "pointer-events-none" : undefined}>
+          <SectionRenderer
+            section={section}
+            brandName={config.brand.name}
+            brandLogo={config.brand.logoUrl}
+            abOverride={overrideFor(section)}
+            onCtaClick={onCtaClick}
+            onFormSubmit={onFormSubmit}
+          />
+        </div>
+        {selectionMode && <SelectOverlay section={section} />}
+      </div>
+    )
+  }
 }
 
 export default LandingPreview

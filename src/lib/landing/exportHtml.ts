@@ -11,7 +11,7 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import { LandingPreview } from "@/components/sites/preview/LandingPreview"
-import { googleFontLinkTags } from "./themes"
+import { googleFontLinkTags, themeVarsCss } from "./themes"
 import { applyLocale, dirFor, localesOf } from "./i18n"
 import type { LandingConfig } from "./types"
 
@@ -23,6 +23,12 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
 }
+
+/** Sun/moon icon pair as inline SVG — the exported mode toggle button. */
+const SUN_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>'
+const MOON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
 
 /** Vanilla-JS behaviors for the static snapshot (FAQ accordion, countdown
  *  timers, gallery slider, stories progress, smooth scroll, entrance
@@ -145,6 +151,28 @@ const INTERACTIVE_SCRIPT = [
   "  }, { threshold: 0.15 });",
   "  for (var k = 0; k < targets.length; k++) io.observe(targets[k]);",
   "})();",
+  // color-scheme toggle (auto mode) — flips data-lf-mode between light/dark,
+  // persisted per visitor; the CSS block resolves both palettes
+  "(function () {",
+  "  var root = document.querySelector('.lf-root[data-lf-mode=\"auto\"]');",
+  "  var btn = document.getElementById('lf-mode-toggle');",
+  "  if (!root || !btn) return;",
+  "  var saved = null;",
+  "  try { saved = localStorage.getItem('lf-visitor-mode'); } catch (e) {}",
+  "  if (saved === 'dark' || saved === 'light') root.setAttribute('data-lf-mode', saved);",
+  "  function paint() {",
+  "    var dark = root.getAttribute('data-lf-mode') !== 'light';",
+  "    btn.setAttribute('aria-pressed', dark ? 'false' : 'true');",
+  "    btn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';",
+  "  }",
+  "  btn.addEventListener('click', function () {",
+  "    var next = root.getAttribute('data-lf-mode') === 'light' ? 'dark' : 'light';",
+  "    root.setAttribute('data-lf-mode', next);",
+  "    try { localStorage.setItem('lf-visitor-mode', next); } catch (e) {}",
+  "    paint();",
+  "  });",
+  "  paint();",
+  "})();",
 ].join("\n")
 
 export interface StandaloneHtml {
@@ -176,8 +204,12 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
   const localized = applyLocale(config, chosen)
   const dir = dirFor(config, chosen)
 
-  // 3. render the page to static markup
-  const markup = renderToStaticMarkup(createElement(LandingPreview, { config: localized }))
+  // 3. render the page to static markup — themeViaCss: the color variables
+  //    ship as a <style> block (themeVarsCss) so auto mode + the visitor toggle
+  //    resolve purely in CSS, even with JS off
+  const markup = renderToStaticMarkup(
+    createElement(LandingPreview, { config: localized, themeViaCss: true }),
+  )
 
   // 4. assemble the document
   const title = escapeHtml(config.seo?.title || `${config.brand.name} — ${config.brand.tagline ?? ""}`.trim())
@@ -188,6 +220,29 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
   const origin = typeof window !== "undefined" ? window.location.origin : ""
   // ✦ Google webfont pairs: preconnect + css2 links (empty for system pairs)
   const fontLinks = googleFontLinkTags(config.brand.font)
+  // dual-mode theme variables (dark base + light override + auto media query)
+  const themeCss = themeVarsCss(config.themeId, config.brand.accent)
+  // visitor mode toggle — only when the site explicitly follows the system
+  // ("auto"); an unset brand.mode resolves statically to the theme's built-in
+  // mode, and owner-pinned dark/light ships without a toggle
+  const liveAuto = config.brand.mode === "auto"
+  const modeToggle = liveAuto
+    ? [
+        '<button id="lf-mode-toggle" type="button" aria-label="Toggle dark mode" title="Switch appearance" style="position:fixed;right:16px;bottom:16px;z-index:9998;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(127,127,127,0.28);border-radius:9999px;cursor:pointer;backdrop-filter:blur(8px);background:rgba(20,20,26,0.55);color:#e8e8ec;transition:background .2s ease,color .2s ease">',
+        `<span class="lf-mt-sun">${SUN_SVG}</span>`,
+        `<span class="lf-mt-moon">${MOON_SVG}</span>`,
+        "</button>",
+        "<style>",
+        // icon swap driven purely by the sibling selector (no inline display,
+        // which would out-rank these rules)
+        "#lf-mode-toggle .lf-mt-sun{display:flex}",
+        "#lf-mode-toggle .lf-mt-moon{display:none}",
+        '.lf-root[data-lf-mode="light"] + #lf-mode-toggle .lf-mt-sun{display:none}',
+        '.lf-root[data-lf-mode="light"] + #lf-mode-toggle .lf-mt-moon{display:flex}',
+        '.lf-root[data-lf-mode="light"] + #lf-mode-toggle{background:rgba(255,255,255,0.72);color:#26262e;border-color:rgba(38,38,46,0.18)}',
+        "</style>",
+      ].join("")
+    : ""
 
   // JSON-LD structured data (WebPage + Organization)
   const jsonLd = escapeHtml(
@@ -235,12 +290,16 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
     "<style>",
     css,
     "</style>",
+    "<style>",
+    themeCss,
+    "</style>",
     "<style>html{scroll-behavior:smooth}html,body{min-height:100%}</style>",
     // JS-off visitors still see animated content
     "<noscript><style>.lf-anim{opacity:1 !important}</style></noscript>",
     "</head>",
     "<body>",
     markup,
+    modeToggle,
     "<script>",
     INTERACTIVE_SCRIPT,
     "</script>",

@@ -3,7 +3,24 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type DeviceType = "desktop" | "tablet" | "mobile"
-export type ThemeId = "nebula" | "ember" | "emerald" | "rose" | "mono" | "paper"
+export type ThemeId =
+  | "nebula"
+  | "ember"
+  | "emerald"
+  | "rose"
+  | "mono"
+  | "paper"
+  | "slate"
+  | "ocean"
+  | "gold"
+  | "midnight"
+
+/** Color-scheme behavior for a published page.
+ *  unset → the theme's built-in preferred mode (legacy behavior, keeps every
+ *  existing site pixel-identical)
+ *  "auto" → follow the visitor's system preference, live
+ *  "dark" / "light" → forced */
+export type ThemeMode = "auto" | "dark" | "light"
 
 export interface Cta {
   label: string
@@ -463,6 +480,8 @@ export interface LandingConfig {
     accent?: string
     /** curated display/body font pair id (see FONT_PAIRS) */
     font?: string
+    /** color-scheme override — unset = the theme's preferred mode */
+    mode?: ThemeMode
   }
   themeId: ThemeId
   /** multilingual publishing — AI-translated copy per locale, RTL-aware */

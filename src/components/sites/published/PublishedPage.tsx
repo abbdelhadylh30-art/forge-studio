@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Copy, ExternalLink, Link2, Loader2, MousePointerClick, Radio, SearchX, Timer } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Copy, ExternalLink, Link2, Loader2, Moon, MousePointerClick, Radio, SearchX, Sun, Timer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -11,8 +11,9 @@ import { useVisitorRelay } from "@/components/sites/shared/livesocket"
 import { getAbTests, assignAbVariants, sectionAb } from "@/lib/landing/ab"
 import { sectionAnchors } from "@/lib/landing/anchors"
 import { ctaHrefFor, runCtaNavigation } from "@/lib/landing/ctaNav"
-import { getTheme } from "@/lib/landing/themes"
+import { themeVars } from "@/lib/landing/themes"
 import { applyLocale, dirFor, localesOf } from "@/lib/landing/i18n"
+import { useResolvedMode } from "@/components/sites/preview/useThemeMode"
 import { Languages } from "lucide-react"
 import { SECTION_META } from "@/lib/landing/types"
 import type { LandingConfig, ProjectSummary, ProjectWithConfig, Section } from "@/lib/landing/types"
@@ -52,6 +53,8 @@ export function PublishedPage({ slug }: { slug: string }) {
   const [chromeOpen, setChromeOpen] = React.useState(true)
   /** active display locale (null = default). Synced to the ?lang= URL param. */
   const [locale, setLocale] = React.useState<string | null>(null)
+  /** visitor's dark/light override (persisted per browser, flips the whole page). */
+  const [modeOverride, setModeOverride] = React.useState<"dark" | "light" | null>(null)
   const [copied, setCopied] = React.useState(false)
 
   const sessionStartRef = React.useRef(Date.now())
@@ -70,6 +73,29 @@ export function PublishedPage({ slug }: { slug: string }) {
   const multi = locales.length > 1
   /** locale-applied config for RENDERING (tracking + A/B use the original). */
   const displayConfig = React.useMemo(() => (config && locale ? applyLocale(config, locale) : config), [config, locale])
+
+  // ── Visitor color-scheme override (persisted, applied before first render
+  // of the page content — reads localStorage once on mount)
+  React.useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("lf-visitor-mode")
+      if (saved === "dark" || saved === "light") setModeOverride(saved)
+    } catch {
+      /* private mode — the toggle just won't persist */
+    }
+  }, [])
+
+  const flipMode = () => {
+    setModeOverride((prev) => {
+      const next = prev === "dark" ? "light" : "dark"
+      try {
+        window.localStorage.setItem("lf-visitor-mode", next)
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }
 
   // pageview id as STATE (the relay needs it to join) — the ref stays for the
   // synchronous event handlers below
@@ -225,8 +251,11 @@ export function PublishedPage({ slug }: { slug: string }) {
   // hero opt-out (stickyCta === false) disables the bar entirely
   const stickyCtaVisible =
     stickyCtaEligible && !finalCtaOnScreen && !!stickyCtaLabel && heroSection?.stickyCta !== false
+  // sticky CTA color follows the RESOLVED color scheme (visitor override aware)
+  const resolvedMode = useResolvedMode(config?.themeId ?? "nebula", config?.brand.mode, modeOverride)
   const stickyAccent =
-    (config?.brand.accent && config.brand.accent) || (config ? getTheme(config.themeId).vars.accent : "#8b5cf6")
+    (config?.brand.accent && config.brand.accent) ||
+    (config ? themeVars(config.themeId, resolvedMode.mode).accent : "#8b5cf6")
 
   const onStickyCtaClick = () => {
     if (!heroSection || !stickyCtaLabel) return
@@ -463,6 +492,7 @@ export function PublishedPage({ slug }: { slug: string }) {
         abVariants={variantMap}
         onCtaClick={handleCtaClick}
         onFormSubmit={handleFormSubmit}
+        modeOverride={modeOverride}
         className="min-h-full"
       />
 
@@ -554,6 +584,22 @@ export function PublishedPage({ slug }: { slug: string }) {
 
             {/* actions */}
             <div className="flex shrink-0 items-center gap-1">
+              {/* color-scheme toggle — visitor-side dark/light flip */}
+              <button
+                type="button"
+                onClick={flipMode}
+                aria-label={modeOverride === "dark" ? "Switch page to light mode" : "Switch page to dark mode"}
+                title={
+                  modeOverride === "dark"
+                    ? "Dark override on — click for light"
+                    : modeOverride === "light"
+                      ? "Light override on — click for dark"
+                      : "Follows your system — click to force dark"
+                }
+                className="flex size-7 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                {modeOverride === "light" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+              </button>
               {multi && (
                 <div
                   className="flex h-7 items-center gap-0.5 rounded-lg border border-zinc-700/60 bg-zinc-900/70 p-0.5"

@@ -208,7 +208,12 @@ export const useForge = create<ForgeState>((set, get) => ({
   updateBrand: (patch) =>
     set((s) => {
       const next = clone(s.config)
-      next.brand = { ...next.brand, ...patch }
+      const brand = { ...next.brand, ...patch }
+      // undefined patches remove the key entirely (mode: undefined = "theme default")
+      for (const k of Object.keys(brand) as (keyof typeof brand)[]) {
+        if (brand[k] === undefined) delete brand[k]
+      }
+      next.brand = brand
       return { ...pushHistory(s), config: next, dirty: true }
     }),
 

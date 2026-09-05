@@ -129,3 +129,35 @@ describe("narrative sections (announcement / problem / solution / video / compar
     expect(comparison.rows).toEqual([{ feature: "F", us: "yes", them: "no" }])
   })
 })
+
+describe("dual-mode themes (dark / light / auto)", () => {
+  const hero = createSection("hero")
+  const footer = createSection("footer")
+
+  it("round-trips brand.mode through the YAML text", () => {
+    const cfg = configWith([hero, footer])
+    cfg.brand.mode = "auto"
+    const text = configToYaml(cfg)
+    expect(text).toContain("mode: auto")
+    const back = yamlToConfig(text)
+    expect(back.brand.mode).toBe("auto")
+  })
+
+  it("accepts the four new theme ids and coerces unknown ones", () => {
+    for (const id of ["slate", "ocean", "gold", "midnight"] as const) {
+      const cfg = configWith([hero, footer])
+      cfg.themeId = id
+      const back = yamlToConfig(configToYaml(cfg))
+      expect(back.themeId).toBe(id)
+    }
+    const bad = normalizeConfig({ brand: { name: "X" }, themeId: "volcano", sections: [{ type: "hero" }] })
+    expect(bad.themeId).toBe("nebula")
+  })
+
+  it("drops invalid brand.mode values and keeps undefined unset", () => {
+    const bad = normalizeConfig({ brand: { name: "X", mode: "sepia" }, sections: [{ type: "hero" }] })
+    expect(bad.brand.mode).toBeUndefined()
+    const fine = normalizeConfig({ brand: { name: "X", mode: "light" }, sections: [{ type: "hero" }] })
+    expect(fine.brand.mode).toBe("light")
+  })
+})

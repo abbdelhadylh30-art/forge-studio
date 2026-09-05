@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Command as CommandIcon, Code2, Download, Globe, Palette, Redo2, Rocket, Save, Sparkles, Undo2, Upload, Wand2 } from "lucide-react"
+import { Command as CommandIcon, Code2, Download, Globe, Monitor, Moon, Palette, Redo2, Rocket, Save, Sparkles, Sun, Undo2, Upload, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useForge } from "@/lib/landing/store"
 import { useUi } from "@/lib/landing/uiStore"
-import { THEMES } from "@/lib/landing/themes"
+import { THEMES, getTheme } from "@/lib/landing/themes"
 import { localesOf } from "@/lib/landing/i18n"
 import { Languages } from "lucide-react"
 import { ReadinessChip } from "./ReadinessPanel"
@@ -51,8 +51,29 @@ export function Toolbar() {
   const config = useForge((s) => s.config)
   const previewLocale = useUi((s) => s.previewLocale)
   const setPreviewLocale = useUi((s) => s.setPreviewLocale)
+  const brandMode = useForge((s) => s.config.brand.mode)
+  const updateBrand = useForge((s) => s.updateBrand)
   const locales = localesOf(config)
   const activeLocale = previewLocale ?? locales[0]?.code
+
+  // color-scheme quick cycle: Theme default → Dark → Light → Auto
+  const MODE_CYCLE: ("theme" | "dark" | "light" | "auto")[] = ["theme", "dark", "light", "auto"]
+  const modeValue = brandMode ?? "theme"
+  const nextMode = MODE_CYCLE[(MODE_CYCLE.indexOf(modeValue as "theme") + 1) % MODE_CYCLE.length]
+  const ModeIcon = modeValue === "auto" ? Monitor : modeValue === "dark" ? Moon : modeValue === "light" ? Sun : Palette
+  const modeLabel =
+    modeValue === "theme" ? `Theme default (${getTheme(themeId).mode})` : modeValue === "auto" ? "Auto — follows system" : modeValue === "dark" ? "Forced dark" : "Forced light"
+  const cycleMode = () => {
+    updateBrand({ mode: nextMode === "theme" ? undefined : nextMode })
+    toast.info(`Color scheme: ${nextMode === "theme" ? `theme default — ${getTheme(themeId).mode}` : nextMode}`, {
+      description:
+        nextMode === "theme"
+          ? "Every palette keeps its built-in preference."
+          : nextMode === "auto"
+            ? "The preview + published page follow the visitor's system preference."
+            : `All ${THEMES.length} themes ship a matching ${nextMode} palette.`,
+    })
+  }
 
   const openPublished = () => {
     window.open(`/p/${encodeURIComponent(slug)}`, "_blank", "noopener")
@@ -87,7 +108,7 @@ export function Toolbar() {
       {/* Theme quick switcher */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="lf-focus h-7 gap-1.5 border-zinc-800 bg-zinc-950 text-[11px] text-zinc-300 hover:border-violet-500/50" title="One-click themes — 6 curated palettes">
+          <Button variant="outline" size="sm" className="lf-focus h-7 gap-1.5 border-zinc-800 bg-zinc-950 text-[11px] text-zinc-300 hover:border-violet-500/50" title={`One-click themes — ${THEMES.length} curated palettes, each with dark + light`}>
             <Palette className="h-3 w-3 text-violet-300" />
             <span className="hidden sm:inline">{THEMES.find((t) => t.id === themeId)?.name ?? "Theme"}</span>
           </Button>
@@ -107,6 +128,19 @@ export function Toolbar() {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Color-scheme quick cycle — flips the live preview's dark/light */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={cycleMode}
+        aria-label={`Color scheme: ${modeLabel}. Click to switch.`}
+        title={`Color scheme — ${modeLabel}. Click to cycle (Theme / Dark / Light / Auto).`}
+        className="lf-focus h-7 gap-1.5 border-zinc-800 bg-zinc-950 text-[11px] text-zinc-300 hover:border-violet-500/50"
+      >
+        <ModeIcon className="h-3 w-3 text-violet-300" />
+        <span className="hidden capitalize lg:inline">{modeValue === "theme" ? "Theme" : modeValue}</span>
+      </Button>
 
       {/* Language preview switcher (visible when the site ships >1 locale) */}
       {locales.length > 1 && (

@@ -20,7 +20,7 @@ const SYSTEM_PROMPT = `You are landing-forge, an expert landing-page copywriter 
 
 {
   "brand": { "name": string, "tagline": string },
-  "themeId": "nebula" | "ember" | "emerald" | "rose" | "mono" | "paper",
+  "themeId": "nebula" | "ember" | "emerald" | "rose" | "mono" | "paper" | "slate" | "ocean" | "gold" | "midnight",
   "seo": { "title": string, "description": string },
   "sections": Section[]
 }

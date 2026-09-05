@@ -19,6 +19,7 @@ import { useForge } from "@/lib/landing/store"
 import { useUi, type DialogId } from "@/lib/landing/uiStore"
 import { configToYaml, yamlToConfig } from "@/lib/landing/yaml"
 import { buildStandaloneHtml, downloadStandaloneHtml } from "@/lib/landing/exportHtml"
+import { getTheme } from "@/lib/landing/themes"
 
 const EXAMPLE_PROMPTS = [
   "Landing page for a Flutter app that helps Iraqi students study. Modern dark theme, features, pricing. Arabic copy.",
@@ -196,7 +197,15 @@ export function ExportHtmlDialog() {
 
         <ul className="space-y-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 text-[12px] text-zinc-300">
           <li className="flex items-center gap-2">
-            <Check className="h-3.5 w-3.5 text-emerald-400" /> {visibleSections} visible sections · theme {config.themeId}
+            <Check className="h-3.5 w-3.5 text-emerald-400" /> {visibleSections} visible sections · theme {getTheme(config.themeId).name}
+          </li>
+          <li className="flex items-center gap-2">
+            <Check className="h-3.5 w-3.5 text-emerald-400" /> Dark + light palettes ship together
+            {config.brand.mode === "auto"
+              ? " — auto-follows the visitor's system, with a toggle"
+              : config.brand.mode
+                ? ` — pinned ${config.brand.mode}`
+                : ` — ${getTheme(config.themeId).mode} by theme default`}
           </li>
           <li className="flex items-center gap-2">
             <Check className="h-3.5 w-3.5 text-emerald-400" /> SEO meta + Open Graph + Twitter card + JSON-LD

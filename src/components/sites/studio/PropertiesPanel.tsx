@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Eye, EyeOff, GripVertical, Hash, Images, Languages, Link2, Loader2, Plus, Sparkles, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
+import { Check, ChevronsUpDown, Eye, EyeOff, GripVertical, Hash, Images, Languages, Link2, Loader2, Monitor, Moon, Palette, Plus, Sparkles, Sun, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useForge } from "@/lib/landing/store"
 import { ensureAllGoogleFonts } from "@/lib/landing/googleFonts"
-import { ACCENT_PRESETS, FONT_PAIRS, THEMES, accentVars, getTheme, isValidAccent } from "@/lib/landing/themes"
+import { ACCENT_PRESETS, FONT_PAIRS, THEMES, accentVars, getTheme, isValidAccent, themeVars } from "@/lib/landing/themes"
 import { SECTION_ANIMATIONS, SECTION_META } from "@/lib/landing/types"
 import type { SectionAnimation } from "@/lib/landing/types"
 import { localesOf, readPath, translatablePaths, translatedSectionIds } from "@/lib/landing/i18n"
@@ -1772,7 +1772,7 @@ function AccentPicker() {
   const accent = useForge((s) => s.config.brand.accent)
   const themeId = useForge((s) => s.config.themeId)
   const updateBrand = useForge((s) => s.updateBrand)
-  const themeAccent = getTheme(themeId).vars.accent
+  const themeAccent = themeVars(themeId, getTheme(themeId).mode).accent
   const effective = accent || themeAccent
   const preview = accentVars(effective)
 
@@ -2039,7 +2039,7 @@ function PageSettings() {
       <TextField label="Brand name" value={config.brand.name} onChange={(name) => updateBrand({ name })} maxLength={40} />
       <TextField label="Tagline" value={config.brand.tagline ?? ""} onChange={(tagline) => updateBrand({ tagline })} />
 
-      {/* Brand kit — logo + accent */}
+      {/* Brand kit — logo + accent + font + color scheme */}
       <div className="space-y-4 rounded-xl border border-zinc-800/80 bg-gradient-to-b from-violet-500/[0.04] to-transparent p-3">
         <div className="flex items-center gap-2">
           <Hash className="h-3.5 w-3.5 text-violet-300" aria-hidden />
@@ -2056,6 +2056,7 @@ function PageSettings() {
         />
         <AccentPicker />
         <FontPicker />
+        <ModePicker />
       </div>
 
       <TextField label="SEO title" value={config.seo.title} onChange={(title) => updateSeo({ title })} maxLength={70} hint={`${config.seo.title.length}/70 — shown in search results & link previews`} />
@@ -2076,32 +2077,108 @@ function PageSettings() {
       <LanguagesManager config={config} />
 
       <div className="space-y-2">
-        <Label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">One-click theme</Label>
+        <Label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">One-click theme — every palette ships dark + light</Label>
         <div className="grid grid-cols-2 gap-2">
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTheme(t.id)}
-              className={cn(
-                "group rounded-lg border p-2 text-left transition-all hover:border-violet-500/60",
-                config.themeId === t.id ? "border-violet-500 bg-violet-500/10 ring-1 ring-violet-500/40" : "border-zinc-800 bg-zinc-900/40"
-              )}
-              aria-pressed={config.themeId === t.id}
-            >
-              <div className="mb-1.5 flex gap-1">
-                {t.swatch.map((c) => (
-                  <span key={c} className="h-4 flex-1 rounded-sm border border-black/20" style={{ background: c }} />
-                ))}
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-medium text-zinc-200">{t.name}</span>
-                {t.mode === "light" && <Badge variant="outline" className="h-4 px-1 text-[8px] text-zinc-400">light</Badge>}
-              </div>
-            </button>
-          ))}
+          {THEMES.map((t) => {
+            const active = config.themeId === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTheme(t.id)}
+                className={cn(
+                  "group rounded-lg border p-2 text-left transition-all hover:border-violet-500/60",
+                  active ? "border-violet-500 bg-violet-500/10 ring-1 ring-violet-500/40" : "border-zinc-800 bg-zinc-900/40"
+                )}
+                aria-pressed={active}
+              >
+                {/* dual-mode swatch: preferred row + opposite-mode strip below */}
+                <div className="mb-1.5 flex flex-col gap-1">
+                  <div className="flex gap-1">
+                    {t.swatch.map((c) => (
+                      <span key={c} className="h-3.5 flex-1 rounded-sm border border-black/20" style={{ background: c }} />
+                    ))}
+                  </div>
+                  <div className="flex gap-1">
+                    {t.swatchAlt.map((c) => (
+                      <span key={c} className="h-2 flex-1 rounded-sm border border-black/10" style={{ background: c }} />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-zinc-200">{t.name}</span>
+                  <span
+                    className="flex items-center gap-1 text-[8px] font-semibold uppercase tracking-wide text-zinc-500"
+                    title={`Theme default: ${t.mode}`}
+                  >
+                    {t.mode === "light" ? <Sun className="h-2.5 w-2.5" aria-hidden /> : <Moon className="h-2.5 w-2.5" aria-hidden />}
+                    {t.mode}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Color-scheme control — Theme default / Auto / Dark / Light.
+ *  Every theme now carries both palettes; this decides which one visitors see. */
+function ModePicker() {
+  const themeId = useForge((s) => s.config.themeId)
+  const mode = useForge((s) => s.config.brand.mode)
+  const updateBrand = useForge((s) => s.updateBrand)
+  const theme = getTheme(themeId)
+
+  const OPTIONS: { value: "theme" | "auto" | "dark" | "light"; icon: typeof Sun; label: string; hint: string }[] = [
+    {
+      value: "theme",
+      icon: Palette,
+      label: "Theme",
+      hint: `Theme default — ${theme.name} ships ${theme.mode}`,
+    },
+    { value: "auto", icon: Monitor, label: "Auto", hint: "Follows each visitor's system preference, live" },
+    { value: "dark", icon: Moon, label: "Dark", hint: "Always the dark palette" },
+    { value: "light", icon: Sun, label: "Light", hint: "Always the light palette" },
+  ]
+  const active = mode ?? "theme"
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Color scheme</Label>
+      <div
+        className="grid grid-cols-4 gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 p-1"
+        role="group"
+        aria-label="Color scheme"
+      >
+        {OPTIONS.map((o) => {
+          const Icon = o.icon
+          const isActive = active === o.value
+          return (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => updateBrand({ mode: o.value === "theme" ? undefined : o.value })}
+              aria-pressed={isActive}
+              title={o.hint}
+              className={cn(
+                "flex h-7 items-center justify-center gap-1 rounded-md text-[10px] font-semibold transition-colors",
+                isActive
+                  ? "bg-violet-500/25 text-violet-100"
+                  : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+              )}
+            >
+              <Icon className="h-3 w-3" aria-hidden />
+              <span>{o.label}</span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-[10px] leading-relaxed text-zinc-500">
+        {OPTIONS.find((o) => o.value === active)?.hint} — visitors get a sun/moon toggle on the published page.
+      </p>
     </div>
   )
 }
