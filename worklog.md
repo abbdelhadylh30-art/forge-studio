@@ -816,3 +816,20 @@ Work Log:
 Stage Summary:
 - v1.6.0 remains fully deployed and healthy in production. No porting work is outstanding; the correct status is "done" — not "Phase 0 pending".
 - Outstanding user actions: rotate the GitHub token (pasted in plaintext), optional Turso/Postgres migration, OG-builder retirement as a future phase.
+---
+Task ID: 12
+Agent: Super Z (main agent, sandbox)
+Task: Live demo — hand-edit a landing.yaml and re-import it into the Sites Studio to show the page update.
+
+Work Log:
+- Generated a real YAML export from the SaaS "Vertex" template via configToYaml (scripts/demo-yaml-export.ts → download/vertex-demo.yml, 6.2KB, round-trip verified 10→10 sections).
+- Hand-edited 3 lines: brand name Vertex→Northstar, theme nebula→ember, hero headline.
+- Ran the import in the live Studio UI (agent-browser): Export dropdown → Import YAML → load file → Import into studio.
+- Debugging detour: two failed import attempts — (1) stale element refs after DOM updates caused clicks to hit the dialog overlay; (2) base64/atob textarea injection corrupted UTF-8 (em-dash mojibake → "non-printable characters" parse error). Root causes: refs must be re-snapshotted after every DOM change; atob decodes Latin-1, not UTF-8 — fixed with TextDecoder.
+- Successful import: page flipped to Northstar + Ember theme + new headline; auto-save persisted ("Saved · just now"); toolbar theme button read "Ember".
+- Restored the original config by re-importing the original YAML (final state: Vertex/Nebula, verified).
+
+Stage Summary:
+- Full YAML round-trip proven live in the Studio UI: export → text-editor edit → import → page rebuilds → re-import original → restored.
+- Artifacts: download/vertex-demo.yml (original), download/vertex-edited.yml (edited), before/after/restored screenshots.
+- E2E learning recorded: agent-browser refs go stale after DOM mutations (re-snapshot before each click); programmatic textarea injection needs TextDecoder for UTF-8.
