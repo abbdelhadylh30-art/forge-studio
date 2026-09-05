@@ -12,6 +12,7 @@ import { abOverrideFor } from "@/lib/landing/ab"
 import { cn } from "@/lib/utils"
 
 import { useResolvedMode } from "./useThemeMode"
+import { CookieConsentBanner } from "./CookieConsent"
 import { SectionRenderer } from "./SectionRenderer"
 
 export interface LandingPreviewProps {
@@ -33,6 +34,14 @@ export interface LandingPreviewProps {
    *  vars — the standalone HTML ships a <style> block (see themeVarsCss) that
    *  resolves the mode purely in CSS, including prefers-color-scheme. */
   themeViaCss?: boolean
+  /** Cookie-consent banner slot — rendered INSIDE the themed root so the lf
+   *  variables apply; the published page controls visibility + decisions, the
+   *  export ships it hidden and lets the vanilla script reveal it. */
+  consent?: {
+    visible: boolean
+    hidden?: boolean
+    onDecide?: (accepted: boolean) => void
+  }
 }
 
 /**
@@ -54,6 +63,7 @@ export function LandingPreview({
   onSectionSelect,
   modeOverride,
   themeViaCss = false,
+  consent,
 }: LandingPreviewProps) {
   const hero = config.sections.find((s): s is HeroSection => s.type === "hero" && s.ab?.enabled === true)
   // ✦ webfont pairs: stream the css2 stylesheet (system stacks stay the
@@ -152,6 +162,17 @@ export function LandingPreview({
     </button>
   )
 
+  // themed chrome rendered inside the root (lf vars apply): consent banner.
+  // Never in selection mode — the studio canvas shows page content only.
+  const consentBanner =
+    consent?.visible && config.legal?.cookieConsent?.enabled && !selectionMode ? (
+      <CookieConsentBanner
+        consent={config.legal.cookieConsent}
+        hidden={consent.hidden}
+        onDecide={consent.onDecide}
+      />
+    ) : null
+
   // export path: font stack inline, color vars delivered by the CSS block
   if (themeViaCss) {
     return (
@@ -162,6 +183,7 @@ export function LandingPreview({
         style={{ fontFamily: getFontPair(config.brand.font).body } as CSSProperties}
       >
         {visible.map((section, i) => renderSection(section, i))}
+        {consentBanner}
       </div>
     )
   }
@@ -172,6 +194,7 @@ export function LandingPreview({
       className={cn("lf-brand-font w-full min-h-full", selectionMode && "select-none", className)}
     >
       {visible.map((section, i) => renderSection(section, i))}
+      {consentBanner}
     </div>
   )
 

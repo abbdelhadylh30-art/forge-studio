@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { applyLocale, dirFor, localesOf, readPath, translatablePaths, translatedSectionIds } from "./i18n"
+import { applyLocale, dirFor, localesOf, pageTranslatablePaths, PAGE_TRANSLATION_KEY, readPath, translatablePaths, translatedSectionIds } from "./i18n"
 import type { LandingConfig, Section } from "./types"
 import { createSection } from "./defaults"
 
@@ -173,5 +173,65 @@ describe("narrative sections translatable paths", () => {
   it("collects video caption + cta label when present", () => {
     const video = createSection("video")
     expect(translatablePaths(video)).toContain("caption")
+  })
+})
+
+
+const pageConfig: LandingConfig = {
+  version: 1,
+  brand: { name: "X", tagline: "tag" },
+  themeId: "nebula",
+  seo: { title: "t", description: "d" },
+  sections: [createSection("hero"), createSection("footer")],
+}
+
+describe("page-level translations (__page pseudo-section)", () => {
+  it("pageTranslatablePaths lists consent strings when configured", () => {
+    expect(pageTranslatablePaths(pageConfig)).toEqual([])
+    const withConsent: typeof pageConfig = JSON.parse(JSON.stringify(pageConfig))
+    withConsent.legal = {
+      cookieConsent: {
+        enabled: true,
+        message: "We use cookies.",
+        acceptLabel: "Accept",
+        declineLabel: "Decline",
+        position: "bottom",
+      },
+    }
+    expect(pageTranslatablePaths(withConsent)).toContain("legal.cookieConsent.message")
+    expect(pageTranslatablePaths(withConsent)).toContain("legal.cookieConsent.acceptLabel")
+  })
+
+  it("applyLocale patches the config ROOT from the __page block", () => {
+    const cfg: typeof pageConfig = JSON.parse(JSON.stringify(pageConfig))
+    cfg.legal = {
+      cookieConsent: {
+        enabled: true,
+        message: "We use cookies.",
+        acceptLabel: "Accept",
+        declineLabel: "Decline",
+        position: "bottom",
+      },
+    }
+    cfg.i18n = {
+      locales: [
+        { code: "en", label: "English" },
+        { code: "de", label: "Deutsch" },
+      ],
+      translations: {
+        de: {
+          [PAGE_TRANSLATION_KEY]: {
+            "legal.cookieConsent.message": "Wir verwenden Cookies.",
+            "legal.cookieConsent.acceptLabel": "Akzeptieren",
+          },
+        },
+      },
+    }
+    const out = applyLocale(cfg, "de")
+    expect(out.legal?.cookieConsent.message).toBe("Wir verwenden Cookies.")
+    expect(out.legal?.cookieConsent.acceptLabel).toBe("Akzeptieren")
+    expect(out.legal?.cookieConsent.declineLabel).toBe("Decline") // untouched
+    // the base config is not mutated
+    expect(cfg.legal?.cookieConsent.message).toBe("We use cookies.")
   })
 })

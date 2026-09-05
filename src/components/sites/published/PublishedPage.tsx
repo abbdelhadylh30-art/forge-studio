@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { LandingPreview } from "@/components/sites/preview/LandingPreview"
+import { injectCustomScripts, readConsent, writeConsent, type ConsentState } from "@/components/sites/shared/scriptInjection"
 import { track, pingEngagement, detectDevice, detectBrowser, getVisitorId } from "@/components/sites/shared/tracking"
 import { useVisitorRelay } from "@/components/sites/shared/livesocket"
 import { getAbTests, assignAbVariants, sectionAb } from "@/lib/landing/ab"
@@ -55,6 +56,8 @@ export function PublishedPage({ slug }: { slug: string }) {
   const [locale, setLocale] = React.useState<string | null>(null)
   /** visitor's dark/light override (persisted per browser, flips the whole page). */
   const [modeOverride, setModeOverride] = React.useState<"dark" | "light" | null>(null)
+  /** cookie-consent decision — gates the custom third-party scripts */
+  const [consent, setConsent] = React.useState<ConsentState>("unknown")
   const [copied, setCopied] = React.useState(false)
 
   const sessionStartRef = React.useRef(Date.now())
@@ -95,6 +98,34 @@ export function PublishedPage({ slug }: { slug: string }) {
       }
       return next
     })
+  }
+
+  // ── Cookie consent + custom third-party scripts (GA4, Meta Pixel, chat…).
+  // The banner only shows when the site enables it; built-in analytics is
+  // cookie-free and always runs. Custom scripts inject ONLY when the gate is
+  // open: banner off → immediate, banner on → after Accept (Decline = never).
+  React.useEffect(() => {
+    if (state.kind !== "ready") return
+    const cfg = state.project.config
+    setConsent(readConsent())
+    const bannerOn = cfg.legal?.cookieConsent?.enabled === true
+    if (!cfg.tracking) return
+    if (!bannerOn) {
+      // no consent gate — inject immediately (owner's explicit choice)
+      injectCustomScripts(cfg.tracking, true)
+    }
+  }, [state])
+
+  React.useEffect(() => {
+    if (state.kind !== "ready" || !config?.tracking) return
+    const bannerOn = config.legal?.cookieConsent?.enabled === true
+    if (!bannerOn) return // already injected immediately
+    if (consent === "accepted") injectCustomScripts(config.tracking, true)
+  }, [consent, state, config?.tracking])
+
+  const decideConsent = (accepted: boolean) => {
+    writeConsent(accepted ? "accepted" : "declined")
+    setConsent(accepted ? "accepted" : "declined")
   }
 
   // pageview id as STATE (the relay needs it to join) — the ref stays for the
@@ -493,6 +524,10 @@ export function PublishedPage({ slug }: { slug: string }) {
         onCtaClick={handleCtaClick}
         onFormSubmit={handleFormSubmit}
         modeOverride={modeOverride}
+        consent={{
+          visible: consent === "unknown",
+          onDecide: decideConsent,
+        }}
         className="min-h-full"
       />
 

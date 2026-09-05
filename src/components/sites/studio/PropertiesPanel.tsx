@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Eye, EyeOff, GripVertical, Hash, Images, Languages, Link2, Loader2, Monitor, Moon, Palette, Plus, Sparkles, Sun, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
+import { Check, ChevronsUpDown, Cookie, Eye, EyeOff, GripVertical, Hash, Images, Languages, Link2, Loader2, Monitor, Moon, Palette, Plus, Sparkles, Sun, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,7 +19,7 @@ import { ensureAllGoogleFonts } from "@/lib/landing/googleFonts"
 import { ACCENT_PRESETS, FONT_PAIRS, THEMES, accentVars, getTheme, isValidAccent, themeVars } from "@/lib/landing/themes"
 import { SECTION_ANIMATIONS, SECTION_META } from "@/lib/landing/types"
 import type { SectionAnimation } from "@/lib/landing/types"
-import { localesOf, readPath, translatablePaths, translatedSectionIds } from "@/lib/landing/i18n"
+import { localesOf, pageTranslatablePaths, PAGE_TRANSLATION_KEY, readPath, translatablePaths, translatedSectionIds } from "@/lib/landing/i18n"
 import type {
   AboutSection,
   Cta,
@@ -358,6 +358,8 @@ function TextAreaField({
   rows = 3,
   hint,
   maxLength,
+  mono,
+  placeholder,
 }: {
   label: string
   value: string
@@ -365,6 +367,9 @@ function TextAreaField({
   rows?: number
   hint?: string
   maxLength?: number
+  /** monospace body — code/script inputs */
+  mono?: boolean
+  placeholder?: string
 }) {
   return (
     <Field label={label} hint={hint ?? (maxLength ? `${value.length}/${maxLength}` : undefined)}>
@@ -372,8 +377,12 @@ function TextAreaField({
         value={value}
         rows={rows}
         maxLength={maxLength}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="resize-none border-zinc-700/80 bg-zinc-900/60 text-[13px] leading-snug text-zinc-100 focus-visible:ring-violet-500/60"
+        className={cn(
+          "resize-none border-zinc-700/80 bg-zinc-900/60 text-[13px] leading-snug text-zinc-100 focus-visible:ring-violet-500/60",
+          mono && "font-mono text-[11px]",
+        )}
       />
     </Field>
   )
@@ -1942,7 +1951,9 @@ function AnchorField({ section }: { section: Section }) {
 function LanguagesManager({ config }: { config: LandingConfig }) {
   const setConfig = useForge((s) => s.setConfig)
   const [draft, setDraft] = React.useState("")
+  const [busyPage, setBusyPage] = React.useState<string | null>(null)
   const locales = localesOf(config)
+  const pagePaths = pageTranslatablePaths(config)
 
   const save = (next: { code: string; label?: string; dir?: "ltr" | "rtl" }[]) => {
     const cleaned = next.filter((l) => l.code.trim())
@@ -1960,6 +1971,40 @@ function LanguagesManager({ config }: { config: LandingConfig }) {
     const cur = locales.map((l) => ({ code: l.code, label: l.label, dir: l.dir }))
     const idx = cur.findIndex((l) => l.code === code)
     if (idx > 0) save([cur[idx], ...cur.slice(0, idx), ...cur.slice(idx + 1)])
+  }
+
+  /** AI-translate the PAGE-level strings (cookie-consent banner copy) and
+   *  store them under the __page pseudo-section so compliance UI speaks the
+   *  visitor's language. */
+  const translatePage = async (locale: string, label: string) => {
+    if (pagePaths.length === 0) return
+    setBusyPage(locale)
+    try {
+      const fields: Record<string, string> = {}
+      for (const p of pagePaths) {
+        const v = readPath(config, p)
+        if (v) fields[p] = v
+      }
+      const res = await fetch("/api/ai/translate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale, sectionType: "page", fields }),
+      })
+      const data = (await res.json()) as { translations?: Record<string, string>; error?: string }
+      if (!res.ok || !data.translations) throw new Error(data.error ?? "Translation failed")
+      const next = JSON.parse(JSON.stringify(config)) as typeof config
+      next.i18n = next.i18n ?? { locales: [{ code: "en", label: "English" }], translations: {} }
+      next.i18n.translations[locale] = next.i18n.translations[locale] ?? {}
+      next.i18n.translations[locale][PAGE_TRANSLATION_KEY] = data.translations
+      setConfig(next)
+      toast.success(`Page strings → ${label}`, {
+        description: `${Object.keys(data.translations).length} field${Object.keys(data.translations).length === 1 ? "" : "s"} — consent banner now speaks ${label}.`,
+      })
+    } catch (e) {
+      toast.error("Page translation failed", { description: e instanceof Error ? e.message : undefined })
+    } finally {
+      setBusyPage(null)
+    }
   }
 
   return (
@@ -1983,6 +2028,18 @@ function LanguagesManager({ config }: { config: LandingConfig }) {
             </div>
             {i > 0 && (
               <>
+                {pagePaths.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-zinc-500 hover:text-violet-300"
+                    title={`Translate page strings (consent banner) to ${l.label}`}
+                    disabled={busyPage !== null}
+                    onClick={() => void translatePage(l.code, l.label)}
+                  >
+                    {busyPage === l.code ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
+                  </Button>
+                )}
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-zinc-500" title="Make default" onClick={() => moveFirst(l.code)}>
                   <ArrowUp className="h-3 w-3" />
                 </Button>
@@ -2024,6 +2081,120 @@ function LanguagesManager({ config }: { config: LandingConfig }) {
         >
           <Plus className="h-3 w-3" /> Add
         </Button>
+      </div>
+    </div>
+  )
+}
+
+/** Privacy & tracking — cookie-consent banner + custom third-party scripts.
+ *  Scripts stay gated behind the banner whenever it's enabled (GDPR-friendly);
+ *  the built-in analytics is cookie-free and always runs. */
+function PrivacyTrackingManager() {
+  const consent = useForge((s) => s.config.legal?.cookieConsent)
+  const tracking = useForge((s) => s.config.tracking)
+  const updateLegal = useForge((s) => s.updateLegal)
+  const updateTracking = useForge((s) => s.updateTracking)
+  const enabled = consent?.enabled === true
+  const hasScripts = Boolean(tracking?.headScripts?.trim() || tracking?.bodyScripts?.trim())
+  const gated = enabled && hasScripts
+
+  return (
+    <div className="space-y-4 rounded-xl border border-zinc-800/80 bg-gradient-to-b from-amber-500/[0.03] to-transparent p-3">
+      <div className="flex items-center gap-2">
+        <Cookie className="h-3.5 w-3.5 text-amber-300" aria-hidden />
+        <p className="text-[11px] font-semibold text-zinc-200">Privacy &amp; tracking</p>
+        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${gated ? "bg-emerald-500/10 text-emerald-300" : enabled ? "bg-amber-500/10 text-amber-300" : "bg-zinc-700/30 text-zinc-500"}`}>
+          {gated ? "consent-gated" : enabled ? "banner on" : "no banner"}
+        </span>
+      </div>
+
+      <SwitchField
+        label="Cookie-consent banner"
+        hint="Fixed banner on the published page + HTML export. Custom scripts below only load after the visitor accepts."
+        checked={enabled}
+        onChange={(v) => updateLegal({ cookieConsent: { enabled: v } })}
+      />
+
+      {enabled && (
+        <>
+          <TextAreaField
+            label="Banner message"
+            value={consent?.message ?? ""}
+            onChange={(message) => updateLegal({ cookieConsent: { message } })}
+            rows={2}
+            maxLength={400}
+            placeholder="We use cookies to enhance your experience. By continuing you agree to our use of cookies."
+            hint="Plain language works best — this string is AI-translatable per locale."
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField
+              label="Accept label"
+              value={consent?.acceptLabel ?? "Accept"}
+              onChange={(acceptLabel) => updateLegal({ cookieConsent: { acceptLabel } })}
+              maxLength={40}
+            />
+            <TextField
+              label="Decline label"
+              value={consent?.declineLabel ?? "Decline"}
+              onChange={(declineLabel) => updateLegal({ cookieConsent: { declineLabel } })}
+              maxLength={40}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <SelectField
+              label="Position"
+              value={consent?.position ?? "bottom"}
+              onChange={(position) => updateLegal({ cookieConsent: { position: position as "bottom" | "top" } })}
+              options={[
+                { value: "bottom", label: "Bottom edge" },
+                { value: "top", label: "Top edge" },
+              ]}
+            />
+            <TextField
+              label="Learn-more URL"
+              value={consent?.learnMoreUrl ?? ""}
+              onChange={(learnMoreUrl) => updateLegal({ cookieConsent: { learnMoreUrl: learnMoreUrl || undefined } })}
+              maxLength={300}
+              placeholder="https://…/privacy"
+              hint="Optional link shown beside the buttons."
+            />
+          </div>
+        </>
+      )}
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Custom scripts</Label>
+          {gated && (
+            <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
+              load after consent
+            </span>
+          )}
+        </div>
+        <TextAreaField
+          label="Head scripts"
+          value={tracking?.headScripts ?? ""}
+          onChange={(headScripts) => updateTracking({ headScripts })}
+          rows={3}
+          maxLength={8000}
+          mono
+          placeholder="<script>…GA4 / Meta Pixel / TikTok…</script>"
+          hint="Raw markup or bare JS — injected into <head>."
+        />
+        <TextAreaField
+          label="Body scripts"
+          value={tracking?.bodyScripts ?? ""}
+          onChange={(bodyScripts) => updateTracking({ bodyScripts })}
+          rows={3}
+          maxLength={8000}
+          mono
+          placeholder="<!-- chat widgets, conversion scripts -->"
+          hint="Injected before </body> — chat widgets etc."
+        />
+        <p className="text-[10px] leading-relaxed text-zinc-500">
+          Built-in pageview/CTA/lead analytics is cookie-free and always runs — these fields are for third-party
+          tags only. {enabled ? "With the banner on, they wait for the visitor's Accept." : "With no banner they load immediately (owner's choice)."}
+        </p>
       </div>
     </div>
   )
@@ -2075,6 +2246,7 @@ function PageSettings() {
         hint="Absolute URL used for link previews (Open Graph + Twitter card). Falls back to the hero image."
       />
       <LanguagesManager config={config} />
+      <PrivacyTrackingManager />
 
       <div className="space-y-2">
         <Label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">One-click theme — every palette ships dark + light</Label>

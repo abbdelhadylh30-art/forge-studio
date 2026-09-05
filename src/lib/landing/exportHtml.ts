@@ -11,6 +11,7 @@ import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import { LandingPreview } from "@/components/sites/preview/LandingPreview"
+import { parseScripts } from "@/components/sites/shared/scriptInjection"
 import { googleFontLinkTags, themeVarsCss } from "./themes"
 import { applyLocale, dirFor, localesOf } from "./i18n"
 import type { LandingConfig } from "./types"
@@ -29,6 +30,52 @@ const SUN_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>'
 const MOON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+
+/**
+ * Vanilla consent gate for the standalone export. `customJson` is the parsed
+ * script list (JSON, `</` escaped) or "null" when only the banner ships.
+ * Behavior mirrors the published page: banner reveals when undecided, Accept
+ * injects the custom scripts + persists, Decline persists + never injects,
+ * decided visitors see no banner and accepted scripts load immediately.
+ */
+function CONSENT_GATE_SCRIPT(customJson: string): string {
+  return [
+    "(function () {",
+    "  var CUSTOM = " + customJson + ";",
+    "  var KEY = 'lf-cookie-consent';",
+    "  var state = 'unknown';",
+    "  try { state = localStorage.getItem(KEY) || 'unknown'; } catch (e) {}",
+    "  var banner = document.querySelector('[data-lf-cookie-banner]');",
+    "  function inject() {",
+    "    if (!CUSTOM || window.__lfCustomInjected) return;",
+    "    window.__lfCustomInjected = true;",
+    "    for (var i = 0; i < CUSTOM.length; i++) {",
+    "      var s = CUSTOM[i];",
+    "      var el = document.createElement('script');",
+    "      el.setAttribute('data-lf-custom', 'export');",
+    "      if (s.src) { el.src = s.src; el.async = false; }",
+    "      else { el.textContent = s.code || ''; }",
+    "      (s.head ? document.head : document.body).appendChild(el);",
+    "    }",
+    "  }",
+    "  function hide() { if (banner) banner.setAttribute('hidden', ''); }",
+    "  function decide(next) {",
+    "    try { localStorage.setItem(KEY, next); } catch (e) {}",
+    "    if (next === 'accepted') inject();",
+    "    hide();",
+    "  }",
+    "  if (banner) {",
+    "    if (state === 'accepted') { inject(); hide(); }",
+    "    else if (state === 'declined') { hide(); }",
+    "    else { banner.removeAttribute('hidden'); }",
+    "    var acc = banner.querySelector('[data-lf-consent-accept]');",
+    "    var dec = banner.querySelector('[data-lf-consent-decline]');",
+    "    if (acc) acc.addEventListener('click', function () { decide('accepted'); });",
+    "    if (dec) dec.addEventListener('click', function () { decide('declined'); });",
+    "  }",
+    "})();",
+  ].join("\n")
+}
 
 /** Vanilla-JS behaviors for the static snapshot (FAQ accordion, countdown
  *  timers, gallery slider, stories progress, smooth scroll, entrance
@@ -206,9 +253,17 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
 
   // 3. render the page to static markup — themeViaCss: the color variables
   //    ship as a <style> block (themeVarsCss) so auto mode + the visitor toggle
-  //    resolve purely in CSS, even with JS off
+  //    resolve purely in CSS, even with JS off. The consent banner (when the
+  //    site enables one) ships hidden inside the themed root; the vanilla
+  //    script below reveals it and gates the custom scripts on the decision.
+  const consentCfg = localized.legal?.cookieConsent
+  const consentOn = consentCfg?.enabled === true
   const markup = renderToStaticMarkup(
-    createElement(LandingPreview, { config: localized, themeViaCss: true }),
+    createElement(LandingPreview, {
+      config: localized,
+      themeViaCss: true,
+      ...(consentOn ? { consent: { visible: true, hidden: true } } : {}),
+    }),
   )
 
   // 4. assemble the document
@@ -256,6 +311,30 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
     })
   )
 
+  // ── Custom third-party scripts (GA4, Meta Pixel, chat widgets) ──────────
+  // Two delivery modes:
+  //   • consent banner ON  → scripts embed as data and only run after the
+  //     visitor accepts (Decline = never; JS-off = never, consistent with the
+  //     banner staying hidden)
+  //   • banner OFF         → head/body scripts emit raw, exactly as configured
+  const tracking = config.tracking
+  const customParsed = tracking
+    ? [
+        ...parseScripts(tracking.headScripts).map((s) => ({ ...s, head: true })),
+        ...parseScripts(tracking.bodyScripts).map((s) => ({ ...s, head: false })),
+      ]
+    : []
+  const consentScript =
+    consentOn && (customParsed.length > 0 || consentCfg)
+      ? CONSENT_GATE_SCRIPT(
+          customParsed.length > 0
+            ? JSON.stringify(customParsed).replace(/<\//g, "<\\/")
+            : "null",
+        )
+      : ""
+  const rawHeadScripts = !consentOn && tracking?.headScripts ? tracking.headScripts : ""
+  const rawBodyScripts = !consentOn && tracking?.bodyScripts ? tracking.bodyScripts : ""
+
   const html = [
     "<!DOCTYPE html>",
     `<html lang="${escapeHtml(chosen)}" dir="${dir}">`,
@@ -287,6 +366,7 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
     `<script type="application/ld+json">${jsonLd}</script>`,
     '<meta name="generator" content="Forge Studio — landing sites">',
     ...fontLinks,
+    rawHeadScripts,
     "<style>",
     css,
     "</style>",
@@ -300,9 +380,13 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
     "<body>",
     markup,
     modeToggle,
+    rawBodyScripts,
     "<script>",
     INTERACTIVE_SCRIPT,
     "</script>",
+    consentScript ? "<script>" : "",
+    consentScript,
+    consentScript ? "</script>" : "",
     `<!-- Built with Forge Studio Sites · ${year} · ${brand} -->`,
     "</body>",
     "</html>",

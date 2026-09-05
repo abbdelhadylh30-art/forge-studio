@@ -468,6 +468,32 @@ export function localeDir(code: string): "ltr" | "rtl" {
   return RTL_LANGS.has(code.toLowerCase().split("-")[0]) ? "rtl" : "ltr"
 }
 
+// ── Privacy & tracking (published page + export) ─────────────────────────────
+
+export interface CookieConsentConfig {
+  enabled: boolean
+  /** banner body copy (translatable — see i18n page-level paths) */
+  message: string
+  acceptLabel: string
+  declineLabel: string
+  /** optional "learn more" link shown next to the buttons */
+  learnMoreUrl?: string
+  learnMoreLabel?: string
+  position: "bottom" | "top"
+}
+
+export interface LegalConfig {
+  cookieConsent: CookieConsentConfig
+}
+
+export interface TrackingConfig {
+  /** raw script markup for <head> (GA4, Meta Pixel, TikTok…) — accepts full
+   *  <script>…</script> tags or bare JS */
+  headScripts: string
+  /** raw script markup injected before </body> (chat widgets, conversion scripts) */
+  bodyScripts: string
+}
+
 // ── Root config ──────────────────────────────────────────────────────────────
 export interface LandingConfig {
   version: 1
@@ -486,6 +512,12 @@ export interface LandingConfig {
   themeId: ThemeId
   /** multilingual publishing — AI-translated copy per locale, RTL-aware */
   i18n?: I18nConfig
+  /** privacy / compliance — cookie-consent banner shown to visitors */
+  legal?: LegalConfig
+  /** custom third-party scripts (GA4, Meta Pixel, chat widgets…) — injected
+   *  on the published page + standalone export; gated behind cookie consent
+   *  whenever the banner is enabled */
+  tracking?: TrackingConfig
   seo: {
     title: string
     description: string

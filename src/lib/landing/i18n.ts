@@ -191,6 +191,21 @@ export function localesOf(config: LandingConfig): LocaleMeta[] {
   }))
 }
 
+/** Pseudo-section key that stores PAGE-level translations (consent banner,
+ *  SEO copy) in the same translations map — applied to the config root. */
+export const PAGE_TRANSLATION_KEY = "__page"
+
+/** Page-level translatable strings (dotted paths from the config root). */
+export function pageTranslatablePaths(config: LandingConfig): string[] {
+  const paths: string[] = []
+  const cc = config.legal?.cookieConsent
+  if (cc?.message) paths.push("legal.cookieConsent.message")
+  if (cc?.acceptLabel) paths.push("legal.cookieConsent.acceptLabel")
+  if (cc?.declineLabel) paths.push("legal.cookieConsent.declineLabel")
+  if (cc?.learnMoreLabel) paths.push("legal.cookieConsent.learnMoreLabel")
+  return paths
+}
+
 /** Sections that have at least one stored translation for the locale. */
 export function translatedSectionIds(config: LandingConfig, locale: string): Set<string> {
   const bySection = config.i18n?.translations?.[locale]
@@ -200,6 +215,9 @@ export function translatedSectionIds(config: LandingConfig, locale: string): Set
 /**
  * Apply a locale's translations to a config (pure — returns a new config).
  * Unknown/missing paths are skipped, so partial translations are safe.
+ * Page-level strings (PAGE_TRANSLATION_KEY) patch the config ROOT — consent
+ * banner copy, SEO title/description — so compliance UI speaks the visitor's
+ * language too.
  */
 export function applyLocale(config: LandingConfig, locale: string): LandingConfig {
   if (!config.i18n) return config
@@ -216,7 +234,17 @@ export function applyLocale(config: LandingConfig, locale: string): LandingConfi
     return next as unknown as Section
   })
 
-  return { ...config, sections }
+  let root: LandingConfig = { ...config, sections }
+  const pagePatch = bySection[PAGE_TRANSLATION_KEY]
+  if (pagePatch) {
+    const next = JSON.parse(JSON.stringify(root)) as unknown as Record<string, unknown>
+    for (const [path, value] of Object.entries(pagePatch)) {
+      if (typeof value === "string" && value) writePath(next, path, value)
+    }
+    root = next as unknown as LandingConfig
+  }
+
+  return root
 }
 
 /** dir attribute for a locale in the context of a config. */

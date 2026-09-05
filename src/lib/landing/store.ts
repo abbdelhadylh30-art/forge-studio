@@ -55,6 +55,8 @@ interface ForgeState {
   setTheme: (t: ThemeId) => void
   updateBrand: (patch: Partial<LandingConfig["brand"]>) => void
   updateSeo: (patch: Partial<LandingConfig["seo"]>) => void
+  updateLegal: (patch: { cookieConsent?: Partial<NonNullable<LandingConfig["legal"]>["cookieConsent"]> }) => void
+  updateTracking: (patch: Partial<NonNullable<LandingConfig["tracking"]>>) => void
 
   undo: () => void
   redo: () => void
@@ -221,6 +223,27 @@ export const useForge = create<ForgeState>((set, get) => ({
     set((s) => {
       const next = clone(s.config)
       next.seo = { ...next.seo, ...patch }
+      return { ...pushHistory(s), config: next, dirty: true }
+    }),
+
+  updateLegal: (patch) =>
+    set((s) => {
+      const next = clone(s.config)
+      const base = next.legal?.cookieConsent ?? {
+        enabled: false,
+        message: "",
+        acceptLabel: "Accept",
+        declineLabel: "Decline",
+        position: "bottom" as const,
+      }
+      next.legal = { cookieConsent: { ...base, ...patch.cookieConsent } }
+      return { ...pushHistory(s), config: next, dirty: true }
+    }),
+
+  updateTracking: (patch) =>
+    set((s) => {
+      const next = clone(s.config)
+      next.tracking = { ...(next.tracking ?? { headScripts: "", bodyScripts: "" }), ...patch }
       return { ...pushHistory(s), config: next, dirty: true }
     }),
 

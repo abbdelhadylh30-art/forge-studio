@@ -1,7 +1,7 @@
 import { load as yamlLoad, dump as yamlDump } from "js-yaml"
 import { createSection, sid } from "./defaults"
 import { isValidAccent, isFontPairId } from "./themes"
-import type { LandingConfig, Section, SectionType, ThemeId } from "./types"
+import type { CookieConsentConfig, LandingConfig, LegalConfig, Section, SectionType, ThemeId, TrackingConfig } from "./types"
 import { SECTION_TYPES } from "./types"
 
 const THEME_IDS: ThemeId[] = [
@@ -238,6 +238,12 @@ export function normalizeConfig(input: unknown): LandingConfig {
   // i18n (multilingual publishing) — validated locales + translations map
   const i18nOut = validI18n(raw.i18n)
 
+  // privacy: cookie-consent banner (validated; only kept when enabled or shaped)
+  const legalOut = validLegal(raw.legal)
+
+  // tracking: custom head/body scripts (raw text, capped)
+  const trackingOut = validTracking(raw.tracking)
+
   const seoOut: LandingConfig["seo"] = {
     title: String(seo.title ?? `${name} — Ship faster`).slice(0, 120),
     description: String(seo.description ?? "").slice(0, 300),
@@ -254,7 +260,42 @@ export function normalizeConfig(input: unknown): LandingConfig {
     sections: sections.length ? sections : [createSection("hero"), createSection("footer")],
   }
   if (i18nOut) out.i18n = i18nOut
+  if (legalOut) out.legal = legalOut
+  if (trackingOut) out.tracking = trackingOut
   return out
+}
+
+/** Validate + shape the cookie-consent block (dropped unless well-formed). */
+function validLegal(input: unknown): LegalConfig | undefined {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return undefined
+  const raw = input as Record<string, unknown>
+  const cc = raw.cookieConsent
+  if (!cc || typeof cc !== "object" || Array.isArray(cc)) return undefined
+  const o = cc as Record<string, unknown>
+  const consent: CookieConsentConfig = {
+    enabled: o.enabled === true,
+    message: typeof o.message === "string" ? o.message.slice(0, 400) : "",
+    acceptLabel: String(o.acceptLabel ?? "Accept").slice(0, 40) || "Accept",
+    declineLabel: String(o.declineLabel ?? "Decline").slice(0, 40) || "Decline",
+    position: o.position === "top" ? "top" : "bottom",
+  }
+  const learnMoreUrl = typeof o.learnMoreUrl === "string" ? o.learnMoreUrl.trim().slice(0, 300) : ""
+  if (learnMoreUrl) consent.learnMoreUrl = learnMoreUrl
+  const learnMoreLabel = typeof o.learnMoreLabel === "string" ? o.learnMoreLabel.trim().slice(0, 40) : ""
+  if (learnMoreLabel) consent.learnMoreLabel = learnMoreLabel
+  // drop entirely when nothing meaningful is configured
+  if (!consent.enabled && !consent.message) return undefined
+  return { cookieConsent: consent }
+}
+
+/** Validate + shape the custom tracking scripts (dropped when both empty). */
+function validTracking(input: unknown): TrackingConfig | undefined {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return undefined
+  const raw = input as Record<string, unknown>
+  const head = typeof raw.headScripts === "string" ? raw.headScripts.trim().slice(0, 8000) : ""
+  const body = typeof raw.bodyScripts === "string" ? raw.bodyScripts.trim().slice(0, 8000) : ""
+  if (!head && !body) return undefined
+  return { headScripts: head, bodyScripts: body }
 }
 
 /** Validate + shape the i18n config (locales list + translations map). */
@@ -387,6 +428,8 @@ export function configToYaml(config: LandingConfig): string {
   // i18n (locales + translations) must survive the round-trip — the YAML
   // export is advertised as the complete, version-controllable page config.
   if (config.i18n) ordered.i18n = config.i18n
+  if (config.legal) ordered.legal = config.legal
+  if (config.tracking) ordered.tracking = config.tracking
   return yamlDump(ordered, { lineWidth: 100, noRefs: true, sortKeys: false })
 }
 

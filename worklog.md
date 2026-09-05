@@ -699,3 +699,25 @@ Work Log:
 Stage Summary:
 - fb18816 is live in production on Vercel.
 - Security note: the GitHub token was pasted in plaintext chat — recommended rotating it after use.
+
+---
+Task ID: 5 (Phase 1)
+Agent: Super Z (main agent, sandbox)
+Task: Phase 1 of the v21 visual-layer follow-up — Priority 5: dark mode + theme tokens + Google Fonts selector completion. Instructions held constant: visual-grade superb, zero childish emoji (Lucide icon bank), comfy spacing everywhere.
+
+Work Log:
+- Recon: confirmed priorities 1-4 (announcement/hero variants/narrative sections/gallery styles/icon bank/spacing) already shipped live at fb18816. Remaining: dual-mode themes, cookie consent + tracking scripts, Sheets webhook, export readiness.
+- themes.ts restructured: ThemeDef now carries `dark` + `light` ThemeVars (10 keys each) + `swatchAlt`; 4 new themes (Slate, Ocean, Gold — light-first; Midnight — dark-first) → 10 total, 6 dark-first / 4 light-first; 2 new accent presets (Indigo, Champagne).
+- brand.mode: "auto" | "dark" | "light"; unset = theme's built-in preference (every pre-existing site stays pixel-identical — legacy-safe by design). resolveMode() is the single pure resolver.
+- Font pairs: + g-jakarta (Plus Jakarta Sans/Inter), g-poppins (Poppins/Inter), g-arabic (Noto Sans Arabic display+body — native Arabic typography for the RTL/i18n stack) → 11 pairs.
+- New hook src/components/sites/preview/useThemeMode.ts: usePrefersDark (live matchMedia listener), useResolvedMode (override > brand.mode > theme default).
+- LandingPreview: resolves the mode inline for the app; new `themeViaCss` export path renders data-lf-theme/data-lf-mode + .lf-root class with the font stack inline (color vars via CSS block).
+- PublishedPage: visitor Sun/Moon chrome toggle, persisted (lf-visitor-mode), override beats the site default; sticky-CTA accent now follows the resolved mode (themeVars()).
+- Export (exportHtml.ts): themeVarsCss() emits .lf-root{dark} + [data-lf-mode="light"]{light} + @media(prefers-color-scheme:light){auto} — JS-off safe; floating mode toggle (inline SVG sun/moon, pure-CSS icon swap via adjacent sibling selector, localStorage persist) only when mode==="auto".
+- Studio: Color-scheme segmented control (Theme/Auto/Dark/Light with Palette/Monitor/Moon/Sun icons) in Page settings brand kit; toolbar quick cycle button; theme grid shows dual-mode swatches + mode badges; Export dialog advertises the dual-mode delivery; AI generate schema lists all 10 theme ids.
+- store.updateBrand now strips undefined keys (mode: undefined = back to theme default).
+- QA: tsc clean, eslint 0 errors, vitest 185/185 (+13: dual var invariants, resolveMode truth table, themeVarsCss rules, accent over both modes, YAML round-trip of brand.mode + new theme ids + invalid coercion).
+- Browser E2E (agent-browser): studio preview flips nebula dark #0a0a0f → light #faf9ff on forced light; auto mode reacts LIVE to `set media light/dark`; all 10 theme tiles render with mode badges; segmented control forces light on Paper (media dark ignored); published /p/vertex visitor toggle flips + persists (lf-visitor-mode=dark); export blob: data-lf-mode=auto, vars CSS + media query present, toggle click cycles auto→light→dark with bg flips + persistence; caught + fixed a real bug (inline display styles on the toggle's icon spans out-ranked the CSS swap rules); verified the "invisible text" scare was a false positive (gradient hero uses accent-contrast by design).
+
+Stage Summary:
+- 10 dual-mode themes, 11 font pairs, auto dark/light that follows the visitor's OS live, visitor + studio toggles, and full export parity (CSS-only resolution, works JS-off) — committed as Phase 1.

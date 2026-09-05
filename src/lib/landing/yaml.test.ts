@@ -161,3 +161,59 @@ describe("dual-mode themes (dark / light / auto)", () => {
     expect(fine.brand.mode).toBe("light")
   })
 })
+
+describe("privacy & tracking (cookie consent + custom scripts)", () => {
+  const hero = createSection("hero")
+  const footer = createSection("footer")
+
+  it("round-trips the legal + tracking blocks", () => {
+    const cfg = configWith([hero, footer])
+    cfg.legal = {
+      cookieConsent: {
+        enabled: true,
+        message: "We use cookies. By continuing you agree.",
+        acceptLabel: "Accept all",
+        declineLabel: "Essential only",
+        learnMoreUrl: "https://example.com/privacy",
+        position: "top",
+      },
+    }
+    cfg.tracking = {
+      headScripts: '<script>window.__ga=1</script>',
+      bodyScripts: "<!-- chat widget -->",
+    }
+    const back = yamlToConfig(configToYaml(cfg))
+    expect(back.legal?.cookieConsent.enabled).toBe(true)
+    expect(back.legal?.cookieConsent.acceptLabel).toBe("Accept all")
+    expect(back.legal?.cookieConsent.position).toBe("top")
+    expect(back.legal?.cookieConsent.learnMoreUrl).toBe("https://example.com/privacy")
+    expect(back.tracking?.headScripts).toContain("__ga")
+    expect(back.tracking?.bodyScripts).toContain("chat widget")
+  })
+
+  it("drops malformed legal/tracking and keeps well-formed partials", () => {
+    const bad = normalizeConfig({
+      brand: { name: "X" },
+      legal: { cookieConsent: { enabled: "yes", message: 42 } },
+      tracking: { headScripts: 7 },
+      sections: [{ type: "hero" }],
+    })
+    expect(bad.legal).toBeUndefined()
+    expect(bad.tracking).toBeUndefined()
+    // banner without explicit labels keeps safe defaults
+    const minimal = normalizeConfig({
+      brand: { name: "X" },
+      legal: { cookieConsent: { enabled: true, message: "ok" } },
+      sections: [{ type: "hero" }],
+    })
+    expect(minimal.legal?.cookieConsent.acceptLabel).toBe("Accept")
+    expect(minimal.legal?.cookieConsent.position).toBe("bottom")
+    // empty consent (enabled false + no message) is dropped entirely
+    const off = normalizeConfig({
+      brand: { name: "X" },
+      legal: { cookieConsent: { enabled: false, message: "" } },
+      sections: [{ type: "hero" }],
+    })
+    expect(off.legal).toBeUndefined()
+  })
+})
