@@ -91,3 +91,13 @@ dir, better than a global toggle) · mobile menu · sticky nav.
 P1 offer → P2 legal pages → P3 social links → P4 style variants → P5 theme tweaks →
 P6 hero carousel → P7 small settings. P1–P3 are shippable as one release (v1.7);
 P4–P5 as v1.8; P6–P7 as v1.9.
+
+## Status
+
+- ✅ **P1 offer — SHIPPED in v1.7** (card + split, live countdown reusing the announcement engine, savings auto-derivation, 3 content packs, readiness check, YAML round-trip)
+- ✅ **P2 legal pages — SHIPPED in v1.7** (privacy/terms editors with starter drafts, themed standalone privacy.html/terms.html export, footer legal links, LegalConfig restructured with all-optional fields)
+- ✅ **P3 social links — SHIPPED in v1.7** (socialLinks platform+url with http(s)-only activation, brand SVGs for TikTok/WhatsApp/Messenger, legacy string[] coercion)
+- ⬜ P4 style variants — next (v1.8)
+- ⬜ P5 theme tweak sliders — next (v1.8)
+- ⬜ P6 hero carousel — v1.9
+- ⬜ P7 small settings — v1.9

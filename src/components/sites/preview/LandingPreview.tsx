@@ -210,6 +210,7 @@ export function LandingPreview({
                 section={section}
                 brandName={config.brand.name}
                 brandLogo={config.brand.logoUrl}
+                legal={config.legal}
                 abOverride={overrideFor(section)}
                 onCtaClick={onCtaClick}
                 onFormSubmit={onFormSubmit}
@@ -225,6 +226,7 @@ export function LandingPreview({
           section={section}
           brandName={config.brand.name}
           brandLogo={config.brand.logoUrl}
+          legal={config.legal}
           abOverride={overrideFor(section)}
           onCtaClick={onCtaClick}
           onFormSubmit={onFormSubmit}
@@ -241,6 +243,7 @@ export function LandingPreview({
             section={section}
             brandName={config.brand.name}
             brandLogo={config.brand.logoUrl}
+            legal={config.legal}
             abOverride={overrideFor(section)}
             onCtaClick={onCtaClick}
             onFormSubmit={onFormSubmit}

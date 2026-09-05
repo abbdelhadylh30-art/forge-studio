@@ -275,6 +275,14 @@ export interface FooterLinkGroup {
   items: { label: string; href: string }[]
 }
 
+/** Footer social platform + destination. Empty `url` renders a decorative icon. */
+export interface FooterSocialLink {
+  /** platform label — drives the icon ("X", "GitHub", "Instagram", "TikTok", …) */
+  platform: string
+  /** destination URL — https/http only; empty keeps the icon non-clickable */
+  url: string
+}
+
 export interface FooterSection {
   id: string
   type: "footer"
@@ -283,7 +291,8 @@ export interface FooterSection {
   style: "minimal" | "mega" | "newsletter"
   tagline?: string
   linkGroups: FooterLinkGroup[]
-  social?: string[] // labels e.g. ["X", "GitHub", "Discord"]
+  /** social platforms with real links — legacy `social: string[]` is coerced on import */
+  socialLinks?: FooterSocialLink[]
   copyright?: string
 }
 
@@ -386,6 +395,43 @@ export interface GuaranteeSection {
   items: PainItem[]
 }
 
+// ── Offer (limited-time conversion block) ────────────────────────────────────
+
+/** Trust row item under the offer CTA (icon + short label). */
+export interface OfferTrustItem {
+  icon: string // icon bank key
+  label: string
+}
+
+export interface OfferSection {
+  id: string
+  type: "offer"
+  hidden?: boolean
+  anchor?: string
+  title?: string
+  subtitle?: string
+  /** urgency ribbon floating on top of the offer card, e.g. "Limited spots" */
+  badge?: string
+  /** current price, e.g. "$497" */
+  price: string
+  /** anchor price rendered with a strikethrough, e.g. "$997" */
+  originalPrice?: string
+  /** billing period / payment note under the price, e.g. "One-time payment" */
+  period?: string
+  /** savings pill, e.g. "Save 50%" — auto-derived client-side when unset */
+  savingsLabel?: string
+  /** ISO deadline — drives the live countdown (announcement engine) */
+  deadline?: string
+  /** label before the countdown digits, e.g. "Offer ends in" */
+  countdownPrefix?: string
+  /** checklist rows rendered with check icons */
+  features: string[]
+  cta: Cta
+  /** trust row under the CTA — icon + label chips */
+  trust?: OfferTrustItem[]
+  style: "card" | "split"
+}
+
 export type Section = (
   | AnnouncementSection
   | NavbarSection
@@ -403,6 +449,7 @@ export type Section = (
   | VideoSection
   | ComparisonSection
   | GuaranteeSection
+  | OfferSection
   | ContactSection
   | CtaFinalSection
   | FooterSection
@@ -428,6 +475,7 @@ export const SECTION_TYPES: SectionType[] = [
   "video",
   "comparison",
   "guarantee",
+  "offer",
   "contact",
   "cta-final",
   "footer",
@@ -450,6 +498,7 @@ export const SECTION_META: Record<SectionType, { label: string; icon: string; de
   video: { label: "Video", icon: "play", description: "Cinematic, split or minimal video block" },
   comparison: { label: "Comparison", icon: "layout", description: "You vs. them feature table" },
   guarantee: { label: "Guarantee", icon: "shield-check", description: "Risk reversal — promise, terms, badge" },
+  offer: { label: "Offer", icon: "gift", description: "Limited-time deal — price, countdown, checklist" },
   contact: { label: "Contact", icon: "mail", description: "Contact form + details" },
   "cta-final": { label: "Final CTA", icon: "rocket", description: "Closing call-to-action banner" },
   footer: { label: "Footer", icon: "layers", description: "Links, social, newsletter" },
@@ -494,7 +543,19 @@ export interface CookieConsentConfig {
 }
 
 export interface LegalConfig {
-  cookieConsent: CookieConsentConfig
+  /** cookie-consent banner (published page + standalone export) */
+  cookieConsent?: CookieConsentConfig
+  /** Privacy Policy body — exported as a standalone privacy.html.
+   *  Plain text: blank-line paragraphs, `## ` headings, `- ` bullets. */
+  privacyPolicy?: string
+  /** Terms & Conditions body — exported as a standalone terms.html. */
+  termsConditions?: string
+  /** Documentation URL — shown in the footer when set (https:// or relative .html) */
+  docsUrl?: string
+  /** Privacy link URL — set to "privacy.html" to point at the exported page */
+  privacyUrl?: string
+  /** Terms link URL — set to "terms.html" to point at the exported page */
+  termsUrl?: string
 }
 
 export interface TrackingConfig {

@@ -430,6 +430,30 @@ export function auditConfig(config: LandingConfig): ReadinessReport {
     }
   }
 
+  // offer countdowns ride the same vanilla engine — an expired/past deadline
+  // quietly pins the digits at 00:00:00, which reads as "ended" either way
+  const offer = visible.find((s) => s.type === "offer") as { id: string; type: "offer"; deadline?: string } | undefined
+  if (offer) {
+    const dl = offer.deadline
+    if (dl) {
+      const expired = Date.parse(dl)
+      checks.push({
+        id: "export-offer-deadline",
+        category: "export",
+        label: "Offer countdown",
+        detail:
+          Number.isNaN(expired)
+            ? "The offer deadline is not a valid date — the countdown is hidden in the export."
+            : expired > Date.now()
+              ? "The offer timer ticks live in the exported file and sits at zero once it expires."
+              : "The offer deadline is already in the past — the exported timer starts at 00:00:00.",
+        level: Number.isNaN(expired) ? "warn" : "pass",
+        weight: 2,
+        selectSectionId: offer.id,
+      })
+    }
+  }
+
   const interactiveGallery = visible.find(
     (s) => (s.type === "gallery" && (s.style === "slider" || s.style === "stories")) || s.type === "faq" || s.type === "testimonials",
   )

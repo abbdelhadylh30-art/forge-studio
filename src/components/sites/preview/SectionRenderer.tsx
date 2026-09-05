@@ -16,6 +16,7 @@ import { Guarantee } from "./sections/Guarantee"
 import { Hero } from "./sections/Hero"
 import { Logos } from "./sections/Logos"
 import { Navbar } from "./sections/Navbar"
+import { Offer } from "./sections/Offer"
 import { Pricing } from "./sections/Pricing"
 import { Problem } from "./sections/Problem"
 import { Solution } from "./sections/Solution"
@@ -28,6 +29,8 @@ export interface SectionRendererProps {
   brandName: string
   /** brand logo URL (brand kit) — rendered by navbar & footer when present */
   brandLogo?: string
+  /** legal page links (docs / privacy / terms) — rendered inside the footer */
+  legal?: { docsUrl?: string; privacyUrl?: string; termsUrl?: string }
   /** Resolved A/B variant copy for THIS section (empty fields already fell back to base copy). */
   abOverride?: { headline: string; sub: string; ctaLabel: string } | null
   onCtaClick?: (section: Section, label: string) => void
@@ -40,7 +43,7 @@ export interface SectionRendererProps {
  * section, its copy overrides are merged INTO the section object before
  * dispatch — section components stay variant-agnostic.
  */
-export function SectionRenderer({ section, brandName, brandLogo, abOverride, onCtaClick, onFormSubmit }: SectionRendererProps) {
+export function SectionRenderer({ section, brandName, brandLogo, legal, abOverride, onCtaClick, onFormSubmit }: SectionRendererProps) {
   if (section.hidden) return null
 
   return (
@@ -115,6 +118,8 @@ export function SectionRenderer({ section, brandName, brandLogo, abOverride, onC
       return <Comparison section={section} />
     case "guarantee":
       return <Guarantee section={section} />
+    case "offer":
+      return <Offer section={section} onCtaClick={(label) => onCtaClick?.(section, label)} />
     case "contact": {
       const s = abOverride
         ? {
@@ -138,7 +143,7 @@ export function SectionRenderer({ section, brandName, brandLogo, abOverride, onC
       return <CtaFinal section={s} onCtaClick={(label) => onCtaClick?.(section, label)} />
     }
     case "footer":
-      return <Footer section={section} brandName={brandName} logoUrl={brandLogo} onCtaClick={(label) => onCtaClick?.(section, label)} />
+      return <Footer section={section} brandName={brandName} logoUrl={brandLogo} legal={legal} onCtaClick={(label) => onCtaClick?.(section, label)} />
     default:
       return null
   }

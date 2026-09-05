@@ -294,6 +294,32 @@ export function createSection(type: SectionType): Section {
           { icon: "life-buoy", title: "Human support", body: "Real replies within a day" },
         ],
       }
+    case "offer":
+      return {
+        ...base,
+        type,
+        title: "Limited-time offer",
+        subtitle: "Everything included, one simple price",
+        badge: "Limited spots available",
+        price: "$497",
+        originalPrice: "$997",
+        period: "One-time payment",
+        savingsLabel: "Save 50%",
+        countdownPrefix: "Offer ends in",
+        features: [
+          "Complete access to all features",
+          "Unlimited pages and projects",
+          "Priority 24/7 support",
+          "Lifetime updates included",
+        ],
+        cta: { label: "Claim this offer", href: "#cta" },
+        trust: [
+          { icon: "lock", label: "Secure checkout" },
+          { icon: "shield-check", label: "30-day guarantee" },
+          { icon: "unlock", label: "No lock-in" },
+        ],
+        style: "card",
+      }
     case "contact":
       return {
         ...base,
@@ -345,7 +371,11 @@ export function createSection(type: SectionType): Section {
             ],
           },
         ],
-        social: ["X", "GitHub", "Discord"],
+        socialLinks: [
+          { platform: "X", url: "" },
+          { platform: "GitHub", url: "" },
+          { platform: "Discord", url: "" },
+        ],
         copyright: "© 2025 Forge. All rights reserved.",
       }
   }

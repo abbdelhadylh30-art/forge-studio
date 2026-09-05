@@ -36,7 +36,7 @@ Drag-drop builder + 5-category auditor with one-click fixes + the landing-forge 
 
 ### Landing Sites (from landing-forge)
 The full landing-forge studio, embedded as a fourth view:
-- Drag & drop section list — reorder, duplicate, hide, delete **19 section types** (announcement, navbar, hero, logos, features, stats, testimonials, pricing, FAQ, gallery, about, **problem, solution, video, comparison, guarantee**, contact, final CTA, footer) with 52 content packs
+- Drag & drop section list — reorder, duplicate, hide, delete **20 section types** (announcement, navbar, hero, logos, features, stats, testimonials, pricing, FAQ, gallery, about, **problem, solution, video, comparison, guarantee, offer**, contact, final CTA, footer) with 55 content packs
 - **AI prompt → full page** (`/api/ai/generate`), AI copy improve, AI images
 - **YAML import/export** — round-trips with the landing-forge CLI config format
 - **Multilingual publishing** — per-section AI translation into any locale, RTL (Arabic/Hebrew/Farsi/Urdu), language switcher on the published page, `?lang=` deep links
@@ -51,6 +51,9 @@ The full landing-forge studio, embedded as a fourth view:
 - **Contact form destinations** — leads inbox, Google Sheet webhook (Apps Script), or an embedded Google Form; the standalone export posts to the webhook or falls back to mailto
 - **Lucide icon bank** — 88 curated icons replace every emoji in sections and UI
 - Live announcement bar (static / ticker / countdown), 8 hero layouts, 5 gallery styles, full problem→solution→guarantee narrative arc
+- **Offer section (v1.7)** — limited-time conversion block: urgency badge, anchor price with strikethrough, savings pill (auto-derived from the prices), **live countdown** (same vanilla engine as the announcement bar, ticks in the standalone export), feature checklist, CTA and a trust row; card + split layouts, 3 content packs
+- **Footer social links (v1.7)** — platform + URL per row (X, Twitter, Facebook, Instagram, TikTok, WhatsApp, LinkedIn, GitHub, Discord, YouTube, Twitch + custom); URLs activate real outbound links (target=_blank, noopener); legacy `social: ["X", …]` labels keep rendering as icons
+- **Legal pages (v1.7)** — Privacy Policy + Terms bodies edited in the studio (plain text with `##` headings / `-` bullets), exported as standalone **privacy.html / terms.html** in the site's theme, with Documentation / Privacy / Terms links in the footer and one-click starter drafts
 
 ### Page Auditor
 - 0–100 score across 5 categories (SEO, Content, Accessibility, Structure, Performance)
@@ -116,6 +119,36 @@ bun x vitest run
 # Push the Prisma schema to SQLite
 bun run db:push
 ```
+
+## Updating to v1.7 — offer section, real social links, legal pages
+
+v1.7 completes the LandingForge v21 conversion stack: the limited-time offer block, footer social links that actually link, and privacy/terms pages that export as standalone HTML. Everything is legacy-safe — existing configs, YAML and saved projects load unchanged.
+
+### 1. Offer section (studio → Add section → Offer)
+
+The high-urgency conversion block from v21, rebuilt on the Sites design system:
+- **Studio**: Add section → *Offer* → three content packs (Classic offer card / Flash sale with a 48-hour countdown / Split offer). Edit price, strikethrough original, period note, savings label (**auto-derived from the two prices when empty**), urgency badge, deadline (datetime picker), countdown prefix, the "What's included" checklist, CTA and the trust row (icon + label) in the properties panel.
+- **Rendering**: card + split layouts, themed tokens throughout, the countdown reuses the announcement-bar engine — `data-lf-countdown` markup, so the standalone export ticks live and settles at `00:00:00` after the deadline.
+- **Readiness**: a new "Offer countdown" export check flags invalid or already-past deadlines.
+- **YAML**: full round-trip (type `offer`); malformed fields coerce to safe defaults, exactly like every other section.
+
+### 2. Footer social links that link
+
+- `footer.social` (`["X", "GitHub"]` labels) is now `footer.socialLinks` (`[{ platform: "X", url: "https://x.com/you" }]`). Legacy labels are coerced on import/load and keep rendering as decorative icons — nothing breaks.
+- Platform select covers X, Twitter, Facebook, Instagram, TikTok, WhatsApp, LinkedIn, GitHub, Discord, YouTube, Twitch (+ custom names). TikTok/WhatsApp/Messenger ship brand SVG glyphs; everything else uses Lucide.
+- Only `http(s)://` URLs activate the button (javascript: and friends fall back to decorative). Links open in a new tab with `rel="noopener noreferrer"`.
+
+### 3. Legal pages — privacy.html / terms.html
+
+- **Page & theme tab → Legal pages**: plain-text editors for the Privacy Policy and Terms bodies (`## ` headings, `- ` bullets, blank-line paragraphs), one-click starter drafts, and Documentation / Privacy / Terms footer-link fields.
+- **Export**: each page builds a standalone themed HTML document (same palette, fonts and dual-mode behavior as the landing export) via the `privacy.html` / `terms.html` download buttons. Host them next to the landing export and point `privacyUrl: privacy.html` / `termsUrl: terms.html` at them — the footer row (Privacy · Terms · Documentation) renders on the published page and in the export.
+- **YAML**: the `legal` block round-trips; it now carries `privacyPolicy`, `termsConditions`, `docsUrl`, `privacyUrl`, `termsUrl` alongside `cookieConsent` (all optional, independently validated).
+
+### Upgrade notes
+
+- No new dependencies, no schema migrations. `bun install`, rebuild, done.
+- Versioned configs are unchanged (`version: 1`) — the new fields are additive and every load path normalizes old data in place.
+- If you scripted the old `social` field, re-export your YAML once to migrate it to `socialLinks` (or keep importing the old file — it coerces automatically).
 
 ## Updating to v1.6 — the LandingForge v21 visual layer + growth features
 

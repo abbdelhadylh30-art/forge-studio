@@ -144,7 +144,7 @@ export function translatablePaths(section: Section): string[] {
         push(`linkGroups.${i}.group`)
         g.items?.forEach((it, j) => push(`linkGroups.${i}.items.${j}.label`))
       })
-      section.social?.forEach((_, i) => push(`social.${i}`))
+      section.socialLinks?.forEach((_, i) => push(`socialLinks.${i}.platform`))
       if (section.copyright) push("copyright")
       break
   }

@@ -228,10 +228,10 @@ describe("page-level translations (__page pseudo-section)", () => {
       },
     }
     const out = applyLocale(cfg, "de")
-    expect(out.legal?.cookieConsent.message).toBe("Wir verwenden Cookies.")
-    expect(out.legal?.cookieConsent.acceptLabel).toBe("Akzeptieren")
-    expect(out.legal?.cookieConsent.declineLabel).toBe("Decline") // untouched
+    expect(out.legal?.cookieConsent?.message).toBe("Wir verwenden Cookies.")
+    expect(out.legal?.cookieConsent?.acceptLabel).toBe("Akzeptieren")
+    expect(out.legal?.cookieConsent?.declineLabel).toBe("Decline") // untouched
     // the base config is not mutated
-    expect(cfg.legal?.cookieConsent.message).toBe("We use cookies.")
+    expect(cfg.legal?.cookieConsent?.message).toBe("We use cookies.")
   })
 })

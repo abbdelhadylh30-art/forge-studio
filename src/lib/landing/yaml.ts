@@ -160,6 +160,43 @@ export function normalizeConfig(input: unknown): LandingConfig {
         else delete merged.body
       }
     }
+    if (type === "offer") {
+      merged.style = ["card", "split"].includes(rs.style as string) ? rs.style : "card"
+      const of = merged as unknown as {
+        price: string
+        features: string[]
+        cta: { label: string; href: string }
+        trust?: { icon: string; label: string }[]
+      }
+      of.price = String(rs.price ?? "$0").slice(0, 40)
+      of.features = validItems(rs.features, 2, (x) => String(x).slice(0, 160))
+      if (!of.features.length) of.features = ["Complete access to all features", "Lifetime updates included"]
+      of.cta = validCta(rs.cta) ?? (fresh as { cta: { label: string; href: string } }).cta
+      // short text fields — trimmed, capped, dropped when empty
+      for (const key of ["title", "subtitle", "badge", "period", "savingsLabel", "countdownPrefix"] as const) {
+        const v = typeof rs[key] === "string" ? (rs[key] as string).trim() : ""
+        if (v) (merged as Record<string, unknown>)[key] = v.slice(key === "title" || key === "subtitle" ? 90 : 60)
+        else delete (merged as Record<string, unknown>)[key]
+      }
+      const op = typeof rs.originalPrice === "string" ? rs.originalPrice.trim() : ""
+      if (op) (merged as Record<string, unknown>).originalPrice = op.slice(0, 40)
+      else delete (merged as Record<string, unknown>).originalPrice
+      // deadline — same validity rules as the announcement countdown
+      const dl = typeof rs.deadline === "string" ? rs.deadline.trim() : ""
+      if (dl && !Number.isNaN(Date.parse(dl))) (merged as Record<string, unknown>).deadline = dl.slice(0, 32)
+      else delete (merged as Record<string, unknown>).deadline
+      const trust = Array.isArray(rs.trust)
+        ? rs.trust
+            .slice(0, 6)
+            .map((t) => {
+              const o = (t ?? {}) as Record<string, unknown>
+              return { icon: String(o.icon ?? "lock"), label: String(o.label ?? "").slice(0, 40) }
+            })
+            .filter((t) => t.label)
+        : []
+      if (trust.length >= 1) of.trust = trust
+      else delete (merged as Record<string, unknown>).trust
+    }
     if (type === "video") {
       merged.style = ["cinematic", "split", "minimal"].includes(rs.style as string) ? rs.style : "cinematic"
       merged.videoUrl = typeof rs.videoUrl === "string" ? rs.videoUrl.trim().slice(0, 500) : ""
@@ -224,6 +261,26 @@ export function normalizeConfig(input: unknown): LandingConfig {
             : [],
         }
       })
+      // social links — structured {platform, url}; legacy `social: ["X", …]` labels coerce to url-less links
+      const fw = merged as Record<string, unknown>
+      delete fw.social
+      const legacy = Array.isArray(rs.social) ? rs.social.map((p) => String(p).trim()).filter(Boolean) : []
+      const rawLinks = Array.isArray(rs.socialLinks) ? rs.socialLinks : []
+      const links = rawLinks
+        .map((l) => {
+          const o = (l ?? {}) as Record<string, unknown>
+          const url = typeof o.url === "string" ? o.url.trim() : ""
+          return {
+            platform: String(o.platform ?? "").trim().slice(0, 30),
+            // only real web links activate the button — anything else falls back to decorative
+            url: /^https?:\/\//i.test(url) ? url.slice(0, 300) : "",
+          }
+        })
+        .filter((l) => l.platform)
+        .slice(0, 8)
+      fw.socialLinks = links.length
+        ? links
+        : legacy.slice(0, 8).map((p) => ({ platform: p.slice(0, 30), url: "" }))
     }
     if (type === "cta-final") {
       merged.cta = validCta(rs.cta) ?? { label: "Start free trial", href: "#cta" }
@@ -281,27 +338,44 @@ export function normalizeConfig(input: unknown): LandingConfig {
   return out
 }
 
-/** Validate + shape the cookie-consent block (dropped unless well-formed). */
+/** Validate + shape the legal block: consent banner, privacy/terms bodies and
+ *  footer links. Each sub-group is kept only when well-formed. */
 function validLegal(input: unknown): LegalConfig | undefined {
   if (!input || typeof input !== "object" || Array.isArray(input)) return undefined
   const raw = input as Record<string, unknown>
+  const out: LegalConfig = {}
+
+  // consent banner (legacy shape — the whole block used to be consent-only)
   const cc = raw.cookieConsent
-  if (!cc || typeof cc !== "object" || Array.isArray(cc)) return undefined
-  const o = cc as Record<string, unknown>
-  const consent: CookieConsentConfig = {
-    enabled: o.enabled === true,
-    message: typeof o.message === "string" ? o.message.slice(0, 400) : "",
-    acceptLabel: String(o.acceptLabel ?? "Accept").slice(0, 40) || "Accept",
-    declineLabel: String(o.declineLabel ?? "Decline").slice(0, 40) || "Decline",
-    position: o.position === "top" ? "top" : "bottom",
+  if (cc && typeof cc === "object" && !Array.isArray(cc)) {
+    const o = cc as Record<string, unknown>
+    const consent: CookieConsentConfig = {
+      enabled: o.enabled === true,
+      message: typeof o.message === "string" ? o.message.slice(0, 400) : "",
+      acceptLabel: String(o.acceptLabel ?? "Accept").slice(0, 40) || "Accept",
+      declineLabel: String(o.declineLabel ?? "Decline").slice(0, 40) || "Decline",
+      position: o.position === "top" ? "top" : "bottom",
+    }
+    const learnMoreUrl = typeof o.learnMoreUrl === "string" ? o.learnMoreUrl.trim().slice(0, 300) : ""
+    if (learnMoreUrl) consent.learnMoreUrl = learnMoreUrl
+    const learnMoreLabel = typeof o.learnMoreLabel === "string" ? o.learnMoreLabel.trim().slice(0, 40) : ""
+    if (learnMoreLabel) consent.learnMoreLabel = learnMoreLabel
+    if (consent.enabled || consent.message) out.cookieConsent = consent
   }
-  const learnMoreUrl = typeof o.learnMoreUrl === "string" ? o.learnMoreUrl.trim().slice(0, 300) : ""
-  if (learnMoreUrl) consent.learnMoreUrl = learnMoreUrl
-  const learnMoreLabel = typeof o.learnMoreLabel === "string" ? o.learnMoreLabel.trim().slice(0, 40) : ""
-  if (learnMoreLabel) consent.learnMoreLabel = learnMoreLabel
-  // drop entirely when nothing meaningful is configured
-  if (!consent.enabled && !consent.message) return undefined
-  return { cookieConsent: consent }
+
+  // privacy / terms bodies (plain text, capped)
+  const privacy = typeof raw.privacyPolicy === "string" ? raw.privacyPolicy.trim() : ""
+  if (privacy) out.privacyPolicy = privacy.slice(0, 20000)
+  const terms = typeof raw.termsConditions === "string" ? raw.termsConditions.trim() : ""
+  if (terms) out.termsConditions = terms.slice(0, 20000)
+
+  // footer legal links — https:// URLs or relative .html filenames
+  for (const key of ["docsUrl", "privacyUrl", "termsUrl"] as const) {
+    const v = typeof raw[key] === "string" ? (raw[key] as string).trim() : ""
+    if (v && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+\.html?$/i.test(v))) out[key] = v.slice(0, 300)
+  }
+
+  return Object.keys(out).length ? out : undefined
 }
 
 /** Validate + shape the custom tracking scripts (dropped when both empty). */

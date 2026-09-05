@@ -55,7 +55,14 @@ interface ForgeState {
   setTheme: (t: ThemeId) => void
   updateBrand: (patch: Partial<LandingConfig["brand"]>) => void
   updateSeo: (patch: Partial<LandingConfig["seo"]>) => void
-  updateLegal: (patch: { cookieConsent?: Partial<NonNullable<LandingConfig["legal"]>["cookieConsent"]> }) => void
+  updateLegal: (patch: {
+    cookieConsent?: Partial<NonNullable<LandingConfig["legal"]>["cookieConsent"]>
+    privacyPolicy?: string
+    termsConditions?: string
+    docsUrl?: string
+    privacyUrl?: string
+    termsUrl?: string
+  }) => void
   updateTracking: (patch: Partial<NonNullable<LandingConfig["tracking"]>>) => void
 
   undo: () => void
@@ -229,14 +236,22 @@ export const useForge = create<ForgeState>((set, get) => ({
   updateLegal: (patch) =>
     set((s) => {
       const next = clone(s.config)
-      const base = next.legal?.cookieConsent ?? {
+      const prev = next.legal ?? {}
+      const base = prev.cookieConsent ?? {
         enabled: false,
         message: "",
         acceptLabel: "Accept",
         declineLabel: "Decline",
         position: "bottom" as const,
       }
-      next.legal = { cookieConsent: { ...base, ...patch.cookieConsent } }
+      // shallow-merge the page fields, deep-merge the consent sub-object so
+      // partial consent patches (single toggles) never wipe the rest
+      const { cookieConsent, ...pagePatch } = patch
+      next.legal = {
+        ...prev,
+        ...pagePatch,
+        ...(cookieConsent ? { cookieConsent: { ...base, ...cookieConsent } } : {}),
+      }
       return { ...pushHistory(s), config: next, dirty: true }
     }),
 

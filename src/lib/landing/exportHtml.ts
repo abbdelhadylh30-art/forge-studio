@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 
 import { LandingPreview } from "@/components/sites/preview/LandingPreview"
 import { parseScripts } from "@/components/sites/shared/scriptInjection"
-import { googleFontLinkTags, themeVarsCss } from "./themes"
+import { getTheme, googleFontLinkTags, themeVarsCss } from "./themes"
 import { applyLocale, dirFor, localesOf } from "./i18n"
 import type { LandingConfig } from "./types"
 
@@ -450,4 +450,142 @@ export function downloadStandaloneHtml(html: string, slug: string): string {
   a.remove()
   // keep the URL alive for the "open in new tab" action that follows
   return url
+}
+
+// ── Legal pages (privacy.html / terms.html) ─────────────────────────────────
+
+export type LegalPageKind = "privacy" | "terms"
+
+/** Render the lightweight legal-document stylesheet — theme-var driven so it
+ *  inherits the site's palette (incl. dual-mode dark/light) with no Tailwind. */
+function legalDocCss(): string {
+  return [
+    "*,*::before,*::after{box-sizing:border-box}",
+    "body{margin:0;background:var(--lf-bg);color:var(--lf-text);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}",
+    ".lf-doc{max-width:46rem;margin:0 auto;padding:3.5rem 1.25rem 4rem}",
+    ".lf-doc-head{display:flex;align-items:center;gap:.65rem;margin-bottom:2.5rem}",
+    ".lf-doc-mark{width:2.25rem;height:2.25rem;border-radius:.65rem;background:var(--lf-gradient);flex-shrink:0}",
+    ".lf-doc-brand{font-weight:700;font-size:1.05rem;letter-spacing:-.01em;color:var(--lf-text)}",
+    ".lf-doc-back{display:inline-flex;align-items:center;gap:.4rem;margin-left:auto;font-size:.8rem;font-weight:600;color:var(--lf-muted);text-decoration:none;border:1px solid var(--lf-border);padding:.45rem .8rem;border-radius:9999px;transition:color .15s ease,border-color .15s ease}",
+    ".lf-doc-back:hover{color:var(--lf-accent);border-color:var(--lf-accent)}",
+    ".lf-doc-title{font-size:1.9rem;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:0 0 .5rem;color:var(--lf-text)}",
+    ".lf-doc-updated{font-size:.8rem;color:var(--lf-muted);margin:0 0 2.25rem}",
+    ".lf-doc h2{font-size:1.2rem;font-weight:700;letter-spacing:-.01em;margin:2.25rem 0 .75rem;color:var(--lf-text)}",
+    ".lf-doc p{margin:0 0 1rem;color:var(--lf-muted)}",
+    ".lf-doc ul{margin:0 0 1.25rem;padding-left:1.25rem;color:var(--lf-muted)}",
+    ".lf-doc li{margin:.35rem 0}",
+    ".lf-doc li::marker{color:var(--lf-accent)}",
+    ".lf-doc-foot{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--lf-border);font-size:.75rem;color:var(--lf-muted)}",
+    ".lf-doc-foot a{color:var(--lf-accent);text-decoration:none}",
+    ".lf-doc-foot a:hover{text-decoration:underline}",
+    "@media (max-width:640px){.lf-doc{padding:2.5rem 1rem 3rem}.lf-doc-title{font-size:1.55rem}}",
+  ].join("\n")
+}
+
+interface LegalDocPart {
+  tag: "p" | "h2" | "li-group"
+  text?: string
+  items?: string[]
+}
+
+/** Parse the plain-text legal body: `## ` headings, `- ` bullets,
+ *  blank-line-separated paragraphs. Everything is escaped. */
+function parseLegalBody(body: string): LegalDocPart[] {
+  const out: LegalDocPart[] = []
+  for (const block of body.split(/\n\s*\n/)) {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean)
+    if (!lines.length) continue
+    const bullets = lines.filter((l) => l.startsWith("- "))
+    if (bullets.length === lines.length) {
+      out.push({ tag: "li-group", items: bullets.map((b) => escapeHtml(b.slice(2))) })
+      continue
+    }
+    for (const line of lines) {
+      if (line.startsWith("## ")) out.push({ tag: "h2", text: escapeHtml(line.slice(3)) })
+      else if (line.startsWith("- ")) out.push({ tag: "li-group", items: [escapeHtml(line.slice(2))] })
+      else out.push({ tag: "p", text: escapeHtml(line) })
+    }
+  }
+  return out
+}
+
+/** Build a standalone themed legal page (privacy.html / terms.html).
+ *  Mirrors the landing export: same font links, same theme-var CSS block, so
+ *  the two files look like siblings next to each other on any host. */
+export function buildLegalHtml(config: LandingConfig, kind: LegalPageKind): { html: string; bytes: number } | null {
+  const body = kind === "privacy" ? config.legal?.privacyPolicy?.trim() : config.legal?.termsConditions?.trim()
+  if (!body) return null
+
+  const brand = escapeHtml(config.brand.name)
+  const title = kind === "privacy" ? `Privacy Policy — ${brand}` : `Terms &amp; Conditions — ${brand}`
+  const home = config.legal?.privacyUrl === "privacy.html" || config.legal?.termsUrl === "terms.html" ? "index.html" : "#top"
+  const updated = new Date().toISOString().slice(0, 10)
+  const fontLinks = googleFontLinkTags(config.brand.font)
+  const themeCss = themeVarsCss(config.themeId, config.brand.accent)
+  const themeMode = config.brand.mode ?? getTheme(config.themeId).mode
+
+  const parts = parseLegalBody(body)
+  const content = parts
+    .map((p) =>
+      p.tag === "li-group"
+        ? `<ul>${p.items?.map((i) => `<li>${i}</li>`).join("") ?? ""}</ul>`
+        : `<${p.tag}>${p.text}</${p.tag}>`,
+    )
+    .join("\n")
+
+  const html = [
+    "<!DOCTYPE html>",
+    `<html lang="en" dir="ltr">`,
+    "<head>",
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    `<title>${title}</title>`,
+    '<meta name="robots" content="index, follow">',
+    '<meta name="generator" content="Forge Studio — landing sites">',
+    ...fontLinks,
+    "<style>",
+    themeCss,
+    "</style>",
+    "<style>",
+    legalDocCss(),
+    "</style>",
+    "</head>",
+    "<body>",
+    `<div class="lf-root lf-brand-font" data-lf-theme="${escapeHtml(config.themeId)}" data-lf-mode="${escapeHtml(themeMode)}">`,
+    '<main class="lf-doc">',
+    '<div class="lf-doc-head">',
+    '<span class="lf-doc-mark" aria-hidden="true"></span>',
+    `<span class="lf-doc-brand">${brand}</span>`,
+    `<a class="lf-doc-back" href="${home}">&#8592; Back to the site</a>`,
+    "</div>",
+    `<h1 class="lf-doc-title">${kind === "privacy" ? "Privacy Policy" : "Terms &amp; Conditions"}</h1>`,
+    `<p class="lf-doc-updated">Last updated ${updated}</p>`,
+    content,
+    `<p class="lf-doc-foot">This page ships with the <a href="${home}">${brand}</a> landing site — exported from Forge Studio.</p>`,
+    "</main>",
+    "</div>",
+    "</body>",
+    "</html>",
+  ]
+    .filter(Boolean)
+    .join("\n")
+
+  return { html, bytes: new Blob([html]).size }
+}
+
+/** Download a legal page (privacy.html / terms.html). Returns false when the
+ *  corresponding body is empty — callers surface "nothing to export". */
+export function downloadLegalHtml(config: LandingConfig, kind: LegalPageKind): boolean {
+  const built = buildLegalHtml(config, kind)
+  if (!built) return false
+  const blob = new Blob([built.html], { type: "text/html;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = kind === "privacy" ? "privacy.html" : "terms.html"
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 4000)
+  return true
 }

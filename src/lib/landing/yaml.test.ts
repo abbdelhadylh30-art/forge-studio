@@ -184,10 +184,10 @@ describe("privacy & tracking (cookie consent + custom scripts)", () => {
       bodyScripts: "<!-- chat widget -->",
     }
     const back = yamlToConfig(configToYaml(cfg))
-    expect(back.legal?.cookieConsent.enabled).toBe(true)
-    expect(back.legal?.cookieConsent.acceptLabel).toBe("Accept all")
-    expect(back.legal?.cookieConsent.position).toBe("top")
-    expect(back.legal?.cookieConsent.learnMoreUrl).toBe("https://example.com/privacy")
+    expect(back.legal?.cookieConsent?.enabled).toBe(true)
+    expect(back.legal?.cookieConsent?.acceptLabel).toBe("Accept all")
+    expect(back.legal?.cookieConsent?.position).toBe("top")
+    expect(back.legal?.cookieConsent?.learnMoreUrl).toBe("https://example.com/privacy")
     expect(back.tracking?.headScripts).toContain("__ga")
     expect(back.tracking?.bodyScripts).toContain("chat widget")
   })
@@ -207,8 +207,8 @@ describe("privacy & tracking (cookie consent + custom scripts)", () => {
       legal: { cookieConsent: { enabled: true, message: "ok" } },
       sections: [{ type: "hero" }],
     })
-    expect(minimal.legal?.cookieConsent.acceptLabel).toBe("Accept")
-    expect(minimal.legal?.cookieConsent.position).toBe("bottom")
+    expect(minimal.legal?.cookieConsent?.acceptLabel).toBe("Accept")
+    expect(minimal.legal?.cookieConsent?.position).toBe("bottom")
     // empty consent (enabled false + no message) is dropped entirely
     const off = normalizeConfig({
       brand: { name: "X" },
@@ -289,5 +289,140 @@ describe("readiness export checks", () => {
     // every check still feeds a score in 0-100
     expect(report.score).toBeGreaterThanOrEqual(0)
     expect(report.score).toBeLessThanOrEqual(100)
+  })
+})
+
+describe("offer section (price / countdown / trust)", () => {
+  it("round-trips the full offer block", () => {
+    const cfg = configWith([])
+    cfg.sections = [
+      {
+        id: "offer-1",
+        type: "offer",
+        title: "Flash sale",
+        subtitle: "Half price, 48 hours",
+        badge: "Ends tonight",
+        price: "$49",
+        originalPrice: "$99",
+        period: "One-time payment",
+        savingsLabel: "Save 50%",
+        deadline: new Date("2030-01-01T00:00:00Z").toISOString(),
+        countdownPrefix: "Price doubles in",
+        features: ["All features", "Lifetime updates"],
+        cta: { label: "Get it", href: "#cta" },
+        trust: [{ icon: "lock", label: "Secure checkout" }],
+        style: "split",
+      },
+    ]
+    const back = yamlToConfig(configToYaml(cfg))
+    const offer = back.sections[0] as unknown as Record<string, unknown>
+    expect(offer.style).toBe("split")
+    expect(offer.price).toBe("$49")
+    expect(offer.originalPrice).toBe("$99")
+    expect(offer.deadline).toBe(new Date("2030-01-01T00:00:00Z").toISOString())
+    expect(offer.features).toEqual(["All features", "Lifetime updates"])
+    expect(offer.trust).toEqual([{ icon: "lock", label: "Secure checkout" }])
+  })
+
+  it("coerces malformed offer fields to safe defaults", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      sections: [
+        {
+          type: "offer",
+          style: "matrix",
+          price: 123,
+          deadline: "not a date",
+          features: [],
+          trust: [{ icon: "lock" }, "junk"],
+          cta: { href: "https://x.com" },
+        },
+      ],
+    })
+    const offer = out.sections[0] as unknown as Record<string, unknown>
+    expect(offer.style).toBe("card")
+    expect(offer.price).toBe("123")
+    expect(offer.deadline).toBeUndefined()
+    expect((offer.features as string[]).length).toBeGreaterThanOrEqual(2) // fallback pair
+    expect((offer.trust as unknown[] | undefined)).toBeUndefined() // no valid labels → dropped
+    expect(offer.cta).toEqual({ label: "Claim this offer", href: "#cta" }) // fresh default cta
+  })
+})
+
+describe("footer social links (platform + url)", () => {
+  it("round-trips structured socialLinks and activates only http(s) urls", () => {
+    const cfg = configWith([])
+    cfg.sections = [
+      {
+        id: "footer-1",
+        type: "footer",
+        style: "mega",
+        linkGroups: [{ group: "Product", items: [] }],
+        socialLinks: [
+          { platform: "X", url: "https://x.com/forge" },
+          { platform: "GitHub", url: "javascript:alert(1)" },
+          { platform: "Instagram", url: "" },
+        ],
+      } as never,
+    ]
+    const back = yamlToConfig(configToYaml(cfg))
+    const footer = back.sections[0] as unknown as { socialLinks?: { platform: string; url: string }[] }
+    expect(footer.socialLinks).toEqual([
+      { platform: "X", url: "https://x.com/forge" },
+      { platform: "GitHub", url: "" }, // non-http scheme falls back to decorative
+      { platform: "Instagram", url: "" },
+    ])
+  })
+
+  it("coerces legacy social: [\"X\", \"GitHub\"] to url-less socialLinks", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      sections: [{ type: "footer", style: "minimal", social: ["X", "GitHub"], linkGroups: [] }],
+    })
+    const footer = out.sections[0] as unknown as { social?: unknown; socialLinks?: { platform: string; url: string }[] }
+    expect(footer.social).toBeUndefined()
+    expect(footer.socialLinks).toEqual([
+      { platform: "X", url: "" },
+      { platform: "GitHub", url: "" },
+    ])
+  })
+})
+
+describe("legal pages (privacy / terms bodies + footer links)", () => {
+  it("round-trips privacy and terms content with the link URLs", () => {
+    const cfg = configWith([])
+    cfg.legal = {
+      privacyPolicy: "## Heading\n\nBody text.\n- bullet",
+      termsConditions: "Terms body",
+      privacyUrl: "privacy.html",
+      termsUrl: "terms.html",
+      docsUrl: "https://docs.example.com",
+    }
+    const back = yamlToConfig(configToYaml(cfg))
+    expect(back.legal?.privacyPolicy).toContain("## Heading")
+    expect(back.legal?.termsConditions).toBe("Terms body")
+    expect(back.legal?.privacyUrl).toBe("privacy.html")
+    expect(back.legal?.termsUrl).toBe("terms.html")
+    expect(back.legal?.docsUrl).toBe("https://docs.example.com")
+  })
+
+  it("keeps legal pages when the consent banner is absent and vice versa", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      legal: { privacyPolicy: "policy body only" },
+      sections: [{ type: "hero" }],
+    })
+    expect(out.legal?.privacyPolicy).toBe("policy body only")
+    expect(out.legal?.cookieConsent).toBeUndefined()
+  })
+
+  it("drops malformed legal link urls but keeps valid relative filenames", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      legal: { privacyUrl: "not a url", termsUrl: "terms.html" },
+      sections: [{ type: "hero" }],
+    })
+    expect(out.legal?.privacyUrl).toBeUndefined()
+    expect(out.legal?.termsUrl).toBe("terms.html")
   })
 })

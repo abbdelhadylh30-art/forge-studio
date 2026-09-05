@@ -892,3 +892,19 @@ Work Log:
 Stage Summary:
 - 7 priority gaps identified; biggest: P1 offer section (high-conversion block), P2 legal pages export, P3 functional social links.
 - Coverage map documented in PORT-BACKLOG.md including the "already covered, no action" list to prevent re-porting.
+---
+Task ID: 17
+Agent: Super Z (main agent, sandbox)
+Task: v1.7 — port P1 offer section, P2 legal pages, P3 real social links from LandingForge v21 to the Sites module.
+
+Work Log:
+- P1 Offer: OfferSection type + defaults + yaml guard + Offer.tsx (card/split; urgency badge, strikethrough anchor price, auto-derived savings pill, boxed live countdown reusing data-lf-countdown markup so the vanilla export engine drives it, checklist, gradient CTA, trust row) + OfferEditor (datetime picker etc.) + 3 content packs + SectionRenderer/index wiring + readiness "Offer countdown" export check. Fixed an edit slip that briefly dropped the problem/solution guard condition in yaml.ts.
+- P3 Social: FooterSocialLink {platform,url}; footer.social→socialLinks migration coerced in normalizeConfig at every load path; SocialButton renders real <a target=_blank rel=noopener> for http(s) URLs, decorative otherwise; brand SVG glyphs for TikTok/WhatsApp/Messenger; Lucide for 9 platforms; FooterEditor platform select + URL field.
+- P2 Legal: LegalConfig extended (privacyPolicy/termsConditions/docsUrl/privacyUrl/termsUrl, cookieConsent now optional); store.updateLegal became a true deep-merge; buildLegalHtml + downloadLegalHtml export standalone themed privacy.html/terms.html (self-contained lf-doc CSS, themeVarsCss + Google fonts); LegalPagesManager in the page tab with starter drafts + per-page export buttons; LegalLinks row in all three footer styles, threaded LandingPreview → SectionRenderer → Footer.
+- Gates: tsc clean, eslint clean, vitest 200/200 (7 new tests: offer round-trip + coercion, socialLinks round-trip + legacy coercion, legal round-trip + consent-independent + URL validation). export.css regenerated via @tailwindcss/cli (234,936 bytes).
+- E2E (agent-browser on dev server): Add section → Offer → Flash sale pack renders price $49/$99, badge, ticking countdown (1 box, 4 data-lf-cd cells), Save 50%, trust row; split style renders 2-col grid; footer social URL field produced a real anchor (https://x.com/forge, target=_blank); Legal drafts + privacyUrl/terms.html → footer nav "Privacy · Terms"; standalone HTML export verified to contain offer markup + live vanilla countdown (sec cell ticking) + social anchor + legal links.
+
+Stage Summary:
+- v1.7.0 shipped: 20 section types, 55 content packs, real social links, legal page authoring + standalone export. All legacy data coerces transparently (no migration step needed).
+- Artifacts: screenshots download/offer-e2e.png, download/export-offer.png.
+- P4–P7 remain in PORT-BACKLOG.md for v1.8/v1.9.

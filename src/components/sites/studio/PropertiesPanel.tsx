@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Cookie, Eye, EyeOff, GripVertical, Hash, Images, Languages, Link2, Loader2, Monitor, Moon, Palette, Plus, Sheet, Sparkles, Sun, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
+import { Check, ChevronsUpDown, Cookie, Download, Eye, EyeOff, FileText, GripVertical, Hash, Images, Languages, Link2, Loader2, Monitor, Moon, Palette, Plus, Scale, Sheet, Sparkles, Sun, Trash2, Upload, Copy, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useForge } from "@/lib/landing/store"
 import { ensureAllGoogleFonts } from "@/lib/landing/googleFonts"
+import { downloadLegalHtml } from "@/lib/landing/exportHtml"
 import { ACCENT_PRESETS, FONT_PAIRS, THEMES, accentVars, getTheme, isValidAccent, themeVars } from "@/lib/landing/themes"
 import { SECTION_ANIMATIONS, SECTION_META } from "@/lib/landing/types"
 import type { SectionAnimation } from "@/lib/landing/types"
@@ -46,6 +47,7 @@ import type {
   AnnouncementSection,
   ComparisonSection,
   GuaranteeSection,
+  OfferSection,
   PainItem,
   ProblemSection,
   SolutionSection,
@@ -1593,6 +1595,71 @@ function GuaranteeEditor({ section, update }: EditorProps<GuaranteeSection>) {
   )
 }
 
+function OfferEditor({ section, update }: EditorProps<OfferSection>) {
+  const deadlineValue = section.deadline && !Number.isNaN(Date.parse(section.deadline))
+    ? new Date(section.deadline).toISOString().slice(0, 16)
+    : ""
+  return (
+    <div className="space-y-4">
+      <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} placeholder="Limited-time offer" />
+      <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} placeholder="Everything included, one simple price" />
+      <SelectField
+        label="Style"
+        value={section.style}
+        onChange={(v) => update({ style: v })}
+        options={[
+          { value: "card", label: "Card — centered offer block" },
+          { value: "split", label: "Split — copy + countdown + offer card" },
+        ]}
+      />
+      <TextField label="Urgency badge" value={section.badge ?? ""} onChange={(v) => update({ badge: v })} placeholder="Limited spots available" maxLength={60} />
+      <div className="grid grid-cols-2 gap-2">
+        <TextField label="Price" value={section.price} onChange={(v) => update({ price: v })} placeholder="$497" maxLength={40} />
+        <TextField label="Original price" value={section.originalPrice ?? ""} onChange={(v) => update({ originalPrice: v })} placeholder="$997" maxLength={40} />
+      </div>
+      <TextField label="Period note" value={section.period ?? ""} onChange={(v) => update({ period: v })} placeholder="One-time payment" maxLength={60} />
+      <TextField
+        label="Savings label"
+        value={section.savingsLabel ?? ""}
+        onChange={(v) => update({ savingsLabel: v })}
+        placeholder="Save 50% (auto-derived from prices when empty)"
+        maxLength={60}
+      />
+      <TextField
+        label="Deadline"
+        type="datetime-local"
+        value={deadlineValue}
+        onChange={(v) => update({ deadline: v ? new Date(v).toISOString() : undefined })}
+        hint="Local time — stored as UTC. Empty hides the countdown."
+      />
+      {section.deadline ? <TextField label="Countdown prefix" value={section.countdownPrefix ?? ""} onChange={(v) => update({ countdownPrefix: v })} placeholder="Offer ends in" maxLength={60} /> : null}
+      <StringListEditor
+        label="What's included"
+        items={section.features}
+        onChange={(features) => update({ features })}
+        createValue={() => "New benefit"}
+        addLabel="Add benefit"
+        placeholder="Complete access to all features"
+      />
+      <CtaFields cta={section.cta} onChange={(cta) => update({ cta })} />
+      <ListEditor
+        label="Trust row"
+        items={section.trust ?? []}
+        onChange={(trust) => update({ trust: trust.length ? trust : undefined })}
+        createItem={() => ({ icon: "lock", label: "Secure checkout" })}
+        itemTitle={(it) => it.label}
+        addLabel="Add trust item"
+        renderFields={(it, u) => (
+          <div className="space-y-2">
+            <IconPickerField label="Icon" value={it.icon} onChange={(icon) => u({ icon })} />
+            <Input value={it.label} onChange={(e) => u({ label: e.target.value })} placeholder="Secure checkout" className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
+          </div>
+        )}
+      />
+    </div>
+  )
+}
+
 function CtaFinalEditor({ section, update }: EditorProps<CtaFinalSection>) {
   return (
     <div className="space-y-4">
@@ -1610,6 +1677,9 @@ function CtaFinalEditor({ section, update }: EditorProps<CtaFinalSection>) {
     </div>
   )
 }
+
+/** Known social platforms (icon-backed) — anything else falls back to a globe glyph. */
+const SOCIAL_PLATFORMS = ["X", "Twitter", "Facebook", "Instagram", "TikTok", "WhatsApp", "LinkedIn", "GitHub", "Discord", "YouTube", "Twitch"]
 
 function FooterEditor({ section, update }: EditorProps<FooterSection>) {
   return (
@@ -1652,7 +1722,39 @@ function FooterEditor({ section, update }: EditorProps<FooterSection>) {
           </div>
         )}
       />
-      <TextField label="Social (comma separated)" value={(section.social ?? []).join(", ")} onChange={(v) => update({ social: v.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="X, GitHub, Discord" />
+      <ListEditor
+        label="Social links"
+        items={section.socialLinks ?? []}
+        onChange={(socialLinks) => update({ socialLinks })}
+        createItem={() => ({ platform: "X", url: "" })}
+        itemTitle={(s) => s.platform}
+        addLabel="Add platform"
+        max={8}
+        renderFields={(s, u) => (
+          <div className="space-y-2">
+            <SelectField
+              label="Platform"
+              value={SOCIAL_PLATFORMS.includes(s.platform) ? s.platform : "custom"}
+              onChange={(v) => u({ platform: v === "custom" ? "" : v })}
+              options={[...SOCIAL_PLATFORMS.map((p) => ({ value: p, label: p })), { value: "custom", label: "Custom…" }]}
+            />
+            {!SOCIAL_PLATFORMS.includes(s.platform) ? (
+              <Input
+                value={s.platform}
+                onChange={(e) => u({ platform: e.target.value })}
+                placeholder="Platform name"
+                className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100"
+              />
+            ) : null}
+            <Input
+              value={s.url}
+              onChange={(e) => u({ url: e.target.value })}
+              placeholder="https://x.com/yourbrand — empty keeps the icon non-clickable"
+              className="h-8 border-zinc-700/80 bg-zinc-900/60 font-mono text-xs text-zinc-100"
+            />
+          </div>
+        )}
+      />
       <TextField label="Copyright" value={section.copyright ?? ""} onChange={(v) => update({ copyright: v })} />
     </div>
   )
@@ -1808,6 +1910,8 @@ function SectionEditor({ section }: { section: Section }) {
       return <ComparisonEditor section={section} update={update as unknown as (p: Partial<ComparisonSection>) => void} />
     case "guarantee":
       return <GuaranteeEditor section={section} update={update as unknown as (p: Partial<GuaranteeSection>) => void} />
+    case "offer":
+      return <OfferEditor section={section} update={update as unknown as (p: Partial<OfferSection>) => void} />
     case "contact":
       return <ContactEditor section={section} update={update as unknown as (p: Partial<ContactSection>) => void} />
     case "cta-final":
@@ -2326,6 +2430,130 @@ function PrivacyTrackingManager() {
   )
 }
 
+// ─── Legal pages — privacy / terms bodies, footer links, HTML export ─────────
+
+/** Solid starter text so the editor never starts from a blank page. */
+const PRIVACY_TEMPLATE = `## What we collect
+We collect the information you explicitly submit through forms on this site (such as your name and email address) and privacy-friendly, aggregated usage statistics.
+
+- Form submissions are stored in the site's leads inbox
+- Analytics records pageviews without cookies or personal identifiers
+- No third-party trackers run unless you accept the cookie banner
+
+## How we use it
+Submitted information is used solely to respond to your inquiry. We never sell or share your personal data with third parties for marketing purposes.
+
+## Your rights
+You can request a copy or deletion of your personal data at any time by contacting us. Requests are honored within 30 days.
+
+## Contact
+Questions about this policy can be sent through the contact form on this site.`
+
+const TERMS_TEMPLATE = `## Acceptance
+By accessing this site you agree to these terms. If you do not agree, please stop using the site.
+
+## Use of the site
+- The content provided is for general information and may change without notice
+- You may not reuse site content commercially without written permission
+- You agree not to disrupt or attempt to compromise the site's infrastructure
+
+## No warranty
+This site and its content are provided "as is" without warranties of any kind, express or implied.
+
+## Limitation of liability
+To the maximum extent permitted by law, the site owner is not liable for any damages arising from the use of this site.
+
+## Changes
+Updated terms take effect when published on this page. Continued use after changes means acceptance.`
+
+/** Privacy / Terms content + footer links + standalone-page export. */
+function LegalPagesManager() {
+  const config = useForge((s) => s.config)
+  const updateLegal = useForge((s) => s.updateLegal)
+  const privacy = config.legal?.privacyPolicy ?? ""
+  const terms = config.legal?.termsConditions ?? ""
+
+  const exportOne = (kind: "privacy" | "terms") => {
+    const ok = downloadLegalHtml(config, kind)
+    if (ok) toast.success(`${kind === "privacy" ? "privacy.html" : "terms.html"} downloaded`)
+    else toast.error("Nothing to export", { description: `Add ${kind === "privacy" ? "privacy policy" : "terms & conditions"} content first.` })
+  }
+
+  return (
+    <div className="space-y-4 rounded-xl border border-zinc-800/80 bg-gradient-to-b from-sky-500/[0.03] to-transparent p-3">
+      <div className="flex items-center gap-2">
+        <Scale className="h-3.5 w-3.5 text-sky-300" aria-hidden />
+        <p className="text-[11px] font-semibold text-zinc-200">Legal pages</p>
+        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${privacy || terms ? "bg-sky-500/10 text-sky-300" : "bg-zinc-700/30 text-zinc-500"}`}>
+          {privacy && terms ? "2 pages" : privacy || terms ? "1 page" : "empty"}
+        </span>
+      </div>
+      <p className="text-[10px] leading-relaxed text-zinc-500">
+        Plain text — blank lines split paragraphs, <code className="rounded bg-zinc-800 px-1 font-mono">## headings</code> and{" "}
+        <code className="rounded bg-zinc-800 px-1 font-mono">- bullets</code> render styled. Exported as standalone themed pages
+        (privacy.html / terms.html) alongside the landing HTML.
+      </p>
+
+      {[
+        { key: "privacy" as const, label: "Privacy policy", body: privacy, template: PRIVACY_TEMPLATE, file: "privacy.html" },
+        { key: "terms" as const, label: "Terms & conditions", body: terms, template: TERMS_TEMPLATE, file: "terms.html" },
+      ].map((page) => (
+        <div key={page.key} className="space-y-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+              <FileText className="h-3 w-3" />
+              {page.label}
+            </span>
+            <div className="flex items-center gap-1.5">
+              {!page.body.trim() ? (
+                <Button variant="outline" size="sm" className="h-6 gap-1 border-dashed border-zinc-700 px-2 text-[10px] text-zinc-400 hover:border-sky-500/50 hover:text-sky-300" onClick={() => updateLegal({ [page.key === "privacy" ? "privacyPolicy" : "termsConditions"]: page.template })}>
+                  <Sparkles className="h-3 w-3" /> Draft
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-6 gap-1 border-zinc-700 px-2 text-[10px] text-zinc-300 hover:border-sky-500/50 hover:text-sky-300" onClick={() => exportOne(page.key)}>
+                  <Download className="h-3 w-3" /> {page.file}
+                </Button>
+              )}
+            </div>
+          </div>
+          <Textarea
+            value={page.body}
+            rows={6}
+            onChange={(e) => updateLegal({ [page.key === "privacy" ? "privacyPolicy" : "termsConditions"]: e.target.value })}
+            placeholder={page.key === "privacy" ? "What you collect, how you use it, visitor rights…" : "Acceptance, use rules, warranty, liability…"}
+            className="resize-y border-zinc-700/80 bg-zinc-900/60 font-mono text-[12px] leading-relaxed text-zinc-200 placeholder:text-zinc-600"
+          />
+        </div>
+      ))}
+
+      <div className="space-y-2.5 rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Footer legal links</span>
+        {(
+          [
+            { key: "docsUrl" as const, label: "Documentation", placeholder: "https://docs.yoursite.com" },
+            { key: "privacyUrl" as const, label: "Privacy", placeholder: "privacy.html" },
+            { key: "termsUrl" as const, label: "Terms", placeholder: "terms.html" },
+          ] as const
+        ).map((f) => (
+          <div key={f.key} className="grid grid-cols-[92px_1fr] items-center gap-2">
+            <Label className="text-[11px] text-zinc-400">{f.label}</Label>
+            <Input
+              value={config.legal?.[f.key] ?? ""}
+              onChange={(e) => updateLegal({ [f.key]: e.target.value.trim() || undefined })}
+              placeholder={f.placeholder}
+              className="h-7 border-zinc-700/80 bg-zinc-900/60 font-mono text-[11px] text-zinc-200"
+            />
+          </div>
+        ))}
+        <p className="text-[10px] leading-relaxed text-zinc-500">
+          Links render beside the footer copyright. Use <code className="rounded bg-zinc-800 px-1 font-mono">privacy.html</code> /{" "}
+          <code className="rounded bg-zinc-800 px-1 font-mono">terms.html</code> to point at the exported pages when hosting them together.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function PageSettings() {
   const config = useForge((s) => s.config)
   const setTheme = useForge((s) => s.setTheme)
@@ -2373,6 +2601,7 @@ function PageSettings() {
       />
       <LanguagesManager config={config} />
       <PrivacyTrackingManager />
+      <LegalPagesManager />
 
       <div className="space-y-2">
         <Label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">One-click theme — every palette ships dark + light</Label>
