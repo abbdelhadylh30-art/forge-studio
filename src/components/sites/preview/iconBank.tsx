@@ -13,6 +13,7 @@
  * rendering unchanged.
  */
 
+import type { CSSProperties } from "react"
 import type { LucideIcon } from "lucide-react"
 import {
   Activity,
@@ -209,22 +210,24 @@ export interface IconGlyphProps {
   /** explicit pixel size (defaults to the parent's font size via em) */
   size?: number
   "aria-hidden"?: boolean
+  /** inline styles — forwarded to the icon (or the text fallback span) */
+  style?: CSSProperties
 }
 
 /**
  * Render an icon by bank key with a graceful text fallback for legacy
  * emoji/string values stored in older configs.
  */
-export function IconGlyph({ name, className, strokeWidth = 1.75, size, ...rest }: IconGlyphProps) {
+export function IconGlyph({ name, className, strokeWidth = 1.75, size, style, ...rest }: IconGlyphProps) {
   const key = (name ?? "").trim()
   if (!key) return null
   const Icon = ICON_BANK[key]
   if (Icon) {
-    return <Icon className={cn("shrink-0", className)} strokeWidth={strokeWidth} size={size} aria-hidden {...rest} />
+    return <Icon className={cn("shrink-0", className)} strokeWidth={strokeWidth} size={size} style={style} aria-hidden {...rest} />
   }
   // legacy value (emoji, single character, or AI free-text) — keep it visible
   return (
-    <span aria-hidden className={cn("inline-flex items-center justify-center leading-none", className)}>
+    <span aria-hidden className={cn("inline-flex items-center justify-center leading-none", className)} style={style}>
       {key}
     </span>
   )

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Command as CommandIcon, Code2, Download, Globe, Monitor, Moon, Palette, Redo2, Rocket, Save, Sparkles, Sun, Undo2, Upload, Wand2 } from "lucide-react"
+import { Command as CommandIcon, Code2, Download, Globe, Monitor, Moon, Palette, Redo2, Rocket, Save, SlidersHorizontal, Sparkles, Sun, Undo2, Upload, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -53,6 +53,7 @@ export function Toolbar() {
   const setPreviewLocale = useUi((s) => s.setPreviewLocale)
   const brandMode = useForge((s) => s.config.brand.mode)
   const updateBrand = useForge((s) => s.updateBrand)
+  const tweaksActive = !!useForge((s) => s.config.themeTweaks)
   const locales = localesOf(config)
   const activeLocale = previewLocale ?? locales[0]?.code
 
@@ -126,6 +127,12 @@ export function Toolbar() {
               {t.id === themeId && <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />}
             </DropdownMenuItem>
           ))}
+          <DropdownMenuSeparator className="bg-zinc-800" />
+          <DropdownMenuItem className="gap-2 text-[12px] focus:bg-violet-500/20" onClick={() => openDialog("theme-tweaks")}>
+            <SlidersHorizontal className="h-3.5 w-3.5 text-violet-300" />
+            <span className="flex-1">Fine-tune…</span>
+            {tweaksActive && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" title="Tweaks active" />}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

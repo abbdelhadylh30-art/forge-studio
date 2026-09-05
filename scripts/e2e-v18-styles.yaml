@@ -1,0 +1,228 @@
+brand:
+  name: StyleLab
+  tagline: v1.8 style matrix
+theme: nebula
+seo:
+  title: StyleLab — v1.8 style matrix
+  description: Every new v1.8 style rendered at once with theme tweaks layered on.
+themeTweaks:
+  secondary: "#22d3ee"
+  headingScale: 1.15
+  bodyScale: 1.05
+  sectionPadding: 1.25
+  cardRadius: 1.25
+  buttonRadius: "pill"
+  shadowIntensity: 0.5
+  contentMaxWidth: 1280
+sections:
+  - type: navbar
+  - type: hero
+    layout: split-right
+    headline: Every v1.8 style at once
+    sub: Tabs, timeline, alternating, icons, checklist, matrix, badge, certificate, seals, cards, categorized, strip, sidebar — with fine-tuned typography.
+    cta:
+      label: See it all
+      href: "#cta"
+    secondaryCta:
+      label: Fine-tune
+      href: "#problem"
+  - type: problem
+    style: tabs
+    title: Problem — tabs
+    subtitle: One pain at a time
+    items:
+      - icon: clock
+        title: Slow launches
+        body: Weeks between idea and shipped page.
+      - icon: alert
+        title: Guesswork
+        body: Opinions instead of data pick the headline.
+      - icon: lock
+        title: Lock-in
+        body: Exporting means starting over.
+  - type: problem
+    style: timeline
+    title: Problem — timeline
+    subtitle: Costs compound down the rail
+    items:
+      - icon: clock
+        title: Week one
+        body: Kick-off meetings.
+      - icon: alert
+        title: Week three
+        body: Design drift.
+      - icon: lock
+        title: Week six
+        body: Deadline panic.
+  - type: solution
+    style: alternating
+    title: Solution — alternating
+    subtitle: Visual and copy trade sides
+    items:
+      - icon: zap
+        title: Compose
+        body: Drag the story together.
+      - icon: target
+        title: Measure
+        body: Data picks winners.
+  - type: solution
+    style: icons
+    title: Solution — icons
+    subtitle: Gradient circles
+    items:
+      - icon: zap
+        title: Compose
+        body: Drag sections.
+      - icon: target
+        title: Measure
+        body: A/B tests.
+      - icon: unlock
+        title: Own it
+        body: Export anywhere.
+  - type: comparison
+    style: checklist
+    title: Comparison — checklist
+    usLabel: StyleLab
+    themLabel: Old way
+    rows:
+      - feature: Time to launch
+        us: yes
+        them: no
+      - feature: Experiments
+        us: yes
+        them: partial
+  - type: comparison
+    style: matrix
+    title: Comparison — matrix
+    usLabel: StyleLab
+    themLabel: Old way
+    rows:
+      - feature: Analytics
+        us: yes
+        them: no
+      - feature: Export
+        us: yes
+        them: partial
+  - type: guarantee
+    style: badge
+    title: Guarantee — badge
+    subtitle: 30 days
+    body: If it is not the fastest page you have shipped, every cent comes back.
+    items:
+      - icon: timer
+        title: 30 days
+        body: Full refund window
+      - icon: unlock
+        title: No lock-in
+        body: Leave anytime
+  - type: guarantee
+    style: certificate
+    title: Guarantee — certificate
+    subtitle: Zero-risk launch
+    body: A formal promise, framed and sealed.
+    items:
+      - icon: badge-check
+        title: No questions
+        body: Just a reply
+  - type: guarantee
+    style: seals
+    title: Guarantee — seals
+    subtitle: Trust medallions
+    body: ""
+    items:
+      - icon: shield-check
+        title: Secure
+        body: TLS everywhere
+      - icon: lock
+        title: Encrypted
+        body: AES-256
+      - icon: refresh
+        title: 30-day refund
+        body: Full window
+      - icon: award
+        title: Guaranteed
+        body: In writing
+  - type: faq
+    style: cards
+    title: FAQ — cards
+    items:
+      - q: Cards style?
+        a: Static Q&A grid.
+      - q: Readable?
+        a: Everything visible at once.
+  - type: faq
+    style: categorized
+    title: FAQ — categorized
+    items:
+      - q: Refunds within 30 days?
+        a: Yes.
+        category: Billing
+      - q: Invoices?
+        a: Emailed automatically.
+        category: Billing
+      - q: RTL supported?
+        a: Yes, per locale.
+        category: Features
+  - type: gallery
+    style: horizontal
+    title: Gallery — strip
+    subtitle: Full-bleed row with edge fades
+    items:
+      - alt: One
+        hue: "262"
+        caption: Alpha
+      - alt: Two
+        hue: "180"
+        caption: Beta
+      - alt: Three
+        hue: "24"
+        caption: Gamma
+      - alt: Four
+        hue: "340"
+        caption: Delta
+      - alt: Five
+        hue: "130"
+        caption: Epsilon
+  - type: contact
+    style: centered
+    title: Contact — centered
+    subtitle: Focused single column
+    email: hello@example.com
+    phone: "+1 555 0101"
+    fields:
+      - Your name
+      - Email address
+      - Message
+    submitLabel: Send it
+  - type: contact
+    style: sidebar
+    title: Contact — sidebar
+    subtitle: Form leads, info panel alongside
+    email: side@example.com
+    phone: "+1 555 0202"
+    fields:
+      - Your name
+      - Message
+    submitLabel: Send
+  - type: cta-final
+    headline: Ship it your way
+    sub: Every style, every knob, one config.
+    cta:
+      label: Start free
+      href: "#cta"
+    note: No credit card required
+  - type: footer
+    style: mega
+    linkGroups:
+      - group: Product
+        items:
+          - label: Features
+            href: "#features"
+          - label: FAQ
+            href: "#faq"
+    socialLinks:
+      - platform: X
+        url: "https://x.com/forge"
+      - platform: GitHub
+        url: ""
+    copyright: "© 2026 StyleLab"

@@ -10,6 +10,7 @@ import {
   FONT_PAIRS,
   googleFontHref,
   isValidAccent,
+  tweaksCss,
 } from "./themes"
 
 const VAR_KEYS = [
@@ -117,5 +118,39 @@ describe("font pairs", () => {
     expect(googleFontHref("g-jakarta")).toContain("Plus+Jakarta+Sans")
     expect(googleFontHref("g-poppins")).toContain("Poppins")
     expect(googleFontHref("g-arabic")).toContain("Noto+Sans+Arabic")
+  })
+})
+
+describe("theme fine-tuning CSS (tweaksCss)", () => {
+  it("emits scoped rules for set knobs and escapes responsive classes", () => {
+    const css = tweaksCss({ headingScale: 1.1, cardRadius: 0, buttonRadius: "pill" })
+    expect(css).toContain(".lf-tweaks .text-2xl{font-size:calc(1.5rem*1.1)}")
+    expect(css).toContain('@media (min-width:48rem){.lf-tweaks .md\\:text-4xl{font-size:calc(2.25rem*1.1)}}')
+    expect(css).toContain(".lf-tweaks .rounded-xl{border-radius:0rem}")
+    expect(css).toContain("border-radius:9999px")
+    expect(css).not.toContain("shadow")
+  })
+
+  it("emits section-scoped padding overrides and body-scale rules", () => {
+    const css = tweaksCss({ sectionPadding: 1.25, bodyScale: 1.05, lineHeight: 1.7, shadowIntensity: 0 })
+    expect(css).toContain(".lf-tweaks section.py-16{padding-block:calc(4rem*1.25)}")
+    expect(css).toContain(".lf-tweaks .text-sm{font-size:calc(0.875rem*1.05)}")
+    expect(css).toContain(".lf-tweaks .text-\\[13px\\]{font-size:calc(13px*1.05)}")
+    expect(css).toContain(".lf-tweaks .leading-relaxed{line-height:1.7}")
+    expect(css).toContain(".lf-tweaks .shadow-lg{box-shadow:")
+    expect(css).not.toContain("border-radius")
+  })
+
+  it("returns empty CSS for identity / empty tweaks", () => {
+    expect(tweaksCss(undefined)).toBe("")
+    expect(tweaksCss({})).toBe("")
+    expect(tweaksCss({ headingScale: 1, cardRadius: 0.75, shadowIntensity: 1 })).toBe("")
+  })
+
+  it("replaces the gradient end with the secondary color (duotone)", () => {
+    const css = themeVarsCss("nebula", undefined, "#22d3ee")
+    expect(css).toContain("linear-gradient(135deg, #A78BFA 0%, #22d3ee 100%)")
+    const style = themeStyle("nebula", undefined, undefined, "dark", "#22d3ee") as Record<string, string>
+    expect(style["--lf-gradient"]).toBe("linear-gradient(135deg, #A78BFA 0%, #22d3ee 100%)")
   })
 })

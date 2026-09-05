@@ -426,3 +426,142 @@ describe("legal pages (privacy / terms bodies + footer links)", () => {
     expect(out.legal?.termsUrl).toBe("terms.html")
   })
 })
+
+describe("P4 style variants (problem / solution / comparison / guarantee / faq / gallery / contact)", () => {
+  it("round-trips every new narrative style through the YAML text", () => {
+    const problem = createSection("problem")
+    if (problem.type !== "problem") throw new Error("expected problem")
+    problem.style = "timeline"
+    const solution = createSection("solution")
+    if (solution.type !== "solution") throw new Error("expected solution")
+    solution.style = "alternating"
+    const back = yamlToConfig(configToYaml(configWith([problem, solution])))
+    const p = back.sections.find((s) => s.type === "problem")
+    const sol = back.sections.find((s) => s.type === "solution")
+    expect(p && p.type === "problem" && p.style).toBe("timeline")
+    expect(sol && sol.type === "solution" && sol.style).toBe("alternating")
+  })
+
+  it("coerces unknown narrative styles back to the first safe default", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      sections: [
+        { type: "problem", style: "hologram", items: [] },
+        { type: "solution", style: "neon", items: [] },
+        { type: "guarantee", style: "forcefield", items: [] },
+      ],
+    })
+    expect(out.sections[0].type === "problem" && out.sections[0].style).toBe("grid")
+    expect(out.sections[1].type === "solution" && out.sections[1].style).toBe("grid")
+    expect(out.sections[2].type === "guarantee" && out.sections[2].style).toBe("card")
+  })
+
+  it("round-trips the comparison style and defaults legacy sections to table", () => {
+    const styled = createSection("comparison")
+    if (styled.type !== "comparison") throw new Error("expected comparison")
+    styled.style = "matrix"
+    const back = yamlToConfig(configToYaml(configWith([styled])))
+    const c = back.sections.find((s) => s.type === "comparison")
+    expect(c && c.type === "comparison" && c.style).toBe("matrix")
+
+    const legacy = normalizeConfig({ brand: { name: "X" }, sections: [{ type: "comparison", rows: [] }] })
+    const lc = legacy.sections.find((s) => s.type === "comparison")
+    expect(lc && lc.type === "comparison" && lc.style).toBe("table")
+  })
+
+  it("round-trips faq cards/categorized styles + per-item categories", () => {
+    const faq = createSection("faq")
+    if (faq.type !== "faq") throw new Error("expected faq")
+    faq.style = "categorized"
+    faq.items = [
+      { q: "Refunds?", a: "Yes.", category: "Billing" },
+      { q: "RTL?", a: "Yes.", category: "Features" },
+      { q: "Who?", a: "Us." },
+    ]
+    const back = yamlToConfig(configToYaml(configWith([faq])))
+    const f = back.sections.find((s) => s.type === "faq")
+    expect(f && f.type === "faq" && f.style).toBe("categorized")
+    if (f && f.type === "faq") {
+      expect(f.items[0].category).toBe("Billing")
+      expect(f.items[2].category).toBeUndefined()
+    }
+  })
+
+  it("round-trips the gallery horizontal strip + contact layouts", () => {
+    const gallery = createSection("gallery")
+    if (gallery.type !== "gallery") throw new Error("expected gallery")
+    gallery.style = "horizontal"
+    const contact = createSection("contact")
+    if (contact.type !== "contact") throw new Error("expected contact")
+    contact.style = "sidebar"
+    const back = yamlToConfig(configToYaml(configWith([gallery, contact])))
+    const g = back.sections.find((s) => s.type === "gallery")
+    const c = back.sections.find((s) => s.type === "contact")
+    expect(g && g.type === "gallery" && g.style).toBe("horizontal")
+    expect(c && c.type === "contact" && c.style).toBe("sidebar")
+  })
+
+  it("defaults legacy contact sections to the split layout (pixel-identical)", () => {
+    const out = normalizeConfig({ brand: { name: "X" }, sections: [{ type: "contact", fields: ["Name"] }] })
+    const c = out.sections.find((s) => s.type === "contact")
+    expect(c && c.type === "contact" && c.style).toBe("split")
+    expect(c && c.type === "contact" && c.delivery).toBeUndefined()
+  })
+})
+
+describe("theme fine-tuning (P5 themeTweaks)", () => {
+  it("round-trips the full tweaks block through the YAML text", () => {
+    const cfg = configWith([createSection("hero")])
+    cfg.themeTweaks = {
+      secondary: "#22d3ee",
+      headingScale: 1.15,
+      bodyScale: 1.05,
+      lineHeight: 1.7,
+      letterSpacing: -0.01,
+      paragraphSpacing: 1.5,
+      sectionPadding: 1.2,
+      contentMaxWidth: 1280,
+      cardRadius: 1.25,
+      buttonRadius: "pill",
+      shadowIntensity: 0.5,
+    }
+    const back = yamlToConfig(configToYaml(cfg))
+    expect(back.themeTweaks).toEqual(cfg.themeTweaks)
+  })
+
+  it("clamps out-of-range knobs and drops identity values", () => {
+    const out = normalizeConfig({
+      brand: { name: "X" },
+      themeTweaks: {
+        headingScale: 9,
+        bodyScale: 0.1,
+        lineHeight: 42,
+        contentMaxWidth: 9999,
+        cardRadius: -5,
+        shadowIntensity: 100,
+        buttonRadius: "wavy",
+        secondary: "nope",
+      },
+      sections: [{ type: "hero" }],
+    })
+    expect(out.themeTweaks?.headingScale).toBe(1.3)
+    expect(out.themeTweaks?.bodyScale).toBe(0.9)
+    expect(out.themeTweaks?.lineHeight).toBe(2)
+    expect(out.themeTweaks?.contentMaxWidth).toBe(1600)
+    expect(out.themeTweaks?.cardRadius).toBe(0)
+    expect(out.themeTweaks?.shadowIntensity).toBe(2)
+    expect(out.themeTweaks?.buttonRadius).toBeUndefined()
+    expect(out.themeTweaks?.secondary).toBeUndefined()
+    // identity knobs vanish entirely
+    const identity = normalizeConfig({
+      brand: { name: "X" },
+      themeTweaks: { headingScale: 1, shadowIntensity: 1, cardRadius: 0.75 },
+      sections: [{ type: "hero" }],
+    })
+    expect(identity.themeTweaks).toBeUndefined()
+  })
+
+  it("omits the themeTweaks block when unset (legacy YAML stays clean)", () => {
+    expect(configToYaml(configWith([createSection("hero")]))).not.toContain("themeTweaks")
+  })
+})

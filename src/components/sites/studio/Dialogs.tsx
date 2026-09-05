@@ -427,3 +427,169 @@ export function AiImproveDialog() {
     </Dialog>
   )
 }
+
+// ── Theme fine-tuning (P5) ─────────────────────────────────────────────────────
+
+import { Slider } from "@/components/ui/slider"
+import { RotateCcw, SlidersHorizontal } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { ThemeTweaks } from "@/lib/landing/types"
+
+/** knob → slider bounds + identity (identity = "unset" → preset untouched) */
+const KNOBS: {
+  key: Exclude<keyof ThemeTweaks, "secondary" | "buttonRadius">
+  label: string
+  min: number
+  max: number
+  step: number
+  identity: number
+  /** display formatter */
+  fmt: (v: number) => string
+  group: "type" | "layout" | "depth"
+}[] = [
+  { key: "headingScale", label: "Heading scale", min: 0.8, max: 1.3, step: 0.01, identity: 1, fmt: (v) => `${Math.round(v * 100)}%`, group: "type" },
+  { key: "bodyScale", label: "Body scale", min: 0.9, max: 1.15, step: 0.01, identity: 1, fmt: (v) => `${Math.round(v * 100)}%`, group: "type" },
+  { key: "lineHeight", label: "Line height", min: 1.2, max: 2, step: 0.05, identity: 1.625, fmt: (v) => v.toFixed(2), group: "type" },
+  { key: "letterSpacing", label: "Letter spacing", min: -0.05, max: 0.1, step: 0.005, identity: 0, fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(3)}em`, group: "type" },
+  { key: "paragraphSpacing", label: "Paragraph spacing", min: 0.5, max: 3, step: 0.25, identity: 1, fmt: (v) => `${v}rem`, group: "type" },
+  { key: "sectionPadding", label: "Section padding", min: 0.5, max: 1.6, step: 0.05, identity: 1, fmt: (v) => `${Math.round(v * 100)}%`, group: "layout" },
+  { key: "contentMaxWidth", label: "Content width", min: 800, max: 1600, step: 20, identity: 1152, fmt: (v) => `${v}px`, group: "layout" },
+  { key: "cardRadius", label: "Card radius", min: 0, max: 2, step: 0.05, identity: 0.75, fmt: (v) => `${v.toFixed(2)}rem`, group: "layout" },
+  { key: "shadowIntensity", label: "Shadow strength", min: 0, max: 2, step: 0.05, identity: 1, fmt: (v) => `${Math.round(v * 100)}%`, group: "depth" },
+]
+
+const GROUP_LABELS: Record<"type" | "layout" | "depth", string> = {
+  type: "Typography",
+  layout: "Layout & shape",
+  depth: "Depth",
+}
+
+export function ThemeTweaksDialog() {
+  const { open, onOpenChange } = useUiDialog("theme-tweaks")
+  const tweaks = useForge((s) => s.config.themeTweaks)
+  const themeId = useForge((s) => s.config.themeId)
+  const updateTweaks = useForge((s) => s.updateThemeTweaks)
+  const themeName = getTheme(themeId).name
+
+  const activeCount = tweaks ? Object.keys(tweaks).length : 0
+
+  const setKnob = (key: string, value: number | undefined) => {
+    updateTweaks({ [key]: value } as Partial<ThemeTweaks>)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg border-zinc-800 bg-zinc-950">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-zinc-100">
+            <SlidersHorizontal className="h-4 w-4 text-violet-300" /> Fine-tune theme
+          </DialogTitle>
+          <DialogDescription className="text-zinc-400">
+            Layered on <span className="font-semibold text-zinc-200">{themeName}</span> — drag and watch the live preview. Knobs left at their
+            default keep the preset untouched, and everything survives the YAML + HTML export.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[62vh] space-y-5 overflow-y-auto pr-1">
+          {/* secondary color — duotone gradient end */}
+          <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+            <input
+              type="color"
+              aria-label="Secondary color"
+              value={tweaks?.secondary ?? "#f5f3ff"}
+              onChange={(e) => updateTweaks({ secondary: e.target.value })}
+              className="h-9 w-11 shrink-0 cursor-pointer rounded-lg border border-zinc-700 bg-zinc-900 p-0.5"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-semibold text-zinc-200">Secondary color</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-zinc-500">Duotone gradients — the light end of every accent gradient.</p>
+            </div>
+            <Input
+              value={tweaks?.secondary ?? ""}
+              onChange={(e) => updateTweaks({ secondary: e.target.value || undefined })}
+              placeholder="#f5f3ff"
+              className="h-8 w-24 shrink-0 border-zinc-700/80 bg-zinc-900/60 font-mono text-[11px] text-zinc-100"
+            />
+          </div>
+
+          {(["type", "layout", "depth"] as const).map((group) => (
+            <div key={group} className="space-y-3.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{GROUP_LABELS[group]}</p>
+              {KNOBS.filter((k) => k.group === group).map((k) => {
+                const raw = tweaks?.[k.key]
+                const value = typeof raw === "number" ? raw : k.identity
+                return (
+                  <div key={k.key} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[12px] font-medium text-zinc-300">{k.label}</label>
+                      <span className="font-mono text-[11px] tabular-nums text-zinc-400">{k.fmt(value)}</span>
+                    </div>
+                    <Slider
+                      value={[value]}
+                      min={k.min}
+                      max={k.max}
+                      step={k.step}
+                      onValueChange={([v]) => setKnob(k.key, Math.abs(v - k.identity) < 1e-6 ? undefined : v)}
+                      className="[&_[data-slot=slider-range]]:bg-violet-500"
+                    />
+                  </div>
+                )
+              })}
+              {group === "layout" ? (
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-medium text-zinc-300">Button radius</label>
+                  <Select value={tweaks?.buttonRadius ?? "default"} onValueChange={(v) => updateTweaks({ buttonRadius: v === "default" ? undefined : (v as ThemeTweaks["buttonRadius"]) })}>
+                    <SelectTrigger className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[12px] text-zinc-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-zinc-800 bg-zinc-900 text-zinc-100">
+                      <SelectItem value="default" className="text-[12px]">Default — follows the theme</SelectItem>
+                      <SelectItem value="pill" className="text-[12px]">Pill — fully rounded</SelectItem>
+                      <SelectItem value="rounded" className="text-[12px]">Rounded — 1rem</SelectItem>
+                      <SelectItem value="soft" className="text-[12px]">Soft — 0.5rem</SelectItem>
+                      <SelectItem value="square" className="text-[12px]">Square — sharp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+
+        <DialogFooter className="items-center !justify-between sm:!justify-between">
+          <p className="text-[11px] text-zinc-500">
+            {activeCount === 0 ? "Preset untouched" : `${activeCount} knob${activeCount === 1 ? "" : "s"} layered on ${themeName}`}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 border-zinc-800 bg-zinc-950 text-[11px] text-zinc-400 hover:border-rose-500/50 hover:text-rose-200"
+              disabled={activeCount === 0}
+              onClick={() =>
+                updateTweaks({
+                  secondary: undefined,
+                  headingScale: undefined,
+                  bodyScale: undefined,
+                  lineHeight: undefined,
+                  letterSpacing: undefined,
+                  paragraphSpacing: undefined,
+                  sectionPadding: undefined,
+                  contentMaxWidth: undefined,
+                  cardRadius: undefined,
+                  buttonRadius: undefined,
+                  shadowIntensity: undefined,
+                })
+              }
+            >
+              <RotateCcw className="h-3 w-3" /> Reset all
+            </Button>
+            <Button size="sm" className="h-7 bg-violet-500 text-[11px] text-white hover:bg-violet-600" onClick={() => onOpenChange(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

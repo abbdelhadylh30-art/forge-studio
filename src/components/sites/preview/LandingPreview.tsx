@@ -5,7 +5,7 @@ import type { CSSProperties } from "react"
 import type { HeroSection, LandingConfig, Section } from "@/lib/landing/types"
 import { SECTION_META } from "@/lib/landing/types"
 
-import { getFontPair, getTheme, themeStyle } from "@/lib/landing/themes"
+import { getFontPair, getTheme, themeStyle, tweaksCss } from "@/lib/landing/themes"
 import { useGoogleFonts } from "@/lib/landing/googleFonts"
 import { abOverrideFor } from "@/lib/landing/ab"
 
@@ -173,15 +173,23 @@ export function LandingPreview({
       />
     ) : null
 
+  // theme fine-tuning: the generated rules ship as a <style> block scoped to
+  // the .lf-tweaks marker class (only present when a knob is actually set).
+  // The export path skips it — exportHtml appends the same CSS to the document
+  // head instead, so the markup stays identical between preview and export.
+  const tweaks = config.themeTweaks
+  const tweaksStyle = !themeViaCss && tweaks ? tweaksCss(tweaks) : ""
+
   // export path: font stack inline, color vars delivered by the CSS block
   if (themeViaCss) {
     return (
       <div
         data-lf-theme={config.themeId}
         data-lf-mode={config.brand.mode ?? getTheme(config.themeId).mode}
-        className={cn("lf-root lf-brand-font w-full min-h-full", selectionMode && "select-none", className)}
+        className={cn("lf-root lf-brand-font w-full min-h-full", tweaks && "lf-tweaks", selectionMode && "select-none", className)}
         style={{ fontFamily: getFontPair(config.brand.font).body } as CSSProperties}
       >
+        {tweaksStyle ? <style>{tweaksStyle}</style> : null}
         {visible.map((section, i) => renderSection(section, i))}
         {consentBanner}
       </div>
@@ -190,9 +198,10 @@ export function LandingPreview({
 
   return (
     <div
-      style={themeStyle(config.themeId, config.brand.accent, config.brand.font, mode)}
-      className={cn("lf-brand-font w-full min-h-full", selectionMode && "select-none", className)}
+      style={themeStyle(config.themeId, config.brand.accent, config.brand.font, mode, config.themeTweaks?.secondary)}
+      className={cn("lf-root lf-brand-font w-full min-h-full", tweaks && "lf-tweaks", selectionMode && "select-none", className)}
     >
+      {tweaksStyle ? <style>{tweaksStyle}</style> : null}
       {visible.map((section, i) => renderSection(section, i))}
       {consentBanner}
     </div>

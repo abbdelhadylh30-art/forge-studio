@@ -97,7 +97,7 @@ P4–P5 as v1.8; P6–P7 as v1.9.
 - ✅ **P1 offer — SHIPPED in v1.7** (card + split, live countdown reusing the announcement engine, savings auto-derivation, 3 content packs, readiness check, YAML round-trip)
 - ✅ **P2 legal pages — SHIPPED in v1.7** (privacy/terms editors with starter drafts, themed standalone privacy.html/terms.html export, footer legal links, LegalConfig restructured with all-optional fields)
 - ✅ **P3 social links — SHIPPED in v1.7** (socialLinks platform+url with http(s)-only activation, brand SVGs for TikTok/WhatsApp/Messenger, legacy string[] coercion)
-- ⬜ P4 style variants — next (v1.8)
-- ⬜ P5 theme tweak sliders — next (v1.8)
-- ⬜ P6 hero carousel — v1.9
+- ✅ **P4 style variants — SHIPPED in v1.8** (problem tabs/timeline, solution alternating/icons, comparison checklist/matrix, guarantee badge/certificate/seals, FAQ cards/categorized with per-item categories, gallery horizontal strip, contact centered/sidebar; shared [data-lf-tabs] markup + vanilla export script; YAML round-trip + coercion tests)
+- ✅ **P5 theme tweak sliders — SHIPPED in v1.8** (themeTweaks block: secondary duotone color, heading/body scale, line height, letter/paragraph spacing, section padding, content width, card radius, button shape, shadow strength; live Fine-tune dialog from the theme dropdown; scoped .lf-tweaks CSS layered on the preset, works in preview + standalone export, clamped in normalizeConfig, YAML round-trip)
+- ⬜ P6 hero carousel — next (v1.9)
 - ⬜ P7 small settings — v1.9

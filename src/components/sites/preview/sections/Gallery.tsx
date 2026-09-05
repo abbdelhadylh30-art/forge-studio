@@ -231,6 +231,29 @@ function Ticker({ items }: { items: GalleryItem[] }) {
   )
 }
 
+/** Full-bleed horizontal strip — uniform-height tiles, edge-to-edge, with
+ *  snap scrolling and edge fades (the v21 "horizontal" gallery look).
+ *  Each tile wraps in a fixed-height, aspect-sized box so width follows height. */
+function HorizontalStrip({ items }: { items: GalleryItem[] }) {
+  return (
+    <div
+      className="snap-x snap-mandatory overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      style={{
+        maskImage: "linear-gradient(90deg, transparent 0%, black 3%, black 97%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 3%, black 97%, transparent 100%)",
+      }}
+    >
+      <div className="flex w-max gap-4 px-6 md:gap-5">
+        {items.map((item, i) => (
+          <div key={`${item.alt}-wrap-${i}`} className="h-52 shrink-0 snap-center md:h-64 lg:h-72" style={{ aspectRatio: "3/2" }}>
+            <GalleryTile item={item} index={i} ratio="3/2" className="h-full rounded-none border-0" overlay />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function Gallery({ section }: GalleryProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const items = section.items ?? []
@@ -298,6 +321,8 @@ export function Gallery({ section }: GalleryProps) {
         </div>
       ) : section.style === "ticker" ? (
         <Ticker items={items} />
+      ) : section.style === "horizontal" ? (
+        <HorizontalStrip items={items} />
       ) : (
         <div className={CONTAINER}>
           <div className="columns-2 gap-4 [column-fill:_balance] md:columns-3">

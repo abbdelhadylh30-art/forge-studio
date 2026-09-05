@@ -201,6 +201,9 @@ export interface PricingSection {
 export interface FaqItem {
   q: string
   a: string
+  /** optional category — items are grouped under category tabs when the
+   *  section style is "categorized"; uncategorized items land in "General" */
+  category?: string
 }
 
 export interface FaqSection {
@@ -210,7 +213,7 @@ export interface FaqSection {
   anchor?: string // custom anchor id override (defaults to the section type)
   title?: string
   subtitle?: string
-  style: "accordion" | "twocol"
+  style: "accordion" | "twocol" | "cards" | "categorized"
   items: FaqItem[]
   ab?: AbConfig
 }
@@ -229,7 +232,7 @@ export interface GallerySection {
   anchor?: string // custom anchor id override (defaults to the section type)
   title?: string
   subtitle?: string
-  style: "masonry" | "carousel" | "slider" | "stories" | "ticker"
+  style: "masonry" | "carousel" | "slider" | "stories" | "ticker" | "horizontal"
   items: GalleryItem[]
 }
 
@@ -249,6 +252,8 @@ export interface ContactSection {
   phone?: string
   fields: string[] // labels of inputs to render
   submitLabel: string
+  /** layout — unset = "split" (copy + details left, form right; legacy look) */
+  style?: "split" | "centered" | "sidebar"
   /** delivery mode — unset = "inbox" (legacy configs stay identical) */
   delivery?: ContactDelivery
   /** Google Apps Script Web App URL (sheets mode) — POSTed no-cors on submit */
@@ -331,7 +336,7 @@ export interface ProblemSection {
   anchor?: string
   title?: string
   subtitle?: string
-  style: "grid" | "split"
+  style: "grid" | "split" | "tabs" | "timeline"
   items: PainItem[]
 }
 
@@ -342,7 +347,7 @@ export interface SolutionSection {
   anchor?: string
   title?: string
   subtitle?: string
-  style: "grid" | "split" | "steps"
+  style: "grid" | "split" | "steps" | "alternating" | "icons"
   items: PainItem[]
 }
 
@@ -376,6 +381,8 @@ export interface ComparisonSection {
   anchor?: string
   title?: string
   subtitle?: string
+  /** layout — unset = "table" (the classic bordered grid; legacy look) */
+  style?: "table" | "checklist" | "matrix"
   usLabel: string
   themLabel: string
   rows: ComparisonRow[]
@@ -391,7 +398,7 @@ export interface GuaranteeSection {
   subtitle?: string
   /** the promise itself (multi-paragraph, \n\n separated) */
   body?: string
-  style: "card" | "split"
+  style: "card" | "split" | "badge" | "certificate" | "seals"
   items: PainItem[]
 }
 
@@ -490,14 +497,14 @@ export const SECTION_META: Record<SectionType, { label: string; icon: string; de
   stats: { label: "Stats", icon: "chart", description: "Big numbers with labels" },
   testimonials: { label: "Testimonials", icon: "quote", description: "Quotes — grid, marquee, spotlight, video, logo-wall" },
   pricing: { label: "Pricing", icon: "credit-card", description: "Plans with annual toggle" },
-  faq: { label: "FAQ", icon: "message", description: "Accordion or two-column Q&A" },
-  gallery: { label: "Gallery", icon: "camera", description: "Masonry, carousel, slider, stories, ticker" },
+  faq: { label: "FAQ", icon: "message", description: "Accordion, two-column, cards or categorized Q&A" },
+  gallery: { label: "Gallery", icon: "camera", description: "Masonry, carousel, slider, stories, ticker, strip" },
   about: { label: "About", icon: "users", description: "Founder letter, timeline, or mission" },
-  problem: { label: "Problem", icon: "alert", description: "Pain points that set up your story" },
-  solution: { label: "Solution", icon: "lightbulb", description: "The turn — how you fix it" },
+  problem: { label: "Problem", icon: "alert", description: "Pain points — grid, split, tabs or timeline" },
+  solution: { label: "Solution", icon: "lightbulb", description: "The turn — grid, split, steps, alternating, icons" },
   video: { label: "Video", icon: "play", description: "Cinematic, split or minimal video block" },
-  comparison: { label: "Comparison", icon: "layout", description: "You vs. them feature table" },
-  guarantee: { label: "Guarantee", icon: "shield-check", description: "Risk reversal — promise, terms, badge" },
+  comparison: { label: "Comparison", icon: "layout", description: "You vs. them — table, checklist or matrix" },
+  guarantee: { label: "Guarantee", icon: "shield-check", description: "Risk reversal — card, split, badge, certificate, seals" },
   offer: { label: "Offer", icon: "gift", description: "Limited-time deal — price, countdown, checklist" },
   contact: { label: "Contact", icon: "mail", description: "Contact form + details" },
   "cta-final": { label: "Final CTA", icon: "rocket", description: "Closing call-to-action banner" },
@@ -566,6 +573,37 @@ export interface TrackingConfig {
   bodyScripts: string
 }
 
+// ── Theme fine-tuning (layered on the preset) ────────────────────────────────
+
+/** Per-site visual tuning layered on top of the theme preset. Every knob is
+ *  optional — unset knobs leave the preset untouched (legacy-safe). Values are
+ *  clamped in normalizeConfig and applied as CSS-variable-style overrides so
+ *  dual-mode dark/light still resolves in pure CSS (see tweaksCss). */
+export interface ThemeTweaks {
+  /** second brand hex — feeds the gradient's light end (duotone gradients) */
+  secondary?: string
+  /** display type scale — multiplies heading-size utilities (0.8–1.3) */
+  headingScale?: number
+  /** body text scale — multiplies body-size utilities (0.9–1.15) */
+  bodyScale?: number
+  /** body line-height for relaxed copy (1.2–2.0) */
+  lineHeight?: number
+  /** heading letter-spacing in em (-0.05–0.1) */
+  letterSpacing?: number
+  /** space between consecutive paragraphs in rem (0.5–3) */
+  paragraphSpacing?: number
+  /** section vertical padding scale (0.5–1.6) */
+  sectionPadding?: number
+  /** content max width in px (800–1600) */
+  contentMaxWidth?: number
+  /** card corner radius in rem (0–2) */
+  cardRadius?: number
+  /** button corner shape */
+  buttonRadius?: "pill" | "rounded" | "soft" | "square"
+  /** shadow strength multiplier (0–2, 1 = the default look) */
+  shadowIntensity?: number
+}
+
 // ── Root config ──────────────────────────────────────────────────────────────
 export interface LandingConfig {
   version: 1
@@ -582,6 +620,8 @@ export interface LandingConfig {
     mode?: ThemeMode
   }
   themeId: ThemeId
+  /** visual fine-tuning layered over the theme preset (sliders in the studio) */
+  themeTweaks?: ThemeTweaks
   /** multilingual publishing — AI-translated copy per locale, RTL-aware */
   i18n?: I18nConfig
   /** privacy / compliance — cookie-consent banner shown to visitors */

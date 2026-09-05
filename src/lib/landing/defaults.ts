@@ -268,6 +268,7 @@ export function createSection(type: SectionType): Section {
         type,
         title: "Forge vs. the old way",
         subtitle: "What changes when your page is a system, not a project.",
+        style: "table",
         usLabel: "Forge",
         themLabel: "Old way",
         rows: [
@@ -326,6 +327,7 @@ export function createSection(type: SectionType): Section {
         type,
         title: "Get in touch",
         subtitle: "We reply within one business day.",
+        style: "split",
         email: "hello@example.com",
         phone: "+1 (555) 010-2030",
         fields: ["Your name", "Email address", "Message"],

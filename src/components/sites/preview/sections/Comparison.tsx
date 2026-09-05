@@ -90,8 +90,126 @@ function Row({ row }: { row: ComparisonRow }) {
   )
 }
 
+/** Friendly wording for icon-style values (checklist style renders text). */
+const VALUE_TEXT: Record<string, string> = {
+  yes: "Included",
+  true: "Included",
+  no: "Not included",
+  false: "Not included",
+  partial: "Partial",
+  sometimes: "Partial",
+}
+function valueText(v: string): string {
+  return VALUE_TEXT[(v ?? "").trim().toLowerCase()] ?? (v ?? "")
+}
+
 export function Comparison({ section }: ComparisonProps) {
   const rows = section.rows ?? []
+  const style = section.style ?? "table"
+
+  // ── checklist — scannable rows with a check chip + inline them/us values ──
+  if (style === "checklist") {
+    return (
+      <section className={SECTION_PAD}>
+        <div className={CONTAINER}>
+          <SectionHeader title={section.title} subtitle={section.subtitle} center />
+          <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2">
+            {rows.map((r, i) => (
+              <div
+                key={`${r.feature}-${i}`}
+                className="flex items-start gap-3.5 rounded-xl border p-4"
+                style={{ borderColor: "var(--lf-border)", background: "var(--lf-surface)" }}
+              >
+                <span
+                  className="flex size-7 shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: "var(--lf-accent-soft)", color: "var(--lf-accent)" }}
+                >
+                  <Check className="size-4" strokeWidth={2.5} aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: "var(--lf-text)" }}>
+                    {r.feature}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--lf-muted)" }}>
+                    <span className="font-medium" style={{ color: "var(--lf-text)" }}>
+                      {section.usLabel}:
+                    </span>{" "}
+                    <span className="font-semibold" style={{ color: "var(--lf-accent)" }}>
+                      {valueText(r.us)}
+                    </span>
+                    <span className="mx-1.5 opacity-50">·</span>
+                    <span className="font-medium" style={{ color: "var(--lf-text)" }}>
+                      {section.themLabel}:
+                    </span>{" "}
+                    <span style={{ color: "var(--lf-muted)" }}>
+                      {valueText(r.them)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {section.note ? (
+            <p className="mt-4 text-center text-xs" style={{ color: "var(--lf-muted)" }}>
+              {section.note}
+            </p>
+          ) : null}
+        </div>
+      </section>
+    )
+  }
+
+  // ── matrix — compact icon grid (them ✕ vs us ✓), no card chrome ──
+  if (style === "matrix") {
+    return (
+      <section className={SECTION_PAD}>
+        <div className={CONTAINER}>
+          <SectionHeader title={section.title} subtitle={section.subtitle} center />
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border" style={{ borderColor: "var(--lf-border)" }}>
+            {/* header row */}
+            <div
+              className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 px-4 py-3.5 md:px-5"
+              style={{ background: "var(--lf-surface)", borderBottom: "1px solid var(--lf-border)" }}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--lf-muted)" }}>
+                Feature
+              </span>
+              <span className="text-center text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--lf-muted)" }}>
+                {section.themLabel}
+              </span>
+              <span className="text-center text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--lf-accent)" }}>
+                {section.usLabel}
+              </span>
+            </div>
+            {rows.map((r, i) => (
+              <div
+                key={`${r.feature}-${i}`}
+                className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 px-4 py-3.5 md:px-5"
+                style={{ borderTop: i > 0 ? "1px solid var(--lf-border)" : undefined, background: i % 2 === 1 ? "var(--lf-surface)" : "var(--lf-bg)" }}
+              >
+                <p className="text-sm font-medium" style={{ color: "var(--lf-text)" }}>
+                  {r.feature}
+                </p>
+                <div className="flex justify-center">
+                  <Cell value={r.them} />
+                </div>
+                <div className="flex justify-center rounded-lg py-1" style={{ background: "var(--lf-accent-soft)" }}>
+                  <Cell value={r.us} strong />
+                </div>
+              </div>
+            ))}
+          </div>
+          {section.note ? (
+            <p className="mt-4 text-center text-xs" style={{ color: "var(--lf-muted)" }}>
+              {section.note}
+            </p>
+          ) : null}
+        </div>
+      </section>
+    )
+  }
+
+  // ── table — the classic bordered grid (default / legacy look) ──
   return (
     <section className={SECTION_PAD}>
       <div className={CONTAINER}>

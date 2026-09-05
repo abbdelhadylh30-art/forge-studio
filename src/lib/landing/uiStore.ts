@@ -14,6 +14,7 @@ export type DialogId =
   | "image-library"
   | "deploy"
   | "readiness"
+  | "theme-tweaks"
   | "shortcuts"
   | null
 

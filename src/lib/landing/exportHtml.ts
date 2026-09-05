@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 
 import { LandingPreview } from "@/components/sites/preview/LandingPreview"
 import { parseScripts } from "@/components/sites/shared/scriptInjection"
-import { getTheme, googleFontLinkTags, themeVarsCss } from "./themes"
+import { getTheme, googleFontLinkTags, themeVarsCss, tweaksCss } from "./themes"
 import { applyLocale, dirFor, localesOf } from "./i18n"
 import type { LandingConfig } from "./types"
 
@@ -98,6 +98,32 @@ const INTERACTIVE_SCRIPT = [
   "      c.setAttribute('data-state', next);",
   "      if (open) { c.setAttribute('hidden', ''); } else { c.removeAttribute('hidden'); }",
   "    }",
+  "  }",
+  "}, false);",
+  // tab groups — [data-lf-tabs] roots: [data-lf-tab] buttons (with
+  // data-lf-tab-index) switch [data-lf-tab-panel] siblings. Inline styles the
+  // React components render for active/inactive states are replicated here so
+  // problem tabs + categorized FAQ behave identically in the static export.
+  "document.addEventListener('click', function (e) {",
+  "  var t = e.target.closest('[data-lf-tab]');",
+  "  if (!t) return;",
+  "  var root = t.closest('[data-lf-tabs]');",
+  "  if (!root) return;",
+  "  e.preventDefault();",
+  "  var idx = t.getAttribute('data-lf-tab-index');",
+  "  var bg = root.getAttribute('data-lf-active-bg') || 'var(--lf-accent)';",
+  "  var fg = root.getAttribute('data-lf-active-fg') || 'var(--lf-accent-contrast)';",
+  "  var tabs = root.querySelectorAll('[data-lf-tab]');",
+  "  var panels = root.querySelectorAll('[data-lf-tab-panel]');",
+  "  for (var i = 0; i < tabs.length; i++) {",
+  "    var on = tabs[i].getAttribute('data-lf-tab-index') === idx;",
+  "    tabs[i].setAttribute('aria-selected', on ? 'true' : 'false');",
+  "    tabs[i].style.background = on ? bg : 'var(--lf-surface)';",
+  "    tabs[i].style.color = on ? fg : 'var(--lf-muted)';",
+  "    tabs[i].style.borderColor = on ? 'transparent' : 'var(--lf-border)';",
+  "  }",
+  "  for (var j = 0; j < panels.length; j++) {",
+  "    panels[j].style.display = panels[j].getAttribute('data-lf-tab-index') === idx ? '' : 'none';",
   "  }",
   "}, false);",
   // live countdowns — [data-lf-countdown] with data-deadline, digits in [data-lf-cd]
@@ -317,7 +343,10 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
   // ✦ Google webfont pairs: preconnect + css2 links (empty for system pairs)
   const fontLinks = googleFontLinkTags(config.brand.font)
   // dual-mode theme variables (dark base + light override + auto media query)
-  const themeCss = themeVarsCss(config.themeId, config.brand.accent)
+  // + fine-tuning rules (themeTweaks — scoped under .lf-tweaks, a marker the
+  // export root carries only when a knob is set)
+  const themeCss = themeVarsCss(config.themeId, config.brand.accent, config.themeTweaks?.secondary)
+  const fineTuneCss = tweaksCss(config.themeTweaks)
   // visitor mode toggle — only when the site explicitly follows the system
   // ("auto"); an unset brand.mode resolves statically to the theme's built-in
   // mode, and owner-pinned dark/light ships without a toggle
@@ -414,6 +443,9 @@ export async function buildStandaloneHtml(config: LandingConfig, locale?: string
     "<style>",
     themeCss,
     "</style>",
+    fineTuneCss ? "<style>" : "",
+    fineTuneCss,
+    fineTuneCss ? "</style>" : "",
     "<style>html{scroll-behavior:smooth}html,body{min-height:100%}</style>",
     // JS-off visitors still see animated content
     "<noscript><style>.lf-anim{opacity:1 !important}</style></noscript>",

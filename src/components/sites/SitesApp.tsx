@@ -16,7 +16,7 @@ import { AddSectionDialog } from "@/components/sites/studio/AddSectionDialog"
 import { useSaveProject } from "@/components/sites/studio/useSaveProject"
 import { CommandPalette, ShortcutsDialog } from "@/components/sites/studio/CommandPalette"
 import { ReadinessDialog } from "@/components/sites/studio/ReadinessPanel"
-import { AiGenerateDialog, AiImproveDialog, ExportYamlDialog, ImportYamlDialog, ExportHtmlDialog } from "@/components/sites/studio/Dialogs"
+import { AiGenerateDialog, AiImproveDialog, ExportYamlDialog, ImportYamlDialog, ExportHtmlDialog, ThemeTweaksDialog } from "@/components/sites/studio/Dialogs"
 import { DeployDialog } from "@/components/sites/studio/DeployDialog"
 import { ImageLibraryDialog } from "@/components/sites/studio/ImageLibraryDialog"
 import { ConnectionGuard } from "@/components/sites/shared/ConnectionGuard"
@@ -246,6 +246,7 @@ export function SitesApp() {
       <ImageLibraryDialog open={dialog === "image-library"} onOpenChange={(o) => !o && closeDialog()} />
       <DeployDialog />
       <ReadinessDialog />
+      <ThemeTweaksDialog />
       <ShortcutsDialog />
       <CommandPalette />
 

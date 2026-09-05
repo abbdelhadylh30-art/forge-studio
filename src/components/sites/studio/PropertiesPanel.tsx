@@ -46,6 +46,7 @@ import { ICON_PICKER_GROUPS, IconGlyph } from "@/components/sites/preview/iconBa
 import type {
   AnnouncementSection,
   ComparisonSection,
+  FaqItem,
   GuaranteeSection,
   OfferSection,
   PainItem,
@@ -1056,19 +1057,29 @@ function FaqEditor({ section, update }: EditorProps<FaqSection>) {
         options={[
           { value: "accordion", label: "Accordion" },
           { value: "twocol", label: "Two columns" },
+          { value: "cards", label: "Cards — static Q&A grid" },
+          { value: "categorized", label: "Categorized — tabbed groups" },
         ]}
       />
       <ListEditor
         label="Questions"
         items={section.items}
         onChange={(items) => update({ items })}
-        createItem={() => ({ q: "New question?", a: "The answer." })}
+        createItem={(): FaqItem => ({ q: "New question?", a: "The answer." })}
         itemTitle={(f) => f.q}
         addLabel="Add question"
         renderFields={(f, u) => (
           <div className="space-y-2">
             <Input value={f.q} onChange={(e) => u({ q: e.target.value })} className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
             <Textarea value={f.a} rows={3} onChange={(e) => u({ a: e.target.value })} className="resize-none border-zinc-700/80 bg-zinc-900/60 text-[13px] text-zinc-100" />
+            {section.style === "categorized" ? (
+              <Input
+                value={f.category ?? ""}
+                onChange={(e) => u({ category: e.target.value || undefined })}
+                placeholder="Category (e.g. Billing) — empty groups under General"
+                className="h-8 border-zinc-700/80 bg-zinc-900/60 text-[12px] text-zinc-100"
+              />
+            ) : null}
           </div>
         )}
       />
@@ -1099,6 +1110,7 @@ function GalleryEditor({ section, update }: EditorProps<GallerySection>) {
           { value: "slider", label: "Slider (dots + arrows)" },
           { value: "stories", label: "Stories (tall cards, progress)" },
           { value: "ticker", label: "Ticker (auto-scrolling strip)" },
+          { value: "horizontal", label: "Strip (full-bleed row, edge fades)" },
         ]}
       />
       <ListEditor
@@ -1151,6 +1163,16 @@ function ContactEditor({ section, update }: EditorProps<ContactSection>) {
     <div className="space-y-4">
       <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
       <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} />
+      <SelectField
+        label="Layout"
+        value={section.style ?? "split"}
+        onChange={(v) => update({ style: v === "split" ? undefined : (v as ContactSection["style"]) })}
+        options={[
+          { value: "split", label: "Split — copy + form side-by-side" },
+          { value: "centered", label: "Centered — focused single column" },
+          { value: "sidebar", label: "Sidebar — form + info panel" },
+        ]}
+      />
       <TextField label="Email" value={section.email ?? ""} onChange={(v) => update({ email: v })} placeholder="hello@example.com" mono />
       <TextField label="Phone" value={section.phone ?? ""} onChange={(v) => update({ phone: v })} placeholder="+1 …" mono />
       <StringListEditor
@@ -1421,6 +1443,8 @@ function ProblemEditor({ section, update }: EditorProps<ProblemSection>) {
         options={[
           { value: "grid", label: "Grid — pain cards" },
           { value: "split", label: "Split — sticky intro + rows" },
+          { value: "tabs", label: "Tabs — one pain at a time" },
+          { value: "timeline", label: "Timeline — compounding costs" },
         ]}
       />
       <ListEditor
@@ -1449,6 +1473,8 @@ function SolutionEditor({ section, update }: EditorProps<SolutionSection>) {
           { value: "grid", label: "Grid — capped cards" },
           { value: "split", label: "Split — sticky intro + cards" },
           { value: "steps", label: "Steps — numbered timeline" },
+          { value: "alternating", label: "Alternating — visual + copy rows" },
+          { value: "icons", label: "Icons — gradient circles" },
         ]}
       />
       <ListEditor
@@ -1543,6 +1569,16 @@ function ComparisonEditor({ section, update }: EditorProps<ComparisonSection>) {
     <div className="space-y-4">
       <TextField label="Title" value={section.title ?? ""} onChange={(v) => update({ title: v })} />
       <TextField label="Subtitle" value={section.subtitle ?? ""} onChange={(v) => update({ subtitle: v })} />
+      <SelectField
+        label="Layout"
+        value={section.style ?? "table"}
+        onChange={(v) => update({ style: v === "table" ? undefined : (v as ComparisonSection["style"]) })}
+        options={[
+          { value: "table", label: "Table — bordered you vs. them" },
+          { value: "checklist", label: "Checklist — check chips + values" },
+          { value: "matrix", label: "Matrix — compact icon grid" },
+        ]}
+      />
       <div className="grid grid-cols-2 gap-2">
         <TextField label="Us (column)" value={section.usLabel} onChange={(v) => update({ usLabel: v })} placeholder="Your product" />
         <TextField label="Them (column)" value={section.themLabel} onChange={(v) => update({ themLabel: v })} placeholder="Alternative" />
@@ -1579,6 +1615,9 @@ function GuaranteeEditor({ section, update }: EditorProps<GuaranteeSection>) {
         options={[
           { value: "card", label: "Card — centered promise panel" },
           { value: "split", label: "Split — promise + terms" },
+          { value: "badge", label: "Badge — big medallion + copy" },
+          { value: "certificate", label: "Certificate — framed seal" },
+          { value: "seals", label: "Seals — trust medallion row" },
         ]}
       />
       <TextAreaField label="Promise" value={section.body ?? ""} onChange={(v) => update({ body: v })} rows={4} hint="Plain paragraphs — separate with a blank line." />

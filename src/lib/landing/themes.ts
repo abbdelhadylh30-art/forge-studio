@@ -1,4 +1,4 @@
-import type { ThemeId, ThemeMode } from "./types"
+import type { ThemeId, ThemeMode, ThemeTweaks } from "./types"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Dual-mode themes: every palette ships BOTH a dark and a light variable set.
@@ -459,16 +459,22 @@ function varsToCss(v: ThemeVars): string {
 /** style object with CSS vars for a theme, spread onto the preview root element.
  *  A valid `accent` hex (brand kit) overrides the theme's accent + derived tints.
  *  A `font` pair (brand kit) sets the display/body font stacks.
+ *  A valid `secondary` hex (theme tweaks) replaces the gradient's light end —
+ *  duotone gradients instead of accent → tinted-white.
  *  `mode` picks the variable set (defaults to the theme's preferred mode). */
 export function themeStyle(
   id: ThemeId,
   accent?: string,
   font?: string,
   mode: "dark" | "light" = getTheme(id).mode,
+  secondary?: string,
 ): React.CSSProperties {
   const th = getTheme(id)
   const base = mode === "dark" ? th.dark : th.light
   const vars = accent ? { ...base, ...(accentVars(accent) ?? {}) } : base
+  if (secondary && isValidAccent(secondary)) {
+    vars.gradient = `linear-gradient(135deg, ${vars.accent} 0%, ${secondary.startsWith("#") ? secondary : `#${secondary}`} 100%)`
+  }
   const pair = getFontPair(font)
   return {
     ["--lf-bg" as string]: vars.bg,
@@ -498,15 +504,173 @@ export function themeStyle(
  *   .lf-root[data-lf-mode="light"]             → light variables
  *   @media (prefers-color-scheme: light)       → light for auto
  *
- * A valid brand accent overrides accent + derived tints in BOTH sets.
+ * A valid brand accent overrides accent + derived tints in BOTH sets; a valid
+ * theme-tweaks `secondary` replaces the gradient end (duotone) in BOTH sets.
  */
-export function themeVarsCss(id: ThemeId, accent?: string): string {
+export function themeVarsCss(id: ThemeId, accent?: string, secondary?: string): string {
   const th = getTheme(id)
-  const dark = accent ? { ...th.dark, ...(accentVars(accent) ?? {}) } : th.dark
-  const light = accent ? { ...th.light, ...(accentVars(accent) ?? {}) } : th.light
+  const duo = (vars: ThemeVars): ThemeVars => {
+    if (!secondary || !isValidAccent(secondary)) return vars
+    const hex = secondary.startsWith("#") ? secondary : `#${secondary}`
+    return { ...vars, gradient: `linear-gradient(135deg, ${vars.accent} 0%, ${hex} 100%)` }
+  }
+  const dark = duo(accent ? { ...th.dark, ...(accentVars(accent) ?? {}) } : th.dark)
+  const light = duo(accent ? { ...th.light, ...(accentVars(accent) ?? {}) } : th.light)
   return [
     `.lf-root{${varsToCss(dark)};background:var(--lf-bg);color:var(--lf-text)}`,
     `.lf-root[data-lf-mode="light"]{${varsToCss(light)}}`,
     `@media (prefers-color-scheme: light){.lf-root[data-lf-mode="auto"]{${varsToCss(light)}}}`,
   ].join("\n")
+}
+
+// ── Theme fine-tuning (P5) ───────────────────────────────────────────────────
+
+/** num → CSS literal with at most 3 decimals ("1.15", "0.95"). */
+function cssNum(n: number): string {
+  return String(Math.round(n * 1000) / 1000)
+}
+
+/** Heading-size utilities → base rem values (Tailwind's type scale). */
+const HEADING_UTILS: Record<string, string> = {
+  "text-2xl": "1.5rem",
+  "text-3xl": "1.875rem",
+  "text-4xl": "2.25rem",
+  "text-5xl": "3rem",
+  "text-6xl": "3.75rem",
+  "text-7xl": "4.5rem",
+}
+
+/** Body-size utilities → base values. */
+const BODY_UTILS: Record<string, string> = {
+  "text-xs": "0.75rem",
+  "text-sm": "0.875rem",
+  "text-base": "1rem",
+  "text-lg": "1.125rem",
+  "text-xl": "1.25rem",
+  "text-[13px]": "13px",
+  "text-[15px]": "15px",
+}
+
+/** Section vertical-padding utilities (only applied on <section> elements). */
+const PAD_UTILS: Record<string, string> = {
+  "py-10": "2.5rem",
+  "py-12": "3rem",
+  "py-14": "3.5rem",
+  "py-16": "4rem",
+  "py-20": "5rem",
+  "py-24": "6rem",
+  "py-28": "7rem",
+  "py-32": "8rem",
+  "pt-20": "5rem",
+  "pt-32": "8rem",
+  "pb-16": "4rem",
+  "pb-24": "6rem",
+}
+
+/** CSS class-name escape for Tailwind arbitrary/responsive classes
+ *  ("md:py-24" → "md\:py-24", "text-[13px]" → "text-\[13px\]"). */
+function esc(cls: string): string {
+  return cls.replace(/([:\[\]#.])/g, "\\$1")
+}
+
+const BUTTON_RADIUS: Record<NonNullable<ThemeTweaks["buttonRadius"]>, string> = {
+  pill: "9999px",
+  rounded: "1rem",
+  soft: "0.5rem",
+  square: "0",
+}
+
+/**
+ * Generate the fine-tuning stylesheet for a tweaks block. Every rule is scoped
+ * under `.lf-tweaks` — a marker class the preview root and the export root
+ * carry ONLY when at least one knob is set, so legacy pages render untouched.
+ *
+ * The rules override Tailwind's size/padding/radius/shadow utilities inside the
+ * landing-page scope (the studio chrome lives outside it and never matches).
+ * Responsive variants mirror Tailwind's own breakpoints so the cascade order
+ * is preserved: `.lf-tweaks .md\:text-4xl` (0-2-0) beats the base
+ * `.text-3xl` step exactly where Tailwind's `.md\:text-4xl` (0-1-0) would.
+ * Returns "" when nothing is set (or everything is at identity).
+ */
+export function tweaksCss(tweaks: ThemeTweaks | undefined): string {
+  if (!tweaks) return ""
+  const t = tweaks
+  const rules: string[] = []
+
+  // ── typography: heading scale ──
+  const hs = t.headingScale
+  if (hs !== undefined && Math.abs(hs - 1) > 0.001) {
+    for (const [cls, base] of Object.entries(HEADING_UTILS)) {
+      rules.push(`.lf-tweaks .${esc(cls)}{font-size:calc(${base}*${cssNum(hs)})}`)
+      rules.push(`@media (min-width:48rem){.lf-tweaks .${esc(`md:${cls}`)}{font-size:calc(${base}*${cssNum(hs)})}}`)
+    }
+    rules.push(`@media (min-width:40rem){.lf-tweaks .${esc("sm:text-4xl")}{font-size:calc(2.25rem*${cssNum(hs)})}}`)
+  }
+
+  // ── typography: body scale ──
+  const bs = t.bodyScale
+  if (bs !== undefined && Math.abs(bs - 1) > 0.001) {
+    for (const [cls, base] of Object.entries(BODY_UTILS)) {
+      rules.push(`.lf-tweaks .${esc(cls)}{font-size:calc(${base}*${cssNum(bs)})}`)
+      rules.push(`@media (min-width:48rem){.lf-tweaks .${esc(`md:${cls}`)}{font-size:calc(${base}*${cssNum(bs)})}}`)
+    }
+  }
+
+  // ── typography: line height + letter spacing + paragraph spacing ──
+  if (t.lineHeight !== undefined && Math.abs(t.lineHeight - 1.625) > 0.001) {
+    rules.push(`.lf-tweaks .leading-relaxed{line-height:${cssNum(t.lineHeight)}}`)
+  }
+  if (t.letterSpacing !== undefined && Math.abs(t.letterSpacing) > 0.0005) {
+    rules.push(`.lf-tweaks :is(h1,h2,h3){letter-spacing:${cssNum(t.letterSpacing)}em}`)
+  }
+  if (t.paragraphSpacing !== undefined && Math.abs(t.paragraphSpacing - 1) > 0.01) {
+    rules.push(`.lf-tweaks p+p{margin-top:${cssNum(t.paragraphSpacing)}rem}`)
+  }
+
+  // ── layout: section padding + content width ──
+  const ps = t.sectionPadding
+  if (ps !== undefined && Math.abs(ps - 1) > 0.001) {
+    for (const [cls, base] of Object.entries(PAD_UTILS)) {
+      const pad = (v: string) => {
+        const axis = cls.startsWith("pt-") ? "padding-top" : cls.startsWith("pb-") ? "padding-bottom" : "padding-block"
+        return `${axis}:calc(${v}*${cssNum(ps)})`
+      }
+      rules.push(`.lf-tweaks section.${esc(cls)}{${pad(base)}}`)
+      rules.push(`@media (min-width:48rem){.lf-tweaks section.${esc(`md:${cls}`)}{${pad(base)}}}`)
+    }
+  }
+  if (t.contentMaxWidth !== undefined && Math.abs(t.contentMaxWidth - 1152) > 1) {
+    rules.push(`.lf-tweaks .max-w-6xl{max-width:${Math.round(t.contentMaxWidth)}px}`)
+  }
+
+  // ── shape: card radius (xl keeps 4:3 ratio to 2xl/3xl like Tailwind's scale) ──
+  const cr = t.cardRadius
+  if (cr !== undefined && Math.abs(cr - 0.75) > 0.005) {
+    rules.push(`.lf-tweaks .rounded-xl{border-radius:${cssNum(cr)}rem}`)
+    rules.push(`.lf-tweaks .rounded-2xl{border-radius:${cssNum(cr * 1.3333)}rem}`)
+    rules.push(`.lf-tweaks .rounded-3xl{border-radius:${cssNum(cr * 2)}rem}`)
+  }
+
+  // ── shape: button radius (overrides the card-radius rules on buttons) ──
+  if (t.buttonRadius) {
+    const r = BUTTON_RADIUS[t.buttonRadius]
+    rules.push(
+      `.lf-tweaks button:is(.rounded-full,.rounded-xl,.rounded-2xl,.rounded-lg,.rounded-md,.rounded){border-radius:${r}}`,
+    )
+  }
+
+  // ── shadow strength (alpha × scale, keeps Tailwind's geometry) ──
+  const sh = t.shadowIntensity
+  if (sh !== undefined && Math.abs(sh - 1) > 0.001) {
+    const a = (base: string) => `rgb(0 0 0/calc(${base}*${cssNum(sh)}))`
+    rules.push(`.lf-tweaks .shadow-sm{box-shadow:0 1px 2px 0 ${a("0.05")}}`)
+    rules.push(
+      `.lf-tweaks .shadow-md{box-shadow:0 4px 6px -1px ${a("0.1")},0 2px 4px -2px ${a("0.1")}}`,
+    )
+    rules.push(
+      `.lf-tweaks .shadow-lg{box-shadow:0 10px 15px -3px ${a("0.1")},0 4px 6px -4px ${a("0.1")}}`,
+    )
+  }
+
+  return rules.length ? rules.join("\n") : ""
 }

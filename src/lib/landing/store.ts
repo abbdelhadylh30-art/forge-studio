@@ -1,7 +1,7 @@
 "use client"
 
 import { create } from "zustand"
-import type { DeviceType, LandingConfig, Section, SectionType, ThemeId } from "./types"
+import type { DeviceType, LandingConfig, Section, SectionType, ThemeId, ThemeTweaks } from "./types"
 import { createSection } from "./defaults"
 
 export interface ProjectMeta {
@@ -55,6 +55,8 @@ interface ForgeState {
   setTheme: (t: ThemeId) => void
   updateBrand: (patch: Partial<LandingConfig["brand"]>) => void
   updateSeo: (patch: Partial<LandingConfig["seo"]>) => void
+  /** fine-tune knobs layered on the theme — undefined values remove the knob */
+  updateThemeTweaks: (patch: Partial<ThemeTweaks>) => void
   updateLegal: (patch: {
     cookieConsent?: Partial<NonNullable<LandingConfig["legal"]>["cookieConsent"]>
     privacyPolicy?: string
@@ -230,6 +232,19 @@ export const useForge = create<ForgeState>((set, get) => ({
     set((s) => {
       const next = clone(s.config)
       next.seo = { ...next.seo, ...patch }
+      return { ...pushHistory(s), config: next, dirty: true }
+    }),
+
+  updateThemeTweaks: (patch) =>
+    set((s) => {
+      const next = clone(s.config)
+      const merged = { ...(next.themeTweaks ?? {}), ...patch }
+      // undefined patches remove the knob; an empty block disappears entirely
+      for (const k of Object.keys(merged) as (keyof ThemeTweaks)[]) {
+        if (merged[k] === undefined) delete merged[k]
+      }
+      if (Object.keys(merged).length === 0) delete next.themeTweaks
+      else next.themeTweaks = merged
       return { ...pushHistory(s), config: next, dirty: true }
     }),
 

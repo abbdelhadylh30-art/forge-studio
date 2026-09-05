@@ -1,7 +1,7 @@
 import { load as yamlLoad, dump as yamlDump } from "js-yaml"
 import { createSection, sid } from "./defaults"
 import { isValidAccent, isFontPairId } from "./themes"
-import type { CookieConsentConfig, LandingConfig, LegalConfig, Section, SectionType, ThemeId, TrackingConfig } from "./types"
+import type { CookieConsentConfig, LandingConfig, LegalConfig, Section, SectionType, ThemeId, ThemeTweaks, TrackingConfig } from "./types"
 import { SECTION_TYPES } from "./types"
 
 const THEME_IDS: ThemeId[] = [
@@ -113,10 +113,15 @@ export function normalizeConfig(input: unknown): LandingConfig {
       })
     }
     if (type === "faq") {
-      merged.style = ["accordion", "twocol"].includes(rs.style as string) ? rs.style : "accordion"
+      merged.style = ["accordion", "twocol", "cards", "categorized"].includes(rs.style as string) ? rs.style : "accordion"
       merged.items = validItems(rs.items, 3, (x) => {
         const o = x as Record<string, unknown>
-        return { q: String(o.q ?? o.question ?? "Question"), a: String(o.a ?? o.answer ?? "") }
+        const cat = typeof o.category === "string" ? o.category.trim().slice(0, 40) : ""
+        return {
+          q: String(o.q ?? o.question ?? "Question"),
+          a: String(o.a ?? o.answer ?? ""),
+          ...(cat ? { category: cat } : {}),
+        }
       })
     }
     if (type === "logos") {
@@ -129,7 +134,9 @@ export function normalizeConfig(input: unknown): LandingConfig {
       })
     }
     if (type === "gallery") {
-      merged.style = ["masonry", "carousel", "slider", "stories", "ticker"].includes(rs.style as string) ? rs.style : "masonry"
+      merged.style = ["masonry", "carousel", "slider", "stories", "ticker", "horizontal"].includes(rs.style as string)
+        ? rs.style
+        : "masonry"
       merged.items = validItems(rs.items, 4, (x) => {
         const o = x as Record<string, unknown>
         return {
@@ -142,9 +149,9 @@ export function normalizeConfig(input: unknown): LandingConfig {
     }
     if (type === "problem" || type === "solution" || type === "guarantee") {
       const styles: Record<string, string[]> = {
-        problem: ["grid", "split"],
-        solution: ["grid", "split", "steps"],
-        guarantee: ["card", "split"],
+        problem: ["grid", "split", "tabs", "timeline"],
+        solution: ["grid", "split", "steps", "alternating", "icons"],
+        guarantee: ["card", "split", "badge", "certificate", "seals"],
       }
       merged.style = styles[type].includes(rs.style as string) ? rs.style : styles[type][0]
       merged.items = validItems(rs.items, 3, (x) => {
@@ -209,6 +216,7 @@ export function normalizeConfig(input: unknown): LandingConfig {
       else delete merged.cta
     }
     if (type === "comparison") {
+      merged.style = ["table", "checklist", "matrix"].includes(rs.style as string) ? rs.style : "table"
       merged.usLabel = String(rs.usLabel ?? "Us").slice(0, 40) || "Us"
       merged.themLabel = String(rs.themLabel ?? "Them").slice(0, 40) || "Them"
       merged.rows = validItems(rs.rows, 3, (x) => {
@@ -226,6 +234,7 @@ export function normalizeConfig(input: unknown): LandingConfig {
       const c = merged as unknown as {
         fields: string[]
         submitLabel: string
+        style?: "split" | "centered" | "sidebar"
         delivery?: "inbox" | "sheets" | "embed"
         sheetWebhookUrl?: string
         googleFormUrl?: string
@@ -233,6 +242,8 @@ export function normalizeConfig(input: unknown): LandingConfig {
       c.fields = validItems(rs.fields, 2, (x) => String(x))
       if (!c.fields.length) c.fields = ["Your name", "Email address", "Message"]
       c.submitLabel = String(c.submitLabel ?? "Send message")
+      // layout — unset = "split" (the legacy two-column look)
+      c.style = rs.style === "centered" || rs.style === "sidebar" ? rs.style : "split"
       // delivery mode (unset = inbox, legacy-safe) + validated URLs
       const dv = rs.delivery
       c.delivery = dv === "inbox" || dv === "sheets" || dv === "embed" ? dv : undefined
@@ -317,6 +328,9 @@ export function normalizeConfig(input: unknown): LandingConfig {
   // tracking: custom head/body scripts (raw text, capped)
   const trackingOut = validTracking(raw.tracking)
 
+  // theme fine-tuning — clamped knobs layered on the preset
+  const tweaksOut = validTweaks(raw.themeTweaks ?? raw.tweaks)
+
   const seoOut: LandingConfig["seo"] = {
     title: String(seo.title ?? `${name} — Ship faster`).slice(0, 120),
     description: String(seo.description ?? "").slice(0, 300),
@@ -335,7 +349,50 @@ export function normalizeConfig(input: unknown): LandingConfig {
   if (i18nOut) out.i18n = i18nOut
   if (legalOut) out.legal = legalOut
   if (trackingOut) out.tracking = trackingOut
+  if (tweaksOut) out.themeTweaks = tweaksOut
   return out
+}
+
+/** Clamp a number into [min, max]; null when not a finite number. */
+function clampNum(v: unknown, min: number, max: number): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN
+  if (!Number.isFinite(n)) return null
+  return Math.min(max, Math.max(min, n))
+}
+
+/** Validate + shape the theme fine-tuning block. Identity values and unknown
+ *  keys are dropped so a "no tweaks" config stays byte-identical in YAML. */
+function validTweaks(input: unknown): ThemeTweaks | undefined {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return undefined
+  const raw = input as Record<string, unknown>
+  const out: ThemeTweaks = {}
+
+  const sec = typeof raw.secondary === "string" ? raw.secondary.trim() : ""
+  if (isValidAccent(sec)) out.secondary = sec.startsWith("#") ? sec : `#${sec}`
+
+  const hs = clampNum(raw.headingScale, 0.8, 1.3)
+  if (hs !== null && Math.abs(hs - 1) > 0.001) out.headingScale = Math.round(hs * 1000) / 1000
+  const bs = clampNum(raw.bodyScale, 0.9, 1.15)
+  if (bs !== null && Math.abs(bs - 1) > 0.001) out.bodyScale = Math.round(bs * 1000) / 1000
+  const lh = clampNum(raw.lineHeight, 1.2, 2)
+  if (lh !== null && Math.abs(lh - 1.625) > 0.001) out.lineHeight = Math.round(lh * 1000) / 1000
+  const ls = clampNum(raw.letterSpacing, -0.05, 0.1)
+  if (ls !== null && Math.abs(ls) > 0.0005) out.letterSpacing = Math.round(ls * 10000) / 10000
+  const psp = clampNum(raw.paragraphSpacing, 0.5, 3)
+  if (psp !== null && Math.abs(psp - 1) > 0.01) out.paragraphSpacing = Math.round(psp * 100) / 100
+  const sp = clampNum(raw.sectionPadding, 0.5, 1.6)
+  if (sp !== null && Math.abs(sp - 1) > 0.001) out.sectionPadding = Math.round(sp * 1000) / 1000
+  const cw = clampNum(raw.contentMaxWidth, 800, 1600)
+  if (cw !== null && Math.abs(cw - 1152) > 1) out.contentMaxWidth = Math.round(cw)
+  const cr = clampNum(raw.cardRadius, 0, 2)
+  if (cr !== null && Math.abs(cr - 0.75) > 0.005) out.cardRadius = Math.round(cr * 1000) / 1000
+  if (raw.buttonRadius === "pill" || raw.buttonRadius === "rounded" || raw.buttonRadius === "soft" || raw.buttonRadius === "square") {
+    out.buttonRadius = raw.buttonRadius
+  }
+  const sh = clampNum(raw.shadowIntensity, 0, 2)
+  if (sh !== null && Math.abs(sh - 1) > 0.001) out.shadowIntensity = Math.round(sh * 1000) / 1000
+
+  return Object.keys(out).length ? out : undefined
 }
 
 /** Validate + shape the legal block: consent banner, privacy/terms bodies and
@@ -520,6 +577,7 @@ export function configToYaml(config: LandingConfig): string {
   if (config.i18n) ordered.i18n = config.i18n
   if (config.legal) ordered.legal = config.legal
   if (config.tracking) ordered.tracking = config.tracking
+  if (config.themeTweaks) ordered.themeTweaks = config.themeTweaks
   return yamlDump(ordered, { lineWidth: 100, noRefs: true, sortKeys: false })
 }
 
