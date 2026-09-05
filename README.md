@@ -36,7 +36,7 @@ Drag-drop builder + 5-category auditor with one-click fixes + the landing-forge 
 
 ### Landing Sites (from landing-forge)
 The full landing-forge studio, embedded as a fourth view:
-- Drag & drop section list — reorder, duplicate, hide, delete **13 section types** (navbar, hero, logos, features, stats, testimonials, pricing, FAQ, gallery, **about**, contact, final CTA, footer) with 40+ content packs
+- Drag & drop section list — reorder, duplicate, hide, delete **19 section types** (announcement, navbar, hero, logos, features, stats, testimonials, pricing, FAQ, gallery, about, **problem, solution, video, comparison, guarantee**, contact, final CTA, footer) with 52 content packs
 - **AI prompt → full page** (`/api/ai/generate`), AI copy improve, AI images
 - **YAML import/export** — round-trips with the landing-forge CLI config format
 - **Multilingual publishing** — per-section AI translation into any locale, RTL (Arabic/Hebrew/Farsi/Urdu), language switcher on the published page, `?lang=` deep links
@@ -44,9 +44,13 @@ The full landing-forge studio, embedded as a fourth view:
 - **Section-level A/B testing** — weighted per-visitor assignment, per-variant engagement/read counts, confidence + auto-winner + one-click Promote
 - **Published pages** at `/p/<slug>` — server-rendered SEO (OG + Twitter card + JSON-LD + canonical + sitemap), real visitor tracking (pageviews, referrers, countries, devices, bounce, section reads, CTA attribution)
 - **Analytics dashboard** — live socket.io relay ("right now" visitors + event ticker), traffic charts, conversion funnel, section performance, leads inbox, CSV export, traffic simulation
-- **Readiness audit** — weighted score (SEO, content, links, brand) with fix suggestions
+- **Readiness audit** — weighted score (structure, SEO, conversion **and standalone-export behavior**) with fix suggestions
 - **Deploy simulation** with streaming build logs + published-page URL
-- 6 one-click themes + Google webfont pairs + custom accent
+- **10 dual-mode themes** (dark + light palettes each, auto-follows the visitor's OS) + 11 font pairs (incl. Google webfonts + Arabic) + custom accent
+- **Cookie consent + custom tracking scripts** (GA4 / Meta Pixel / chat widgets) — consent-gated on the published page and in the export
+- **Contact form destinations** — leads inbox, Google Sheet webhook (Apps Script), or an embedded Google Form; the standalone export posts to the webhook or falls back to mailto
+- **Lucide icon bank** — 88 curated icons replace every emoji in sections and UI
+- Live announcement bar (static / ticker / countdown), 8 hero layouts, 5 gallery styles, full problem→solution→guarantee narrative arc
 
 ### Page Auditor
 - 0–100 score across 5 categories (SEO, Content, Accessibility, Structure, Performance)
@@ -112,6 +116,34 @@ bun x vitest run
 # Push the Prisma schema to SQLite
 bun run db:push
 ```
+
+## Updating to v1.6 — the LandingForge v21 visual layer + growth features
+
+v1.6 ports LandingForge v21's visual vocabulary into the Landing Sites module and rounds out the growth stack. Existing configs keep working unchanged — every new field is optional and legacy-safe. Pull, run `bun install` (no new deps), and refresh.
+
+### 1. Narrative sections + announcement bar (studio → Add section)
+Six new section types shipped: **Announcement** (static / ticker marquee / live countdown), **Problem**, **Solution** (grid / split / numbered steps), **Video** (cinematic / split / minimal — YouTube & Vimeo auto-embed), **Comparison** (you-vs-them with yes/no/partial icon cells), and **Guarantee** (risk reversal). The countdown timer and the gallery slider/stories run in the standalone HTML export too (same `data-*` markup, vanilla engine). Hero grew to **8 layouts** (gradient, video background, card, minimal…), gallery to **5 styles**. Try the **Narrative** starter template for the full arc.
+
+### 2. Lucide icon bank — zero emojis
+Every icon slot in sections (features, pain points, guarantee terms, comparison cells…) resolves through an **88-icon curated Lucide bank** (`src/components/sites/preview/iconBank.tsx`) with a searchable picker in the properties panel. Old configs that stored emoji keep rendering (legacy fallback). Studio UI chrome itself is emoji-free.
+
+### 3. Dual-mode themes (dark / light / auto)
+All **10 themes** (Nebula, Ember, Emerald, Rosé, Mono, Paper + new Slate, Ocean, Gold, Midnight) ship a full dark **and** light palette. In **Page & theme → Brand kit → Color scheme** pick `Theme` (the palette's built-in preference — the legacy default), `Auto` (follows each visitor's OS, live), or pin dark/light. The published page gets a sun/moon visitor toggle (persisted per browser), and the standalone export resolves auto mode purely in CSS — it works with JavaScript off. Three new Google webfont pairs: **Jakarta**, **Poppins**, and **Arabic (Noto Sans Arabic)** for RTL sites.
+
+### 4. Cookie consent + custom tracking scripts
+**Page & theme → Privacy & tracking**: enable the cookie-consent banner (message, accept/decline labels, position, learn-more link — AI-translatable per locale via Languages → *translate page strings*) and paste third-party tags (GA4, Meta Pixel, chat widgets) into head/body script fields. Behavior: with the banner on, custom scripts **only load after the visitor accepts** (declined = never, JS-off = never); with it off they load immediately. The built-in pageview/CTA/lead analytics is cookie-free and always runs. The banner + gate ship inside the standalone export as well.
+
+### 5. Contact form delivery
+Select a Contact section → **Delivery**: **Leads inbox** (default — dashboard + CSV), **Google Sheet webhook** (paste an Apps Script Web App URL; submissions POST no-cors *and* mirror into the inbox; the 6-step setup guide with a copyable dynamic-field snippet is in the panel), or **Embed an existing Google Form** (iframed, `embedded=true`). The standalone export posts to the webhook, or — for inbox-only forms — falls back to a prefilled `mailto:` draft so exported forms are never dead.
+
+### 6. Export checklist in the Readiness panel
+The readiness audit gained a **Standalone export** category: what the single HTML file will and won't do — form delivery, countdown liveness, interactive blocks, locale coverage, fonts, consent gating, and the og:image fallback chain — each weighted lightly and click-to-fix.
+
+### Upgrade notes
+- **Prisma**: no schema changes in v1.6 — `bun run db:push` is a no-op but harmless.
+- **Existing sites**: colors, spacing and behavior are unchanged until you opt in (unset `brand.mode` = the theme's previous look; unset contact `delivery` = inbox).
+- **YAML**: `brand.mode`, `legal`, `tracking` and contact delivery fields round-trip; older files import cleanly.
+- Verified: `tsc` clean, ESLint clean, **193/193 tests**, and full browser E2E across studio → published page → exported HTML.
 
 ## Deploying on Vercel
 

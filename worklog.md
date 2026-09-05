@@ -758,3 +758,17 @@ Work Log:
 
 Stage Summary:
 - Forms now deliver three ways (inbox / Sheet / embedded Google Form) with honest standalone-HTML behavior (webhook or mailto) — no dead forms in exports anymore.
+
+---
+Task ID: 8 (Phase 4)
+Agent: Super Z (main agent, sandbox)
+Task: Phase 4 — Priority 8: merge the export checklist into the Readiness panel.
+
+Work Log:
+- readiness.ts: ReadinessCheck.category gained "export"; seven new weighted checks audit the standalone HTML's real behavior — form delivery per mode (sheets/embed/inbox+mailto/dead-form), countdown deadline validity, interactive blocks (slider/stories/FAQ vanilla engine), locale count (multi-locale ships one per export), fonts (webfont preconnect vs system), custom-script consent gating (ungated = GDPR warn), and the og:image fallback chain (local pickShareImageLike mirrors exportHtml's chain without importing client code).
+- ReadinessPanel: "Standalone export" group renders last; dialog copy updated.
+- QA: tsc clean, eslint clean, vitest 193/193 (+1 branch-covering test).
+- E2E: readiness dialog on the demo shows the export group with fix actions (mailto-fallback warning jumps to the contact section).
+
+Stage Summary:
+- The readiness audit is now a single launch checklist covering structure, SEO, conversion AND standalone-export behavior — the last of the ported v21 priorities.
