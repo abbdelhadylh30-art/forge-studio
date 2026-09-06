@@ -1029,3 +1029,28 @@ Stage Summary:
 - The app is now two tools: Sites studio (build/publish) + Auditor. Old builder fully removed but recoverable three ways: git tag, the zip (via /downloads page), and GitHub history.
 - 5 content-rich niche templates shipped (clothing / G-SHOCK watch / portfolio / real estate / coffee subscription), all live on production.
 - Token ghp_P7tT… used inline only; user must rotate it now that the push is confirmed.
+
+---
+
+Task ID: 26
+Agent: Super Z (main agent, sandbox)
+Task: User reported "sites still crash". Diagnose and fix for good.
+
+Work Log:
+- Synced the stale local sandbox (it had rewound to the v1.6-era tree after the earlier tool-layer crash) to origin/main — remote already carried v2.0.0 (page-builder retirement + 5 niche templates).
+- Reproduced on production with agent-browser + network trace: POST /api/sites → 201 (instance A), immediately-following GET /api/sites/{id} → 404 (instance B). The just-created project then vanishes from the list and the studio bounces back to Projects — exactly the user's "crash". Root cause: per-instance ephemeral SQLite on Vercel; v1.9.4 seeding only fixed the 5 demo projects, not user-created ones.
+- Fix (v2.1.0 "self-healing project store"):
+  - NEW src/lib/landing/localProjects.ts — multi-project localStorage registry (quota-safe, 30d TTL, 24-entry cap, per-entry 500KB cap) + 11 tests.
+  - PATCH /api/sites/[id] → UPSERT: a save to an instance that lost/never-had the row re-creates it with the SAME id (slug conflicts suffixed -2/-3; body may carry `slug` for the recreate). Autosave thus re-materializes the project wherever traffic lands.
+  - Create flow: dialog passes the FULL POST response; ProjectsView.openFromCreate upserts the registry then loadProject directly — the create→open refetch race is structurally gone.
+  - ProjectsView: list = server ∪ device registry (server wins on shared slugs; THIS DEVICE badge on local-only); open: server copy unless the local copy is >30s newer (unsynced edits survive); server 404 → local rescue + background resync; delete also removes the device copy; duplicate registers locally.
+  - useSaveProject: PATCH body now includes slug; on success the registry is confirmed and a server-suffixed slug is adopted into the store meta.
+  - SitesApp: mirror effect (1.5s debounce) writes BOTH the single-slot crash backup and the multi-project registry; bootstrap registers whatever it loads/creates.
+  - PublishedPage /p/[slug]: server list miss → device-registry rescue (creator's browser) + background PATCH resync; visitors without a copy get the honest notfound.
+- E2E (dev + VERCEL=1 serverless simulation): create → direct studio open ✓; server row deleted by hand → project still listed ✓ → open self-heals (same id re-created server-side) ✓ → published page renders from device copy + re-syncs ✓; curl PATCH on an unknown id → created, conflicting slug suffixed ✓. Zero console/page errors throughout.
+- Gates: tsc clean, eslint clean, vitest 232/232 (11 new), next build ok (RAM dance as usual). Committed 9efd869, pushed to origin/main.
+
+Stage Summary:
+- v2.1.0 deployed: user-created projects can no longer vanish — the browser owns a durable copy and every save re-materializes the row on whichever serverless instance serves it.
+- Residual limitation (honest): OTHER visitors' browsers and other devices still depend on warm instances for user-created published pages; the 5 showcase projects remain universally seeded. A shared DB (Turso/Neon) remains the only true multi-device fix and still needs the user to provision credentials.
+- Token ghp_P7tT… used inline only again — user must rotate it.
