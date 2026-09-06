@@ -965,3 +965,25 @@ Stage Summary:
 - v1.9.1 crash-proofing fully rebuilt after the snapshot rollback; offer short-text slice bug fixed with regression tests (the first real user-visible bug found by dogfooding).
 - The G-SHOCK GA-B2100 NOIR launch page is live in the sandbox at /p/g-shock-ga-b2100-noir and openable in the studio (it is the only project in the fresh dev DB).
 - Not yet pushed (no GitHub credentials in session); user must push or provide a token. On Vercel the page needs a YAML re-import (per-instance SQLite).
+
+---
+Task ID: 22
+Agent: Super Z (main agent, sandbox)
+Task: v1.9.3 — turn the G-SHOCK demo into a proper Sites template ("use this as a template"), then push v1.9.2 + v1.9.3 to GitHub with the user's new token.
+
+Work Log:
+- Template system mapped: TEMPLATES registry in defaults.ts (id/name/description/icon/build), gallery cards in ProjectsView CreateProjectDialog, POST /api/sites stamps the project name over generic template brands.
+- New src/lib/landing/gshockTemplate.ts: buildGshockLaunch() returns a fresh 18-section config (the full GA-B2100 NOIR page: announcement countdown, hero zoom carousel, logos, problem/solution, Triple-10 stats, features, 1983 story, masonry gallery, comparison, offer card, testimonials, guarantee seals, FAQ, pre-order form, final CTA, mega footer with real socials). launchDeadline() rolls a shared target ~9 days out pinned to 23:59 UTC — countdowns are always live, never expired. Hero/gallery imagery uses the verified z-cdn image-search URLs.
+- TemplateDef gained an optional stampName flag; "Product Launch" (id product-launch, gauge icon) registers with stampName:false so the API route keeps the G-SHOCK content verbatim when a project is created from it (only name/slug reflect user input). Generic templates keep the old name-stamping behavior.
+- 6 new vitest tests (243 total): 18 sections + unique ids, normalizeConfig round-trip with offer/hero content intact, zero broken anchors via findBrokenAnchorLinks, fresh object graph per call, shared future deadline, registry integrity (saas still first, minimal present).
+- Gates: tsc clean (fresh, tsbuildinfo removed earlier in the arc), ESLint clean on changed files, vitest 243/243, next build successful.
+- E2E (agent-browser, dev server restarted on :3000 after the sandbox crash): dashboard → Sites → Projects → New project dialog shows the "Product Launch — A G-SHOCK watch launch… 18 sections." card; created "My Watch Launch" from it → studio opens with the full page (Ember theme, forced dark, 18 sections listed, Saved badge). The earlier crash interrupted deeper eval checks; the studio state itself is the proof.
+- Git hygiene: the background process had auto-committed my 4 template files as garbage UUID commit b4f705d — soft-reset and folded into a proper v1.9.3 commit (b95f5ae) together with version bumps (package.json 1.9.3, SitesApp badge v1.9.3).
+- Pushed 4e189b4..b95f5ae to origin/main with an inline credential helper (token used in-command only, never stored to disk or remote URL). Remote verified at b95f5ae via ls-remote. Vercel deployment triggered (status: pending at T+20s).
+- Session incidents: the tool layer crashed hard mid-verification (5 consecutive Bash failures incl. plain echo; Read/Grep also failing) — asked the user to restart; they did, shell recovered, no work lost (UUID commit held everything).
+
+Stage Summary:
+- The G-SHOCK page is now a first-class "Product Launch" template in the Sites gallery — selectable like SaaS/Minimal/etc., content stays verbatim, deadline always live.
+- v1.9.2 (crash fixes + offer slice bug) and v1.9.3 (template) both pushed to GitHub; Vercel deploy pending at log time.
+- Token ghp_P7tT… exposed in chat again — user must rotate after confirming the deploy.
+- Local dev DB now has 2 projects: the original G-SHOCK demo + "My Watch Launch" (template-flow test artifact, kept as evidence).
