@@ -146,53 +146,20 @@ export function PublishedPage({ slug }: { slug: string }) {
   })
 
   // ── Load project by slug (last SAVED state — this is what "published" means)
-  // Server first; when the serving serverless instance doesn't know the slug
-  // (per-instance SQLite) the CREATOR's browser falls back to its local project
-  // registry and quietly re-syncs the row via the upserting PATCH — so the
-  // owner's published links keep working through instance recycling. Visitors
-  // without a local copy get the honest notfound state.
+  // Order: 1) this browser's local registry (instant, the creator's copy —
+  // and it re-syncs the row for future visitors), 2) the server list with a
+  // few retries — each request can land on a different serverless instance
+  // (per-instance SQLite), so a retry often reaches a warm one that knows the
+  // project, 3) the honest notfound state.
   React.useEffect(() => {
     let cancelled = false
+    const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
     ;(async () => {
       try {
-        const listRes = await fetch("/api/sites")
-        const list = (await listRes.json()) as ProjectSummary[]
-        const match = Array.isArray(list) ? list.find((p) => p.slug === slug) : undefined
-        if (!match) {
-          const local = getLocalProjectBySlug(slug)
-          if (local) {
-            if (!cancelled) {
-              setState({
-                kind: "ready",
-                project: {
-                  id: local.id,
-                  name: local.name,
-                  slug: local.slug,
-                  createdAt: new Date(local.updatedAt).toISOString(),
-                  updatedAt: new Date(local.updatedAt).toISOString(),
-                  sectionCount: local.config.sections.length,
-                  themeId: local.config.themeId,
-                  config: local.config,
-                },
-              })
-            }
-            // re-materialize the row on this instance for future visitors
-            void fetch(`/api/sites/${local.id}`, {
-              method: "PATCH",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ name: local.name, slug: local.slug, config: local.config }),
-            }).catch(() => undefined)
-            return
-          }
-          if (!cancelled) setState({ kind: "notfound", slug })
-          return
-        }
-        const fullRes = await fetch(`/api/sites/${match.id}`)
-        if (!fullRes.ok) {
-          // list knew the slug but the detail fetch missed (another instance
-          // switch) — the local registry can still rescue the creator
-          const local = getLocalProjectBySlug(slug)
-          if (local && !cancelled) {
+        // 1) creator's browser: instant render from the device registry
+        const local = getLocalProjectBySlug(slug)
+        if (local) {
+          if (!cancelled) {
             setState({
               kind: "ready",
               project: {
@@ -206,10 +173,36 @@ export function PublishedPage({ slug }: { slug: string }) {
                 config: local.config,
               },
             })
-            return
           }
-          throw new Error("Could not load the published config")
+          // re-materialize the row on this instance for future visitors
+          void fetch(`/api/sites/${local.id}`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ name: local.name, slug: local.slug, config: local.config }),
+          }).catch(() => undefined)
+          return
         }
+
+        // 2) visitor path: retry the list — another instance may know the slug
+        let match: ProjectSummary | undefined
+        for (let attempt = 0; attempt < 3 && !cancelled; attempt++) {
+          if (attempt > 0) await delay(700 * attempt)
+          try {
+            const listRes = await fetch("/api/sites")
+            const list = (await listRes.json()) as ProjectSummary[]
+            if (Array.isArray(list)) match = list.find((p) => p.slug === slug)
+          } catch {
+            // network blip — the retry loop rides it out
+          }
+          if (match) break
+        }
+        if (cancelled) return
+        if (!match) {
+          setState({ kind: "notfound", slug })
+          return
+        }
+        const fullRes = await fetch(`/api/sites/${match.id}`)
+        if (!fullRes.ok) throw new Error("Could not load the published config")
         const project = (await fullRes.json()) as ProjectWithConfig
         if (!cancelled) setState({ kind: "ready", project })
       } catch (e) {
