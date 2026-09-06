@@ -287,7 +287,7 @@ export function SitesApp() {
               <span className="text-zinc-600">/ 100</span>
             </button>
           )}
-          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v1.9</span>
+          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v1.9.3</span>
           <Link
             href="https://github.com/abbdelhadylh30-art/forge-studio"
             target="_blank"

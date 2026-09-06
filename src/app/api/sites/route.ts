@@ -39,14 +39,19 @@ export async function POST(req: NextRequest) {
       const templateId = str(body.templateId) ?? "saas"
       const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0]
       config = normalizeConfig(template.build())
-      // template was generic — stamp the user's project name as the brand name
-      config.brand.name = name.slice(0, 60)
-      config.seo.title = `${name} — Ship faster`
-      config.seo.description = config.seo.description.replace(/Vertex/gi, name).slice(0, 300)
-      config.seo.description = config.seo.description.replace(/\bMyProduct\b/g, name).slice(0, 300)
-      // stamp brand name into navbar/footer overrides too (templates use default brand)
-      for (const s of config.sections) {
-        if (s.type === "navbar" && s.brandLabel) s.brandLabel = name.slice(0, 60)
+      if (template.stampName === false) {
+        // content-rich showcase template — keep its own brand/copy verbatim
+        // (only the project name/slug above reflect what the user typed)
+      } else {
+        // generic template — stamp the user's project name as the brand name
+        config.brand.name = name.slice(0, 60)
+        config.seo.title = `${name} — Ship faster`
+        config.seo.description = config.seo.description.replace(/Vertex/gi, name).slice(0, 300)
+        config.seo.description = config.seo.description.replace(/\bMyProduct\b/g, name).slice(0, 300)
+        // stamp brand name into navbar/footer overrides too (templates use default brand)
+        for (const s of config.sections) {
+          if (s.type === "navbar" && s.brandLabel) s.brandLabel = name.slice(0, 60)
+        }
       }
     }
 

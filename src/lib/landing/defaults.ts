@@ -1,5 +1,6 @@
 import type { LandingConfig, Section, SectionType } from "./types"
 import { sectionAnchors } from "./anchors"
+import { buildGshockLaunch } from "./gshockTemplate"
 
 let counter = 0
 export function sid(prefix: string): string {
@@ -390,6 +391,10 @@ export interface TemplateDef {
   description: string
   icon: string
   build: () => LandingConfig
+  /** false → keep the template's own brand/content verbatim when a project
+   *  is created from it (content-rich showcase templates). Default true:
+   *  the project name is stamped over the generic placeholder brand. */
+  stampName?: boolean
 }
 
 /** Re-point in-page #links that resolve to no section anchor toward the
@@ -475,6 +480,14 @@ export const TEMPLATES: TemplateDef[] = [
     description: "Product launch page with social proof and offers.",
     icon: "shopping-bag",
     build: () => assemble("Ember Goods", "ember", ["announcement", "navbar", "hero", "logos", "features", "gallery", "testimonials", "pricing", "guarantee", "faq", "cta-final", "footer"]),
+  },
+  {
+    id: "product-launch",
+    name: "Product Launch",
+    description: "A G-SHOCK watch launch — countdown offer, story, gallery, comparison, guarantee. 18 sections.",
+    icon: "gauge",
+    stampName: false,
+    build: () => buildGshockLaunch(),
   },
   {
     id: "minimal",
