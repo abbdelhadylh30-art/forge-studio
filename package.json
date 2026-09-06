@@ -1,6 +1,6 @@
 {
   "name": "forge-studio",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "private": true,
   "main": "electron/dist/main.js",
   "scripts": {

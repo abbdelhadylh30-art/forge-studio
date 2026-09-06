@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server"
 import type { Site } from "@prisma/client"
 import { db, ensureSchema } from "@/lib/db"
+import { seedDemoSite } from "./seedDemo"
 import { slugify } from "./defaults"
 import { normalizeConfig } from "./yaml"
 import type { LandingConfig, ProjectSummary, ProjectWithConfig } from "./types"
@@ -26,6 +27,9 @@ export async function guard(fn: () => Promise<Response>): Promise<Response> {
     await ensureSchema().catch((e) =>
       console.warn("[db] ensureSchema skipped:", e instanceof Error ? e.message : e)
     )
+    // Demo-site seeding (idempotent, once per process): guarantees the G-SHOCK
+    // launch project exists on every fresh serverless instance.
+    await seedDemoSite()
     return await fn()
   } catch (e) {
     if (e instanceof HttpError) {

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { db, ensureSchema } from "@/lib/db"
 import { toWithConfig } from "@/lib/landing/server"
+import { seedDemoSite } from "@/lib/landing/seedDemo"
 import { isServerless } from "@/lib/landing/uploads"
 import { PublishedPage } from "@/components/sites/published/PublishedPage"
 import type { LandingConfig } from "@/lib/landing/types"
@@ -37,6 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   try {
     await ensureSchema().catch(() => undefined)
+    await seedDemoSite()
     const row = await db.site.findUnique({ where: { slug } })
     if (!row) return {}
     const { config } = toWithConfig(row)
@@ -94,6 +96,7 @@ export default async function PublishedSitePage({ params }: { params: Promise<{ 
   let rowFound = false
   try {
     await ensureSchema().catch(() => undefined)
+    await seedDemoSite()
     const row = await db.site.findUnique({ where: { slug } })
     rowFound = row !== null
     if (row) {
