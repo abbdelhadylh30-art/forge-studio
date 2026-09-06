@@ -3,12 +3,13 @@
 import { useForge } from "@/lib/forge/store";
 import { TEMPLATES, type TemplateDef } from "@/lib/landing/defaults";
 import { getTheme } from "@/lib/landing/themes";
+import { cn } from "@/lib/utils";
 import { loadAuditHistory, clearAuditHistory, type AuditHistoryEntry } from "@/lib/pixelforge/audit-history";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   ShieldCheck, Sparkles, ArrowRight, Wand2,
-  CheckCircle2, History, Trash2, ExternalLink, TrendingUp, Hammer,
+  CheckCircle2, History, Trash2, ExternalLink, Github, TrendingUp, Hammer,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
@@ -30,7 +31,6 @@ function timeAgo(ts: number): string {
 export function ForgeDashboard() {
   const { setView } = useForge();
   const { resolvedTheme, setTheme } = useTheme();
-  const [hoveredTool, setHoveredTool] = useState<"sites" | "auditor" | null>(null);
   const [auditHistory, setAuditHistory] = useState<AuditHistoryEntry[]>([]);
   const [creatingId, setCreatingId] = useState<string | null>(null);
 
@@ -115,11 +115,18 @@ export function ForgeDashboard() {
                   {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
               )}
-              <Button variant="outline" size="sm" onClick={() => setView("sites")} className="gap-1.5 h-8">
-                <Hammer className="h-3.5 w-3.5" /> Sites
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setView("auditor")} className="gap-1.5 h-8">
-                <ShieldCheck className="h-3.5 w-3.5" /> Auditor
+              <a
+                href="https://github.com/abbdelhadylh30-art/forge-studio"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="View the Forge Studio repository on GitHub"
+                title="View the Forge Studio repository on GitHub"
+                className="grid h-8 w-8 place-items-center rounded-md border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:border-violet-300 dark:hover:border-violet-600 transition-colors"
+              >
+                <Github className="h-4 w-4" />
+              </a>
+              <Button size="sm" onClick={() => setView("sites")} className="gap-1.5 h-8">
+                <Hammer className="h-3.5 w-3.5" /> Open app
               </Button>
             </div>
           </div>
@@ -161,14 +168,6 @@ export function ForgeDashboard() {
               >
                 <ShieldCheck className="h-4 w-4" /> Audit a page
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => document.getElementById("templates")?.scrollIntoView({ behavior: "smooth" })}
-                className="h-11 gap-2 px-6 bg-white/70 backdrop-blur"
-              >
-                <Sparkles className="h-4 w-4" /> Browse templates
-              </Button>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
               <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> 5 launch-ready templates</span>
@@ -186,12 +185,8 @@ export function ForgeDashboard() {
               accent="from-emerald-500 to-teal-500"
               glow="shadow-emerald-500/20"
               features={["5 niche templates", "AI prompt → full page", "Live countdowns & offers", "Analytics + A/B tests", "Publish at /p/slug", "YAML import / export"]}
-              onPrimary={() => setView("sites")}
-              onSecondary={() => setView("sites")}
-              primaryLabel="Open Sites studio"
-              secondaryLabel="View analytics"
-              isHovered={hoveredTool === "sites"}
-              onHover={(v) => setHoveredTool(v ? "sites" : null)}
+              onOpen={() => setView("sites")}
+              openLabel="Open Sites studio"
               className="md:col-span-2"
             />
             <ToolCard
@@ -201,12 +196,8 @@ export function ForgeDashboard() {
               accent="from-cyan-500 to-blue-600"
               glow="shadow-cyan-500/20"
               features={["5-category scoring", "43 audit checks", "38 quick-fixes", "Fix All Safe button", "Mobile + desktop split"]}
-              onPrimary={() => setView("auditor")}
-              onSecondary={() => setView("auditor")}
-              primaryLabel="Open auditor"
-              secondaryLabel="Audit any URL"
-              isHovered={hoveredTool === "auditor"}
-              onHover={(v) => setHoveredTool(v ? "auditor" : null)}
+              onOpen={() => setView("auditor")}
+              openLabel="Open auditor"
             />
           </section>
 
@@ -254,9 +245,6 @@ export function ForgeDashboard() {
                 <h2 className="text-xl font-semibold tracking-tight">Start from a template</h2>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Five content-rich launch pages, one per niche — clicking one creates the project and opens it in the studio. Every section stays editable.</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setView("sites")} className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200 hover:bg-violet-50 dark:hover:bg-violet-950/50">
-                Open studio <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {TEMPLATES.map((tpl, idx) => (
@@ -298,23 +286,24 @@ export function ForgeDashboard() {
   );
 }
 
-function ToolCard({ icon: Icon, title, tagline, accent, glow, features, onPrimary, onSecondary, primaryLabel, secondaryLabel, isHovered, onHover, className }: {
+function ToolCard({ icon: Icon, title, tagline, accent, glow, features, onOpen, openLabel, className }: {
   icon: LucideIcon; title: string; tagline: string; accent: string; glow: string;
   features: string[];
-  onPrimary: () => void; onSecondary: () => void; primaryLabel: string; secondaryLabel: string;
-  isHovered: boolean; onHover: (v: boolean) => void;
+  onOpen: () => void; openLabel: string;
   className?: string;
 }) {
   return (
     <Card
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
-      className={`group relative overflow-hidden border-slate-200/70 dark:border-slate-800 transition-all duration-300 hover:shadow-xl ${glow} ${isHovered ? "-translate-y-0.5" : ""} ${className ?? ""}`}
+      className={cn(
+        "group relative overflow-hidden border-slate-200/70 dark:border-slate-800 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5",
+        glow,
+        className
+      )}
     >
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
-      <div className={`absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br ${accent} opacity-10 transition-opacity duration-300 ${isHovered ? "opacity-20" : ""}`} />
+      <div className={`absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br ${accent} opacity-10 transition-opacity duration-300 group-hover:opacity-20`} />
       <div className="relative p-6">
-        <div className={`mb-4 grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br ${accent} text-white shadow-md transition-transform duration-300 ${isHovered ? "scale-110" : ""}`}>
+        <div className={`mb-4 grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br ${accent} text-white shadow-md transition-transform duration-300 group-hover:scale-110`}>
           <Icon className="h-6 w-6" />
         </div>
         <h3 className="text-xl font-bold tracking-tight">{title}</h3>
@@ -327,11 +316,10 @@ function ToolCard({ icon: Icon, title, tagline, accent, glow, features, onPrimar
             </li>
           ))}
         </ul>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Button onClick={onPrimary} className={`gap-1.5 bg-gradient-to-br ${accent} hover:opacity-90`}>
-            {primaryLabel} <ArrowRight className="h-3.5 w-3.5" />
+        <div className="mt-5">
+          <Button onClick={onOpen} className={`gap-1.5 bg-gradient-to-br ${accent} hover:opacity-90`}>
+            {openLabel} <ArrowRight className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="outline" onClick={onSecondary}>{secondaryLabel}</Button>
         </div>
       </div>
     </Card>

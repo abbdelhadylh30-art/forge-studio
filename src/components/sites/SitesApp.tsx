@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowLeft, BarChart3, ExternalLink, FolderOpen, Gauge, Hammer, Loader2 } from "lucide-react"
+import { BarChart3, ExternalLink, FolderOpen, Gauge, Hammer, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useForge } from "@/lib/landing/store"
 import { useUi } from "@/lib/landing/uiStore"
@@ -269,16 +269,6 @@ export function SitesApp() {
 
         <span className="hidden h-4 w-px bg-zinc-800 md:block" aria-hidden />
 
-        <button
-          type="button"
-          onClick={() => setStudioView("dashboard")}
-          className="flex h-7 items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 px-2 text-[10px] font-semibold text-zinc-400 transition-colors hover:border-violet-500/40 hover:text-zinc-200"
-          title="All Forge Studio tools — builder, auditor, sites"
-        >
-          <ArrowLeft className="h-3 w-3" />
-          <span className="hidden sm:inline">Forge Studio</span>
-        </button>
-
         {/* View switcher */}
         <nav className="mx-auto flex items-center gap-0.5 rounded-lg border border-zinc-800 bg-zinc-900/60 p-0.5" aria-label="Sites views">
           {VIEWS.map(({ id, label, icon: Icon }) => (
@@ -301,7 +291,15 @@ export function SitesApp() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {dirty && <span className="hidden text-[10px] text-amber-300/80 md:inline">unsaved</span>}
+          {dirty && (
+            <span
+              className="flex h-6 items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 text-[10px] font-semibold text-amber-300"
+              title="Unsaved changes — autosave runs 3s after your last edit"
+            >
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+              <span className="hidden sm:inline">unsaved</span>
+            </span>
+          )}
           {/* Global readiness hint (non-studio views) */}
           {view !== "studio" && !booting && (
             <button
@@ -320,9 +318,11 @@ export function SitesApp() {
             href="https://github.com/abbdelhadylh30-art/forge-studio"
             target="_blank"
             rel="noreferrer"
-            className="flex h-7 items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-semibold text-zinc-300 transition-colors hover:border-violet-500/50 hover:text-violet-200"
+            aria-label="View the Forge Studio repository on GitHub"
+            title="View the Forge Studio repository on GitHub"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-violet-500/50 hover:text-violet-200"
           >
-            <ExternalLink className="h-3 w-3" /> <span className="hidden sm:inline">GitHub</span>
+            <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         </div>
       </header>

@@ -106,7 +106,7 @@ export function ReadinessChip() {
       title="Landing readiness score — click for the full audit"
       aria-label={`Landing readiness score ${report.score} of 100, grade ${report.grade}. Open audit.`}
       className={cn(
-        "flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold transition-all hover:scale-[1.03] active:scale-95",
+        "flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-semibold transition-colors hover:border-opacity-100",
         GRADE_STYLES[report.grade].chip
       )}
     >

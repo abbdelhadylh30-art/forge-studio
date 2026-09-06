@@ -1,8 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { Copy, ExternalLink, FilePlus2, FolderOpen, LayoutTemplate, Layers, Link2, Loader2, Sparkles, Trash2 } from "lucide-react"
+import { Copy, ExternalLink, FilePlus2, FolderOpen, LayoutTemplate, Layers, Link2, Loader2, MoreHorizontal, Sparkles, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
@@ -277,36 +284,45 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
                       </div>
                     </button>
                     <div className="flex gap-1 border-t border-zinc-800/80 p-2">
-                      <Button variant="outline" size="sm" className="h-7 flex-1 gap-1 border-zinc-800 bg-transparent text-[11px] text-zinc-300 hover:border-violet-500/50 hover:text-violet-200" onClick={() => open(p)} disabled={busyThis}>
+                      <Button variant="outline" size="sm" className="lf-focus h-7 flex-1 gap-1 border-zinc-800 bg-transparent text-[11px] text-zinc-300 hover:border-violet-500/50 hover:text-violet-200" onClick={() => open(p)} disabled={busyThis}>
                         {busyThis ? <Loader2 className="h-3 w-3 animate-spin" /> : <FolderOpen className="h-3 w-3" />} Open
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="lf-focus h-7 w-7 gap-1 border-zinc-800 bg-transparent p-0 text-[11px] text-zinc-400 hover:border-violet-500/50 hover:text-zinc-100"
+                            aria-label={`More actions for ${p.name}`}
+                            title="More actions — open published page, copy link, duplicate"
+                            disabled={busyThis}
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 border-zinc-800 bg-zinc-900">
+                          <DropdownMenuItem className="gap-2 text-[12px] focus:bg-violet-500/20" onClick={() => openPublished(p)}>
+                            <ExternalLink className="h-3.5 w-3.5 text-zinc-300" />
+                            <span className="flex-1">Open published</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 text-[12px] focus:bg-violet-500/20" onClick={() => void copyPublishedLink(p)}>
+                            <Link2 className="h-3.5 w-3.5 text-zinc-300" /> Copy published link
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 text-[12px] focus:bg-violet-500/20" onClick={() => duplicate(p)}>
+                            <Copy className="h-3.5 w-3.5 text-zinc-300" /> Duplicate
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 gap-1 border-zinc-800 bg-transparent text-[11px] text-zinc-400 hover:border-emerald-500/50 hover:text-emerald-200"
-                        onClick={() => void copyPublishedLink(p)}
+                        className="lf-focus h-7 w-7 gap-1 border-zinc-800 bg-transparent p-0 text-[11px] text-zinc-400 hover:border-rose-500/50 hover:text-rose-300"
+                        onClick={() => setDeleteTarget(p)}
                         disabled={busyThis}
-                        aria-label={`Copy published link for ${p.name}`}
-                        title={`Copy the published link (/${p.slug}) — real visits are tracked`}
+                        aria-label={`Delete ${p.name}`}
+                        title="Delete project"
                       >
-                        <Link2 className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1 border-zinc-800 bg-transparent text-[11px] text-zinc-400 hover:border-emerald-500/50 hover:text-emerald-200"
-                        onClick={() => openPublished(p)}
-                        disabled={busyThis}
-                        aria-label={`Open published page for ${p.name}`}
-                        title={`Open the published page (/${p.slug}) in a new tab`}
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-7 gap-1 border-zinc-800 bg-transparent text-[11px] text-zinc-400 hover:text-zinc-100" onClick={() => duplicate(p)} disabled={busyThis} aria-label={`Duplicate ${p.name}`} title="Duplicate">
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-7 gap-1 border-zinc-800 bg-transparent text-[11px] text-zinc-400 hover:border-rose-500/50 hover:text-rose-300" onClick={() => setDeleteTarget(p)} disabled={busyThis} aria-label={`Delete ${p.name}`} title="Delete">
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
