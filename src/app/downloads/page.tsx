@@ -5,13 +5,18 @@ import path from "node:path"
 // public/downloads. The static files themselves are gitignored.
 const FILES = [
   {
+    name: "forge-page-builder-backup.zip",
+    desc: "The retired 'Start building' Page Builder module exactly as it shipped in v1.9.4 — full editor UI + lib + glue files + RESTORE.md. Also recoverable from git tag page-builder-final-v1.9.4.",
+    tag: "Page Builder",
+  },
+  {
     name: "forge-studio-v1.6.0-source.zip",
-    desc: "Clean source — exactly the GitHub repo state. Run `bun install` and develop.",
+    desc: "Clean source — exactly the GitHub repo state at v1.6.0. Run `bun install` and develop.",
     tag: "Source",
   },
   {
     name: "forge-studio-v1.6.0-full-backup.zip",
-    desc: "Everything: source + full git history + SQLite database (db/custom.db) + v21 upload + skills assets.",
+    desc: "Everything at v1.6.0: source + full git history + SQLite database (db/custom.db) + v21 upload + skills assets.",
     tag: "Full backup",
   },
 ]
@@ -61,7 +66,7 @@ export default async function DownloadsPage() {
           ))}
         </div>
         <p className="text-xs text-zinc-600">
-          Verify the full backup: MD5 <code className="font-mono">3c02efc025095c9541ee12a73753386b</code>
+          Verify: page-builder zip MD5 <code className="font-mono">35d140d26f8e19fcb04e42fa99794623</code> · full backup MD5 <code className="font-mono">3c02efc025095c9541ee12a73753386b</code>
         </p>
       </div>
     </main>

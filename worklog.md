@@ -1007,3 +1007,25 @@ Stage Summary:
 - User's report explained: template + crash fixes WERE live; the visible failure was per-instance DB volatility (demo project 404 / sessions resetting).
 - v1.9.4 shipped: every serverless instance now self-seeds the G-SHOCK demo project — /p/g-shock-ga-b2100-noir is stable on production, the studio opens the G-SHOCK page directly on cold instances.
 - Also clarified for the user: the homepage "Start from a template" cards are the OLD Page Builder gallery; the Sites gallery (with Product Launch) is behind Sites → Projects → New project.
+
+---
+Task ID: 25
+Agent: Super Z (main agent, sandbox)
+Task: v2.0.0 — deliver the old Start Building as a zip, strip it from the app, make Sites + Auditor the two tools, replace the empty templates with 5 rich niche templates (clothing / G-SHOCK / portfolio / real estate / agent's choice). Push with the user's token.
+
+Work Log:
+- Backup FIRST: git tag page-builder-final-v1.9.4 + scripts/backup-pagebuilder.sh → forge-page-builder-backup.zip (123,662 bytes, md5 35d140d26f8e19fcb04e42fa99794623) containing src/components/builder/**, src/lib/builder/**, /api/export route + glue snapshots + RESTORE.md. Mirrored to public/downloads (gitignored) and listed on the /downloads page (MD5 shown). Integrity-tested with unzip -t.
+- Imagery: 13 image-search calls across 4 niches; every shortlisted candidate VLM-audited for watermarks/brand text (rejected dreamstime/alamy/shutterstock/stock watermarks and other-brand streetwear logos). Final pools: clothing (editorial model shots, fabric macros, rails), portfolio (app UI, style guides, magazine layouts), real estate (dusk exteriors, interiors from AD/ELLE/H&G etc.), coffee (roaster drums, barista pours, beans).
+- 4 new template modules (one per niche, ~400 lines each, typed against types.ts): clothingTemplate.ts (NORTHFORM, mono/dark, 18 sections, g-grotesk), portfolioTemplate.ts (Mara Osei, slate/light, 14 sections incl. pricing tiers, editorial font), realestateTemplate.ts (The Alder House, ocean/light, 15 sections, g-playfair, offer-review countdown), coffeeTemplate.ts (Meridian Roasters, gold/light, 18 sections, editorial font). All with rolling live deadlines where the niche warrants, real copy, SEO/keywords/OG, verified images.
+- Registry swap: TEMPLATES = [clothing, product-launch, portfolio, real-estate, coffee], all stampName:false (content verbatim). Removed the 8 generic templates + now-dead assemble/relinkAnchors helpers. DEFAULT_CONFIG / API fallback / dialog default now TEMPLATES[0].id; SitesApp bootstrap + offline fallback now buildGshockLaunch (no more junk 'Vertex' auto-create).
+- Strip: deleted src/components/builder/** (22 files), src/lib/builder/** (incl. 39 tests), /api/export/route.ts (builder-only — caught and RESTORED /api/export/css, which the Sites export needs), builder-only dev scripts. Forge store reduced to dashboard/auditor/sites views (transfer bridge retired; store tests rewritten). AuditorShell lost "Edit in builder"; pixelforge AppShell lost the builder-transfer mount path; page.tsx renders 3 views.
+- Dashboard rework: Sites-first hero (Start building → Sites studio), 2 tool cards (Sites wide + Auditor), 5-template showcase whose cards POST /api/sites {name, templateId} and open the studio on the new project (per-card busy/disabled state, toast on failure), audit history kept, workflow steps reworded, theme toggle kept, ⌘K global palette removed with the builder.
+- Incidents: (1) accidental rm of /api/export/css — restored from git before anything shipped; (2) tsc caught a straight-quote-in-string syntax error in clothingTemplate (6'2") — fixed to typographic quotes; (3) realestate section count is 15, not 16 — test + description fixed; (4) lazy-image eval reads in the backgrounded tab under-report loaded images — network log + VLM screenshot used as truth instead.
+- Gates: tsc clean (fresh), ESLint clean on all changed files, vitest 464/464 (21 new template tests + rewritten store tests; 39 builder tests removed), next build ok (needed dev-server stop for RAM).
+- E2E dev: dashboard renders 5 cards; card-create NORTHFORM → studio 18 sections Mono/Dark, published /p/northform ticks (05:19:50 countdown); dialog-create portfolio (14, Slate) / estate (15, Ocean) / coffee (18, Gold) all open + publish 200; gallery photos VLM-verified; auditor opens clean; zero page errors throughout; /downloads serves the zip byte-exact.
+- Release: commit fee4805 (49 files, +1,886 −7,541), pushed to origin/main + tag page-builder-final-v1.9.4. Vercel deploy success. Production E2E: dashboard shows all 5 cards, NORTHFORM card → studio (v2.0.0 badge), /p/northform renders live. Version markers 2.0.0.
+
+Stage Summary:
+- The app is now two tools: Sites studio (build/publish) + Auditor. Old builder fully removed but recoverable three ways: git tag, the zip (via /downloads page), and GitHub history.
+- 5 content-rich niche templates shipped (clothing / G-SHOCK watch / portfolio / real estate / coffee subscription), all live on production.
+- Token ghp_P7tT… used inline only; user must rotate it now that the push is confirmed.
