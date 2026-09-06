@@ -987,3 +987,23 @@ Stage Summary:
 - v1.9.2 (crash fixes + offer slice bug) and v1.9.3 (template) both pushed to GitHub; Vercel deploy pending at log time.
 - Token ghp_P7tT… exposed in chat again — user must rotate after confirming the deploy.
 - Local dev DB now has 2 projects: the original G-SHOCK demo + "My Watch Launch" (template-flow test artifact, kept as evidence).
+
+---
+Task ID: 23
+Agent: Super Z (main agent, sandbox)
+Task: User reported "the website doesn't have the template and it's still crashing" — diagnose and fix.
+
+Work Log:
+- Verified production bundle: fetched all JS chunks from forge-studio-green.vercel.app — "GA-B2100" present (15 hits), v1.9.3 badge present. Template code IS deployed.
+- Reproduced user flow fresh-session on production: home renders, Sites studio opens clean (zero console/page errors), New project dialog shows the "Product Launch — A G-SHOCK watch launch… 18 sections." card, creating "G-SHOCK test" from it works (18 sections, Ember, dark, no crash). Screenshot: download/prod-template-card.png.
+- FOUND the real defect: /p/g-shock-ga-b2100-noir returned "No page published at this address" — the project created earlier landed on one lambda instance; this request hit a DIFFERENT cold instance with an empty per-instance SQLite. Same mechanism makes the studio lose projects between requests (feels like crashing / being prompted out) and made the user think the template was never added.
+- FIX v1.9.4 — server-side demo seeding: new src/lib/landing/seedDemo.ts (idempotent by slug g-shock-ga-b2100-noir, memoized once per process like ensureSchema, never throws, self-retries after transient failure). guard() seeds after ensureSchema → every API route guarantees the demo project; /p/[slug] page + generateMetadata seed before findUnique → SSR metadata + JSON-LD render on every cold instance. Side benefit: bootstrap no longer auto-creates a junk "Vertex" project on fresh instances.
+- E2E local: moved the dev DB aside, cold boot → list = exactly [G-SHOCK GA-B2100 NOIR (18 sections)], /p/g-shock-ga-b2100-noir renders with ticking countdowns (download/seed-fresh-boot.png). Original DB restored afterwards.
+- Gates: tsc clean, eslint clean, vitest 486/486, next build ok (needed dev-server stop to free sandbox RAM — build TS step OOM-killed twice at 4GB total; compile itself always succeeded).
+- Pushed 306fffa..c57395b (v1.9.4), Vercel deploy success. Production verified: /api/sites list = G-SHOCK (18 sections) from a fresh post-deploy instance; /p/g-shock-ga-b2100-noir 200 with SSR title/JSON-LD/OG; full-page render with live countdown (download/prod-gshock-seeded.png).
+- Remaining caveat (architectural, explained to user): projects the USER creates on Vercel are still per-instance/ephemeral — durable persistence needs a real shared DB (Turso/Postgres via DATABASE_URL). The local-browser mirror (v1.9.1) softens data loss but doesn't eliminate it.
+
+Stage Summary:
+- User's report explained: template + crash fixes WERE live; the visible failure was per-instance DB volatility (demo project 404 / sessions resetting).
+- v1.9.4 shipped: every serverless instance now self-seeds the G-SHOCK demo project — /p/g-shock-ga-b2100-noir is stable on production, the studio opens the G-SHOCK page directly on cold instances.
+- Also clarified for the user: the homepage "Start from a template" cards are the OLD Page Builder gallery; the Sites gallery (with Product Launch) is behind Sites → Projects → New project.
