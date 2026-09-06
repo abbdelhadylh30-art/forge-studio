@@ -1075,3 +1075,26 @@ Stage Summary:
 - v2.1.0 live on https://forge-studio-green.vercel.app/ — the "sites still crash" report is closed: projects can no longer vanish after create, across reloads, or through instance recycling; published links work for the creator always and for visitors via instance retry.
 - Honest residual: a visitor can still hit notfound on a user-created page if ALL warm instances with that row recycle before any owner visit — the 5 showcase demos remain universally seeded and immune. A shared external DB (Turso/Neon) remains the permanent fix when the user is ready to provision one.
 - Token ghp_P7tT… used inline for pushes again — ROTATE IT NOW.
+
+---
+Task ID: 27
+Agent: Super Z (main agent, sandbox)
+Task: User reported "Forge studio as a whole doesn't look clean the buttons are really disorganised" — full UI button-organization pass.
+
+Work Log:
+- Audited every chrome surface via agent-browser snapshots: forge Dashboard had 4 buttons doing the identical setView("sites") ("Sites" top-bar, "Start building" hero, "Open Sites studio" + "View analytics" tool-card pair — both card buttons identical too); hero carried 3 CTAs; sites app bar had TWO back-to-dashboard buttons (logo + "Forge Studio" chip); studio toolbar had 13 mixed controls in one wrapping row; project cards had a 5-button action row.
+- Toolbar rebuilt into 4 zones: [undo/redo/snapshots segment] [project name] [right cluster: readiness chip · Design · File · AI · Save · Published · Deploy]. Theme + color-scheme cycle + preview-language dropdowns merged into ONE "Design" dropdown (DropdownMenuRadioGroup for the 4 modes replaces the mystery cycle button, educational toast kept); ⌘K trigger moved into the File menu (discoverability kept, clutter gone); shared TOOL style constant gives every neutral control identical h-7 skin; Deploy is the only gradient primary; row is flex-nowrap + overflow-x-auto so it never wraps into a mess.
+- SitesApp app bar: redundant "Forge Studio" back chip removed (logo already navigates home; stale title mentioning the deleted builder fixed by removal); "unsaved" is now an amber pill; GitHub link is an icon button.
+- forge Dashboard: top bar = theme toggle + GitHub icon + single "Open app" CTA; hero = 2 CTAs ("Browse templates" removed); ToolCard simplified to ONE primary button per tool (was two identical actions); templates section "Open studio" link removed; Github icon imported, cn imported.
+- ProjectsView cards: 5-button row → Open (flex-1) + "⋯" overflow menu (Open published / Copy published link / Duplicate) + Delete icon.
+- ReadinessChip: rounded-md + transition-colors instead of the bouncy hover:scale (consistent with siblings).
+- Incident: Edit/MultiEdit old_str kept failing on ProjectsView (whitespace-invisible mismatch) — resolved via scripts/patch-projectsview.py line-splice with sanity asserts; import line was applied by an earlier partial MultiEdit, so only the button row needed splicing.
+- Gates: tsc clean, eslint clean on all 5 changed files, vitest 464/464, next build ok (dev server stopped for RAM first, as usual).
+- E2E (agent-browser, 1440x900): dashboard renders with 1 top-bar CTA + 2 hero CTAs; studio opens, toolbar row = 10 controls (3 in the history segment); Design dropdown lists 10 themes + 4 mode radios + Fine-tune; selecting "Forced dark" flips the radio (verified checked on reopen, then reset); File menu lists YAML in/out + HTML export + All projects + ⌘K; project-card ⋯ menu lists the 3 actions; zero console/page errors.
+- VLM visual audit: toolbar "Excellent… professional, uncluttered", consistent heights, nothing clipped/wrapped; projects cards 9/10; dashboard "very clean and well-organized, no redundant buttons".
+- Committed 4cd6d1f (5 files, +211 −211). Push FAILED: no stored credential (old token was inline-only + needs rotation). Local dev server restarted and serving the redesign.
+
+Stage Summary:
+- v2.1.1-ready commit 4cd6d1f sits on main locally: every button cluster across Dashboard / app bar / studio toolbar / project cards is deduplicated, grouped, and style-consistent.
+- NOT pushed / NOT deployed yet — needs the user's (rotated) GitHub token to run: git push origin main. Vercel auto-deploys on push.
+- Before/after screenshots: download/before-{dashboard,toolbar,projects}.png vs after-{dashboard,toolbar,projects}.png.
