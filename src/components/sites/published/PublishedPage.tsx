@@ -13,6 +13,7 @@ import { getAbTests, assignAbVariants, sectionAb } from "@/lib/landing/ab"
 import { sectionAnchors } from "@/lib/landing/anchors"
 import { ctaHrefFor, runCtaNavigation } from "@/lib/landing/ctaNav"
 import { themeVars } from "@/lib/landing/themes"
+import { getLocalProjectBySlug } from "@/lib/landing/localProjects"
 import { applyLocale, dirFor, localesOf } from "@/lib/landing/i18n"
 import { useResolvedMode } from "@/components/sites/preview/useThemeMode"
 import { Languages } from "lucide-react"
@@ -145,6 +146,11 @@ export function PublishedPage({ slug }: { slug: string }) {
   })
 
   // ── Load project by slug (last SAVED state — this is what "published" means)
+  // Server first; when the serving serverless instance doesn't know the slug
+  // (per-instance SQLite) the CREATOR's browser falls back to its local project
+  // registry and quietly re-syncs the row via the upserting PATCH — so the
+  // owner's published links keep working through instance recycling. Visitors
+  // without a local copy get the honest notfound state.
   React.useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -153,11 +159,57 @@ export function PublishedPage({ slug }: { slug: string }) {
         const list = (await listRes.json()) as ProjectSummary[]
         const match = Array.isArray(list) ? list.find((p) => p.slug === slug) : undefined
         if (!match) {
+          const local = getLocalProjectBySlug(slug)
+          if (local) {
+            if (!cancelled) {
+              setState({
+                kind: "ready",
+                project: {
+                  id: local.id,
+                  name: local.name,
+                  slug: local.slug,
+                  createdAt: new Date(local.updatedAt).toISOString(),
+                  updatedAt: new Date(local.updatedAt).toISOString(),
+                  sectionCount: local.config.sections.length,
+                  themeId: local.config.themeId,
+                  config: local.config,
+                },
+              })
+            }
+            // re-materialize the row on this instance for future visitors
+            void fetch(`/api/sites/${local.id}`, {
+              method: "PATCH",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ name: local.name, slug: local.slug, config: local.config }),
+            }).catch(() => undefined)
+            return
+          }
           if (!cancelled) setState({ kind: "notfound", slug })
           return
         }
         const fullRes = await fetch(`/api/sites/${match.id}`)
-        if (!fullRes.ok) throw new Error("Could not load the published config")
+        if (!fullRes.ok) {
+          // list knew the slug but the detail fetch missed (another instance
+          // switch) — the local registry can still rescue the creator
+          const local = getLocalProjectBySlug(slug)
+          if (local && !cancelled) {
+            setState({
+              kind: "ready",
+              project: {
+                id: local.id,
+                name: local.name,
+                slug: local.slug,
+                createdAt: new Date(local.updatedAt).toISOString(),
+                updatedAt: new Date(local.updatedAt).toISOString(),
+                sectionCount: local.config.sections.length,
+                themeId: local.config.themeId,
+                config: local.config,
+              },
+            })
+            return
+          }
+          throw new Error("Could not load the published config")
+        }
         const project = (await fullRes.json()) as ProjectWithConfig
         if (!cancelled) setState({ kind: "ready", project })
       } catch (e) {

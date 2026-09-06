@@ -22,6 +22,7 @@ import { ImageLibraryDialog } from "@/components/sites/studio/ImageLibraryDialog
 import { ConnectionGuard } from "@/components/sites/shared/ConnectionGuard"
 import { SitesViewBoundary } from "@/components/sites/shared/ErrorBoundary"
 import { readLocalBackup, writeLocalBackup } from "@/lib/landing/localBackup"
+import { upsertLocalProject } from "@/lib/landing/localProjects"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 import type { LandingConfig, ProjectSummary, ProjectWithConfig } from "@/lib/landing/types"
@@ -101,6 +102,13 @@ async function runBootstrap(
         return
       }
       target = created
+      upsertLocalProject({
+        id: created.id,
+        name: created.name,
+        slug: created.slug,
+        updatedAt: Date.now(),
+        config: created.config,
+      })
       void fetch("/api/analytics/seed", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -119,6 +127,14 @@ async function runBootstrap(
 
     if (project) {
       loadProject(project.id, project.name, project.slug, project.config)
+      // durable device copy: whatever the server later forgets, this browser keeps
+      upsertLocalProject({
+        id: project.id,
+        name: project.name,
+        slug: project.slug,
+        updatedAt: Date.now(),
+        config: project.config,
+      })
       toast.success(`Welcome to Sites`, { description: `Loaded “${project.name}” — drag, edit, deploy.` })
     } else {
       const fromBackup = fallbackToLocal(loadProject)
@@ -197,16 +213,28 @@ export function SitesApp() {
   // (well inside the 3s server-autosave window) so a tab crash or an
   // unreachable serverless instance never costs more than a second of work.
   // It always holds the newest state — the bootstrap falls back to it whenever
-  // the API is unreachable or returns a bad payload.
+  // the API is unreachable or returns a bad payload. The multi-project
+  // registry keeps the same state for EVERY project, not just the open one,
+  // so the Projects list and published pages can always fall back to it.
   React.useEffect(() => {
     if (booting) return
     const timer = setTimeout(() => {
+      const meta = useForge.getState().project
       writeLocalBackup({
         id: projectId,
-        name: useForge.getState().project.name,
-        slug: useForge.getState().project.slug,
+        name: meta.name,
+        slug: meta.slug,
         config,
       })
+      if (projectId) {
+        upsertLocalProject({
+          id: projectId,
+          name: meta.name,
+          slug: meta.slug,
+          updatedAt: Date.now(),
+          config,
+        })
+      }
     }, 1500)
     return () => clearTimeout(timer)
   }, [config, projectId, booting])
@@ -287,7 +315,7 @@ export function SitesApp() {
               <span className="text-zinc-600">/ 100</span>
             </button>
           )}
-          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v2.0.0</span>
+          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v2.1.0</span>
           <Link
             href="https://github.com/abbdelhadylh30-art/forge-studio"
             target="_blank"

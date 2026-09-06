@@ -14,24 +14,84 @@ import { useForge } from "@/lib/landing/store"
 import { TEMPLATES } from "@/lib/landing/defaults"
 import { THEMES } from "@/lib/landing/themes"
 import { normalizeConfig } from "@/lib/landing/yaml"
+import { getLocalProject, listLocalProjects, removeLocalProject, upsertLocalProject } from "@/lib/landing/localProjects"
 import type { ProjectWithConfig, ProjectSummary } from "@/lib/landing/types"
+
+/** Server summary + provenance flag (local-only entries have no server row —
+ *  yet: opening one re-syncs it via the PATCH upsert). */
+interface MergedProject extends ProjectSummary {
+  localOnly?: boolean
+}
 
 export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) => void }) {
   const loadProject = useForge((s) => s.loadProject)
-  const [projects, setProjects] = React.useState<ProjectSummary[] | null>(null)
+  const [projects, setProjects] = React.useState<MergedProject[] | null>(null)
   const [createOpen, setCreateOpen] = React.useState(false)
-  const [deleteTarget, setDeleteTarget] = React.useState<ProjectSummary | null>(null)
+  const [deleteTarget, setDeleteTarget] = React.useState<MergedProject | null>(null)
   const [busy, setBusy] = React.useState<string | null>(null)
+
+  /** Push the client's current state back onto the serving instance. The PATCH
+   *  has upsert semantics, so this (re)creates the row wherever traffic lands —
+   *  failures are fine, the next autosave retries. */
+  const resync = React.useCallback(
+    async (id: string, name: string, slug: string, config: unknown) => {
+      try {
+        await fetch(`/api/sites/${id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name, slug, config: normalizeConfig(config) }),
+        })
+      } catch {
+        // best-effort only — silent
+      }
+    },
+    []
+  )
 
   const refresh = React.useCallback(async () => {
     try {
       const res = await fetch("/api/sites")
       const data = await res.json()
-      if (Array.isArray(data)) setProjects(data as ProjectSummary[])
+      const server: ProjectSummary[] = Array.isArray(data) ? (data as ProjectSummary[]) : []
+      // Merge the server list with this browser's local registry. Server rows
+      // win for shared ids/slugs; local-only entries are appended so projects
+      // this instance "forgot" stay visible (and re-openable) on this device.
+      const bySlug = new Map<string, MergedProject>()
+      for (const p of server) bySlug.set(p.slug, { ...p, localOnly: false })
+      for (const p of listLocalProjects()) {
+        if (bySlug.has(p.slug)) continue // server already knows this slug
+        bySlug.set(p.slug, {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          createdAt: new Date(p.updatedAt).toISOString(),
+          updatedAt: new Date(p.updatedAt).toISOString(),
+          sectionCount: p.config.sections.length,
+          themeId: p.config.themeId,
+          localOnly: true,
+        })
+      }
+      const merged = [...bySlug.values()].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
+      setProjects(merged)
     } catch {
       toast.error("Could not load projects")
     }
   }, [])
+
+  /** Create → open WITHOUT a refetch: the POST response already carries the
+   *  full project, so the create→open race against a cold serverless instance
+   *  (GET hitting a second instance before it knows the row) cannot happen. */
+  const openFromCreate = (p: ProjectWithConfig) => {
+    const config = normalizeConfig(p.config)
+    // durable device copy FIRST — from here on the project cannot vanish,
+    // whatever instance serves the next request
+    upsertLocalProject({ id: p.id, name: p.name, slug: p.slug, updatedAt: Date.now(), config })
+    loadProject(p.id, p.name, p.slug, config)
+    onOpenProject(p.id)
+    toast.success(`Created ${p.name}`, {
+      description: `${config.sections.length} sections · saved to this browser and the server.`,
+    })
+  }
 
   const copyPublishedLink = async (p: ProjectSummary) => {
     const url = `${window.location.origin}/p/${encodeURIComponent(p.slug)}`
@@ -51,25 +111,60 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
     void refresh()
   }, [refresh])
 
-  const open = async (p: ProjectSummary) => {
+  const open = async (p: MergedProject) => {
     setBusy(p.id)
     try {
       const res = await fetch(`/api/sites/${p.id}`)
       // Guard: a 404 body has no config — loading it would crash the studio.
       const data = res.ok ? ((await res.json().catch(() => null)) as ProjectWithConfig | null) : null
-      if (!res.ok || !data || !data.config) {
-        toast.error("Could not open project", {
-          description:
-            res.status === 404
-              ? "The server instance no longer has it — try again in a moment (data is per-instance)."
-              : `Server error ${res.status}. Try again shortly.`,
-        })
+      if (res.ok && data && data.config) {
+        // Prefer a newer LOCAL copy of the same id — edits whose autosave never
+        // landed on this instance (unsynced work) survive the instance lottery.
+        const local = getLocalProject(p.id)
+        const localNewer =
+          local && local.updatedAt - new Date(data.updatedAt).getTime() > 30_000
+        if (localNewer && local) {
+          loadProject(local.id, local.name, local.slug, normalizeConfig(local.config))
+          void resync(local.id, local.name, local.slug, local.config)
+          onOpenProject(local.id)
+          toast.success(`Opened ${local.name}`, {
+            description: "Newer local edits loaded — re-synced to the server in the background.",
+          })
+        } else {
+          loadProject(data.id, data.name, data.slug, normalizeConfig(data.config))
+          upsertLocalProject({
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            updatedAt: Date.now(),
+            config: normalizeConfig(data.config),
+          })
+          onOpenProject(data.id)
+          toast.success(`Opened ${data.name}`, {
+            description: `${data.sectionCount} sections · ${data.themeId} theme`,
+          })
+        }
+      } else {
+        // Server miss (fresh instance / recycled row) → rescue from this
+        // browser's registry and re-sync via the upserting PATCH.
+        const local = getLocalProject(p.id)
+        if (local) {
+          loadProject(local.id, local.name, local.slug, normalizeConfig(local.config))
+          void resync(local.id, local.name, local.slug, local.config)
+          onOpenProject(local.id)
+          toast.success(`Opened ${local.name} (from this device)`, {
+            description: "This server instance had lost it — the copy here is now re-synced.",
+          })
+        } else {
+          toast.error("Could not open project", {
+            description:
+              res.status === 404
+                ? "No copy of this project exists here — the server instance no longer has it."
+                : `Server error ${res.status}. Try again shortly.`,
+          })
+        }
         await refresh()
-        return
       }
-      loadProject(data.id, data.name, data.slug, data.config)
-      onOpenProject(data.id)
-      toast.success(`Opened ${data.name}`, { description: `${data.sectionCount} sections · ${data.themeId} theme` })
     } catch {
       toast.error("Could not open project", { description: "The request failed — check your connection and try again." })
     } finally {
@@ -77,11 +172,22 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
     }
   }
 
-  const duplicate = async (p: ProjectSummary) => {
+  const duplicate = async (p: MergedProject) => {
     setBusy(p.id)
     try {
       const res = await fetch(`/api/sites/${p.id}/duplicate`, { method: "POST" })
       if (!res.ok) throw new Error()
+      const copy = (await res.json().catch(() => null)) as ProjectWithConfig | null
+      if (copy?.config) {
+        // keep the duplicate in the local registry too — it is a full project
+        upsertLocalProject({
+          id: copy.id,
+          name: copy.name,
+          slug: copy.slug,
+          updatedAt: Date.now(),
+          config: normalizeConfig(copy.config),
+        })
+      }
       await refresh()
       toast.success("Project duplicated")
     } catch {
@@ -91,10 +197,13 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
     }
   }
 
-  const remove = async (p: ProjectSummary) => {
+  const remove = async (p: MergedProject) => {
     setBusy(p.id)
     try {
-      await fetch(`/api/sites/${p.id}`, { method: "DELETE" })
+      if (!p.localOnly) {
+        await fetch(`/api/sites/${p.id}`, { method: "DELETE" })
+      }
+      removeLocalProject(p.id) // the device copy goes with the server row
       await refresh()
       toast.success(`Deleted ${p.name}`)
     } catch {
@@ -113,7 +222,7 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
             <h2 className="flex items-center gap-2 text-lg font-bold text-zinc-50">
               <FolderOpen className="h-5 w-5 text-violet-300" /> Projects
             </h2>
-            <p className="text-[11px] text-zinc-500">{projects ? `${projects.length} saved locally (SQLite + Prisma)` : "Loading…"}</p>
+            <p className="text-[11px] text-zinc-500">{projects ? `${projects.length} projects · server + this device` : "Loading…"}</p>
           </div>
           <Button size="sm" className="ml-auto h-8 gap-1.5 bg-violet-500 text-[12px] text-white hover:bg-violet-600" onClick={() => setCreateOpen(true)}>
             <FilePlus2 className="h-3.5 w-3.5" /> New project
@@ -154,7 +263,14 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
                         <span className="absolute left-3 bottom-3 rounded-md bg-black/40 px-1.5 py-0.5 font-mono text-[9px] text-white/70 backdrop-blur">{p.sectionCount} sections</span>
                       </div>
                       <div className="p-3">
-                        <p className="truncate text-[14px] font-semibold text-zinc-100">{p.name}</p>
+                        <p className="flex items-center gap-1.5 truncate text-[14px] font-semibold text-zinc-100">
+                          {p.name}
+                          {p.localOnly && (
+                            <span className="shrink-0 rounded border border-amber-500/30 bg-amber-500/10 px-1 py-px text-[8px] font-bold tracking-wide text-amber-300" title="Kept in this browser — opening re-syncs it to the server">
+                              THIS DEVICE
+                            </span>
+                          )}
+                        </p>
                         <p className="mt-0.5 text-[10px] text-zinc-500">
                           {theme.name} theme · updated {new Date(p.updatedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
@@ -201,7 +317,7 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
         )}
       </div>
 
-      <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={(p) => { void refresh(); open(p) }} />
+      <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={(p) => openFromCreate(p)} />
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent className="border-zinc-800 bg-zinc-950">
           <AlertDialogHeader>
@@ -222,7 +338,7 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
   )
 }
 
-function CreateProjectDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; onCreated: (p: ProjectSummary) => void }) {
+function CreateProjectDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; onCreated: (p: ProjectWithConfig) => void }) {
   const [name, setName] = React.useState("")
   const [templateId, setTemplateId] = React.useState(TEMPLATES[0].id)
   const [creating, setCreating] = React.useState(false)
@@ -254,8 +370,9 @@ function CreateProjectDialog({ open, onOpenChange, onCreated }: { open: boolean;
       })
       const data = (await res.json()) as ProjectWithConfig & { error?: string }
       if (!res.ok || !data.config) throw new Error(data.error ?? "Create failed")
-      const config = normalizeConfig(data.config)
-      onCreated({ ...data, sectionCount: config.sections.length, themeId: config.themeId } as ProjectSummary)
+      // hand the caller the FULL project (config included) — it opens straight
+      // from this response; no list refetch, no instance-lottery window
+      onCreated(data)
       onOpenChange(false)
       setName("")
       setPrompt("")
