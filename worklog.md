@@ -1054,3 +1054,24 @@ Stage Summary:
 - v2.1.0 deployed: user-created projects can no longer vanish — the browser owns a durable copy and every save re-materializes the row on whichever serverless instance serves it.
 - Residual limitation (honest): OTHER visitors' browsers and other devices still depend on warm instances for user-created published pages; the 5 showcase projects remain universally seeded. A shared DB (Turso/Neon) remains the only true multi-device fix and still needs the user to provision credentials.
 - Token ghp_P7tT… used inline only again — user must rotate it.
+
+---
+
+Task ID: 26 (cont.)
+Agent: Super Z (main agent, sandbox)
+Task: Final production verification of v2.1.0 self-healing store.
+
+Work Log:
+- Follow-up fix (bb541a9): fresh-visitor test on /p/prod-verify-coffee showed the single list fetch can land on a cold instance → notfound for a visitor. Published-page loader reordered: creator's browser renders instantly from the device registry (background PATCH re-syncs the row for future visitors); visitors retry the list 3× (700ms/1400ms backoff — each request may reach a different warm instance) before the honest notfound.
+- Deployed and re-verified the FULL user journey on production:
+  - create "Prod Verify Coffee" → POST 201, studio opens DIRECTLY, no GET-404 race, no bounce-back
+  - full page reload → all projects persist (server rows + device registry)
+  - open a project the server "forgot" (GET 404) → device copy loads, PATCH upsert re-creates the row with the SAME id (network trace: 404 → PATCH 200 → refresh)
+  - /p/prod-verify-coffee and /p/final-portfolio-test render for the owner (instant registry path) AND for a fresh visitor browser (retry path, title "Mara Osei — Brand & digital designer")
+  - zero console/page errors throughout; "The studio hit a snag" boundary never triggered
+- Gates re-run after refinement: tsc clean, eslint clean, vitest 464/464, next build ok.
+
+Stage Summary:
+- v2.1.0 live on https://forge-studio-green.vercel.app/ — the "sites still crash" report is closed: projects can no longer vanish after create, across reloads, or through instance recycling; published links work for the creator always and for visitors via instance retry.
+- Honest residual: a visitor can still hit notfound on a user-created page if ALL warm instances with that row recycle before any owner visit — the 5 showcase demos remain universally seeded and immune. A shared external DB (Turso/Neon) remains the permanent fix when the user is ready to provision one.
+- Token ghp_P7tT… used inline for pushes again — ROTATE IT NOW.
