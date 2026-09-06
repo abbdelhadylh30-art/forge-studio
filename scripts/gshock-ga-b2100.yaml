@@ -1,0 +1,392 @@
+brand:
+  name: G-SHOCK
+  tagline: Tough never stops.
+  mode: dark
+theme: ember
+seo:
+  title: G-SHOCK GA-B2100 NOIR — Tough. Solar. Connected.
+  description: >-
+    Launch-week pre-order for the GA-B2100 NOIR: carbon-cased, shock-resistant to 10 m,
+    water-resistant to 200 m, solar-powered and Bluetooth-synced. The last watch you'll
+    baby-proof your life for — in reverse.
+sections:
+  - id: gshock-announcement
+    type: announcement
+    style: countdown
+    message: 'LAUNCH WEEK — 20% off the GA-B2100 NOIR ends in'
+    deadline: '2026-09-08T23:59:00Z'
+    link:
+      label: Claim yours
+      href: '#offer'
+
+  - id: gshock-navbar
+    type: navbar
+    links:
+      - label: Story
+        href: '#story'
+      - label: Toughness
+        href: '#features'
+      - label: In the wild
+        href: '#gallery'
+      - label: FAQ
+        href: '#faq'
+    cta:
+      label: 'Pre-order — $99'
+      href: '#offer'
+
+  - id: gshock-hero
+    type: hero
+    layout: split-right
+    badge: 'NEW · GA-B2100 NOIR'
+    headline: Built to outlast everything.
+    sub: >-
+      A carbon-cored G-SHOCK that shrugs off 10-metre drops, dives to 200 metres, charges
+      itself in daylight and sets itself to the exact second. Battery swaps: never again.
+    cta:
+      label: 'Pre-order — $99'
+      href: '#offer'
+    secondaryCta:
+      label: See it in the wild
+      href: '#gallery'
+    image: https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/5bb6d3bab64c.jpg
+    images:
+      - https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3f41702f5ef9.jpg
+      - https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/897e12c51be9.jpg
+    carousel: zoom
+    carouselInterval: 4
+    stats:
+      - value: 200M
+        label: water resistance
+      - value: 10m
+        label: drop-tested
+      - value: '0'
+        label: battery swaps — ever
+
+  - id: gshock-logos
+    type: logos
+    title: Worn by the relentless
+    items:
+      - Hypebeast
+      - GQ
+      - Highsnobiety
+      - Complex
+      - WatchTime
+      - Outside
+
+  - id: gshock-problem
+    type: problem
+    title: Ordinary watches tap out.
+    subtitle: Three ways a "nice" watch ruins your week.
+    style: grid
+    items:
+      - icon: alert
+        title: Cracked by door frames
+        body: >-
+          One careless swing and your sapphire costs more than a weekend away. Fragile watches
+          train you to flinch.
+      - icon: plug
+        title: Dead at the worst moment
+        body: >-
+          Battery anxiety is real: the quartz dies mid-trip, mid-shift, mid-everything, and the
+          jeweller charges you for the privilege.
+      - icon: cloud
+        title: One splash, done
+        body: >-
+          "Water resistant 30 m" is a drizzle rating. Rain, a pool, a kayak roll — any of it can
+          turn your watch into a paperweight.
+
+  - id: gshock-solution
+    type: solution
+    title: The Triple-10 doctrine.
+    subtitle: 'One rule since 1983: take the hit, keep ticking.'
+    style: grid
+    items:
+      - icon: shield
+        title: Carbon Core Guard
+        body: >-
+          A carbon-reinforced case cradles the movement like a roll cage. Drops that destroy
+          phones barely register.
+      - icon: sun
+        title: Tough Solar
+        body: >-
+          Any light — daylight, office, lamp — keeps the cell charged. The battery you replace
+          never.
+      - icon: smartphone
+        title: Bluetooth time sync
+        body: >-
+          Pairs with your phone and pulls the exact time, up to four times a day. Your watch is
+          now the most accurate clock you own.
+
+  - id: gshock-stats
+    type: stats
+    title: '1981 — 2026: still unbroken.'
+    items:
+      - value: '200+'
+        label: prototypes dropped before one survived
+      - value: '1983'
+        label: the year the first G-SHOCK shipped
+      - value: 200M
+        label: water resistance, sealed
+      - value: 40+
+        label: years of the doctrine, unbroken
+
+  - id: gshock-features
+    type: features
+    title: Engineered for the worst day of your week.
+    subtitle: Every detail earns its place on the case.
+    style: grid
+    columns: 3
+    items:
+      - icon: shield
+        title: Shock resistance
+        body: 10 m free-fall onto concrete, tested. The hollow-case mount absorbs what the world dishes out.
+      - icon: sun
+        title: Tough Solar
+        body: Light in, power out. Six months of runtime from a single sunny afternoon.
+      - icon: smartphone
+        title: Bluetooth sync
+        body: Exact time via the CASIO WATCHES app. Set it once — well, never.
+      - icon: gauge
+        title: 200M water resistance
+        body: Swim, snorkel, wash dishes in it. 20-bar seals keep the ocean where it belongs.
+      - icon: lightbulb
+        title: Super Illuminator
+        body: Auto LED lights the face when you tilt to read it. 3 a.m. drill calls, handled.
+      - icon: clock
+        title: World time + alarms
+        body: 38 time zones, 5 alarms, hourly chime. Land anywhere and already be right.
+
+  - id: gshock-story
+    type: about
+    anchor: story
+    title: The watch that refused to break.
+    subtitle: A story that starts with a shattered heirloom.
+    style: mission
+    body: >-
+      In 1981, Casio engineer Kikuo Ibe dropped the pocket watch his father had given him. It
+      shattered — and with it, the idea that a watch must be precious to be any good. He set a
+      rule instead: build one that survives a 10-metre drop, 10 bar of pressure, and 10 years
+      of abuse. Two hundred-odd prototypes later, the first G-SHOCK took the hit and kept
+      ticking. The GA-B2100 NOIR is that same doctrine, charged by light and synced to the
+      second.
+    items:
+      - title: '10 m'
+        body: Free-fall onto concrete — and keep ticking.
+      - title: '10 bar'
+        body: Water pressure — swim right through it.
+      - title: '10 years'
+        body: Of daily punishment, minimum. Solar makes it indefinite.
+    founder:
+      name: Kikuo Ibe
+      role: 'Engineer, father of the G-SHOCK'
+
+  - id: gshock-gallery
+    type: gallery
+    title: In the wild.
+    subtitle: It doesn't live in a drawer.
+    style: masonry
+    items:
+      - src: https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/897e12c51be9.jpg
+        alt: 'GA-2100 on a wrist, dial close-up'
+        caption: Wrist check — city edition
+      - src: https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/3f41702f5ef9.jpg
+        alt: 'Macro shot of a G-SHOCK case with yellow accents'
+        caption: Every millimetre engineered
+      - src: https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c692bb323ff8.jpg
+        alt: 'G-SHOCK worn under a jacket sleeve outdoors'
+        caption: Red accents, zero rules
+      - src: https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/a0ba078ce7a1.jpg
+        alt: 'Custom G-SHOCK resting on concrete'
+        caption: Held together by attitude
+      - src: https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6c29cd9555fc.jpeg
+        alt: 'G-SHOCK on a wrist at a work desk'
+        caption: From summit to standup
+      - src: https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/66ac315753bc.jpg
+        alt: 'Wide product shot of a black G-SHOCK'
+        caption: Ready before you are
+
+  - id: gshock-compare
+    type: comparison
+    title: 'GA-B2100 NOIR vs. the rest of your drawer.'
+    subtitle: What a watch built for punishment does differently.
+    usLabel: GA-B2100 NOIR
+    themLabel: Ordinary watch
+    rows:
+      - feature: 10 m drop onto concrete
+        us: Keeps ticking
+        them: Cracked crystal
+      - feature: Water resistance
+        us: 200M — dive-rated
+        them: 30M — splash-rated
+      - feature: Battery
+        us: Solar — charges itself
+        them: Swapped every 12 months
+      - feature: Time accuracy
+        us: Auto-synced by Bluetooth
+        them: Drifts, reset by hand
+      - feature: Night visibility
+        us: Auto LED illumination
+        them: Squint and guess
+    note: Drop tests follow G-SHOCK's Triple-10 development standard.
+
+  - id: gshock-offer
+    type: offer
+    title: Launch-week pre-order
+    subtitle: 'The GA-B2100 NOIR — full kit, first production batch.'
+    badge: SAVE $30
+    price: $99
+    originalPrice: $129
+    period: one-time
+    savingsLabel: Launch week only
+    countdownPrefix: Launch pricing ends in
+    deadline: '2026-09-08T23:59:00Z'
+    features:
+      - GA-B2100 NOIR watch with carbon-look bezel
+      - Tough Solar — the battery you never replace
+      - Bluetooth time sync via the CASIO WATCHES app
+      - Resin band, fitted to your wrist size
+      - 2-year international warranty
+    cta:
+      label: Pre-order the GA-B2100
+      href: '#contact'
+    trust:
+      - icon: lock
+        label: Secure checkout
+      - icon: truck
+        label: Free worldwide shipping
+      - icon: shield
+        label: 2-year warranty
+    style: card
+
+  - id: gshock-testimonials
+    type: testimonials
+    title: Beaten up. Never beaten.
+    subtitle: Field reports from people who break things.
+    style: grid
+    items:
+      - quote: >-
+          Six years of job sites, two house builds, one dropped scaffold. The strap is scarred,
+          the module has never missed a beat.
+        author: Marco Reyes
+        role: Site foreman
+        initials: MR
+        rating: 5
+      - quote: >-
+          I lowsided at 60 km/h and totalled the bike, my jacket and my phone. The G-SHOCK took
+          the same slide and still made it to work on time.
+        author: Amelia Hart
+        role: Adventure rider
+        initials: AH
+        rating: 5
+      - quote: >-
+          Solar means I don't think about it, sync means it's always right, and the case means I
+          don't have to. It's the only watch I own.
+        author: Jonas Weber
+        role: Wildland firefighter
+        initials: JW
+        rating: 5
+
+  - id: gshock-guarantee
+    type: guarantee
+    title: The toughness guarantee
+    subtitle: Put it through hell. We've got you.
+    body: >-
+      If your GA-B2100 fails a hit it should have survived — or anything else covered by
+      warranty — we repair or replace it without a debate. A watch built on the Triple-10
+      doctrine doesn't get to blink, and neither do we.
+    style: seals
+    items:
+      - icon: award
+        title: 2-year warranty
+        body: International coverage, parts and labour.
+      - icon: timer
+        title: 100-day trial
+        body: Wear it hard. Not tough enough? Full refund.
+      - icon: shield
+        title: Drop-tested batches
+        body: Every batch sampled to the Triple-10 standard.
+
+  - id: gshock-faq
+    type: faq
+    title: Frequently asked questions
+    subtitle: The essentials before you commit.
+    style: accordion
+    items:
+      - q: Does Tough Solar need direct sunlight?
+        a: >-
+          No. Any light source charges it — daylight is fastest, but office and lamp light keep
+          the cell topped up. A full charge runs roughly six months, even in the dark.
+      - q: How often does it sync the time?
+        a: >-
+          Up to four times a day automatically when your phone is nearby, via Bluetooth and the
+          free CASIO WATCHES app. It also survives without pairing — it's just less exact.
+      - q: Will it fit my wrist?
+        a: >-
+          The resin band adjusts from about 145 to 215 mm, and spring-bar notches are included
+          in the box. No jeweller visit required.
+      - q: Can I actually swim with it?
+        a: >-
+          Yes — 200 m (20 bar) water resistance covers swimming, snorkelling and surface
+          watersports. Buttons stay sealed; hot showers and saunas are the only thing we'd skip.
+      - q: What if it breaks anyway?
+        a: >-
+          The 2-year international warranty covers manufacturing failures and the 100-day trial
+          covers everything else — send it back for a full refund, no questions.
+
+  - id: gshock-contact
+    type: contact
+    title: Reserve your GA-B2100 NOIR
+    subtitle: First batch ships October 15. We confirm your slot within one business day.
+    email: launch@gshock-noir.example
+    fields:
+      - Your name
+      - Email address
+      - 'Wrist size (optional — we pre-fit the band)'
+    submitLabel: 'Reserve mine — $99'
+
+  - id: gshock-cta
+    type: cta-final
+    headline: Tough never stops.
+    sub: >-
+      Launch-week pricing ends when the timer does. Pre-order the GA-B2100 NOIR before the
+      first batch is spoken for.
+    cta:
+      label: 'Pre-order — $99'
+      href: '#offer'
+    note: Free worldwide shipping · 2-year warranty · 100-day trial
+
+  - id: gshock-footer
+    type: footer
+    style: mega
+    tagline: The toughest watches on Earth, since 1983.
+    linkGroups:
+      - group: Watch
+        items:
+          - label: GA-B2100 NOIR
+            href: '#features'
+          - label: In the wild
+            href: '#gallery'
+          - label: Compare
+            href: '#comparison'
+      - group: Support
+        items:
+          - label: FAQ
+            href: '#faq'
+          - label: Pre-order
+            href: '#offer'
+          - label: Contact
+            href: '#contact'
+      - group: Legal
+        items:
+          - label: Privacy
+            href: '#'
+          - label: Terms
+            href: '#'
+    socialLinks:
+      - platform: Instagram
+        url: https://www.instagram.com/gshock/
+      - platform: X
+        url: https://x.com/GSHOCK
+      - platform: YouTube
+        url: https://www.youtube.com/@gshock
+    copyright: Concept launch page built with Forge Studio — demo content, not affiliated with Casio.

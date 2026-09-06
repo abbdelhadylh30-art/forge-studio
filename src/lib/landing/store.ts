@@ -3,6 +3,7 @@
 import { create } from "zustand"
 import type { DeviceType, LandingConfig, Section, SectionType, ThemeId, ThemeTweaks } from "./types"
 import { createSection } from "./defaults"
+import { normalizeConfig } from "./yaml"
 
 export interface ProjectMeta {
   id: string | null
@@ -31,7 +32,8 @@ interface ForgeState {
   future: LandingConfig[]
 
   // actions
-  loadProject: (id: string, name: string, slug: string, config: LandingConfig) => void
+  /** `id` is null for local-only drafts (server unreachable / offline fallback). */
+  loadProject: (id: string | null, name: string, slug: string, config: LandingConfig) => void
   setProjectMeta: (name: string, slug: string) => void
   markSaved: () => void
   setSaving: (v: boolean) => void
@@ -107,17 +109,22 @@ export const useForge = create<ForgeState>((set, get) => ({
   past: [],
   future: [],
 
-  loadProject: (id, name, slug, config) =>
+  loadProject: (id, name, slug, config) => {
+    // Crash-proofing: callers hand us whatever the API returned. A 404/error
+    // body has no `config`, and older saves may lack newer fields — normalize
+    // so the studio can never be handed an object it can't render.
+    const safe = normalizeConfig(config ?? {})
     set({
-      project: { id, name, slug },
-      config: clone(config),
+      project: { id: id ?? null, name: name || "Untitled page", slug: slug || "site" },
+      config: clone(safe),
       dirty: false,
       past: [],
       future: [],
-      selectedSectionId: config.sections[0]?.id ?? null,
+      selectedSectionId: safe.sections[0]?.id ?? null,
       abPreviewVariant: null,
       abPreviewVariants: {},
-    }),
+    })
+  },
 
   setProjectMeta: (name, slug) =>
     set((s) => ({ project: { ...s.project, name, slug }, dirty: true })),

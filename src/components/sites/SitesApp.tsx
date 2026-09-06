@@ -20,6 +20,8 @@ import { AiGenerateDialog, AiImproveDialog, ExportYamlDialog, ImportYamlDialog, 
 import { DeployDialog } from "@/components/sites/studio/DeployDialog"
 import { ImageLibraryDialog } from "@/components/sites/studio/ImageLibraryDialog"
 import { ConnectionGuard } from "@/components/sites/shared/ConnectionGuard"
+import { SitesViewBoundary } from "@/components/sites/shared/ErrorBoundary"
+import { readLocalBackup, writeLocalBackup } from "@/lib/landing/localBackup"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 import type { LandingConfig, ProjectSummary, ProjectWithConfig } from "@/lib/landing/types"
@@ -36,14 +38,45 @@ const VIEWS: { id: View; label: string; icon: typeof Hammer }[] = [
  *  exactly once per page load even if React re-invokes the effect. */
 let bootstrapInFlight: Promise<void> | null = null
 
+/** Fetch a project WITH a config, tolerating the serverless deployment's
+ *  per-instance database: a cold instance 404s ids that another instance
+ *  served, so one retry against a freshly-fetched list recovers most of it. */
+async function fetchProject(id: string): Promise<ProjectWithConfig | null> {
+  const res = await fetch(`/api/sites/${id}`).catch(() => null)
+  if (!res || !res.ok) return null
+  const data = (await res.json().catch(() => null)) as ProjectWithConfig | null
+  if (!data || typeof data !== "object" || !data.config) return null
+  return data
+}
+
+async function fetchList(): Promise<ProjectSummary[]> {
+  const res = await fetch("/api/sites").catch(() => null)
+  if (!res || !res.ok) return []
+  const data = (await res.json().catch(() => null)) as unknown
+  return Array.isArray(data) ? (data as ProjectSummary[]) : []
+}
+
+/** Offline / API-failure path: open the studio anyway from the local mirror
+ *  (or the demo template) so the app NEVER dead-ends on a boot screen. */
+function fallbackToLocal(
+  loadProject: (id: string | null, name: string, slug: string, config: LandingConfig) => void,
+): boolean {
+  const backup = readLocalBackup()
+  if (backup) {
+    loadProject(backup.id, `${backup.name} (local)`, backup.slug, backup.config)
+    return true
+  }
+  loadProject(null, "Vertex (local)", "vertex-local", TEMPLATES[0].build())
+  return false
+}
+
 async function runBootstrap(
-  loadProject: (id: string, name: string, slug: string, config: LandingConfig) => void,
+  loadProject: (id: string | null, name: string, slug: string, config: LandingConfig) => void,
   setBooting: (v: boolean) => void,
 ): Promise<void> {
   try {
-    const listRes = await fetch("/api/sites")
-    const list = (await listRes.json()) as ProjectSummary[]
-    let target: ProjectSummary | undefined = Array.isArray(list) ? list[0] : undefined
+    let list = await fetchList()
+    let target: ProjectSummary | undefined = list[0]
 
     if (!target) {
       // First run: create the demo site with A/B testing enabled
@@ -54,9 +87,19 @@ async function runBootstrap(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: "Vertex", config }),
-      })
-      const created = (await createRes.json()) as ProjectWithConfig & { error?: string }
-      if (!createRes.ok || !created.id) throw new Error(created.error ?? "Could not create demo site")
+      }).catch(() => null)
+      const created = createRes ? ((await createRes.json().catch(() => null)) as (ProjectWithConfig & { error?: string }) | null) : null
+      if (!createRes?.ok || !created?.id) {
+        // DB unreachable (fresh serverless instance without a writable store):
+        // fall back to the local mirror instead of crashing the boot.
+        const fromBackup = fallbackToLocal(loadProject)
+        toast.warning("Opened without the server", {
+          description: fromBackup
+            ? "Your latest local copy is loaded — edits keep saving to this browser until the server is back."
+            : "The demo page is loaded locally — edits keep saving to this browser until the server is back.",
+        })
+        return
+      }
       target = created
       void fetch("/api/analytics/seed", {
         method: "POST",
@@ -65,12 +108,33 @@ async function runBootstrap(
       })
     }
 
-    const full = await fetch(`/api/sites/${target.id}`)
-    const project = (await full.json()) as ProjectWithConfig
-    loadProject(project.id, project.name, project.slug, project.config)
-    toast.success(`Welcome to Sites`, { description: `Loaded “${project.name}” — drag, edit, deploy.` })
+    // Detail fetch with one retry against a refreshed list (instance switch
+    // tolerance). Never hand loadProject a missing config — that was the crash.
+    let project = await fetchProject(target.id)
+    if (!project) {
+      list = await fetchList()
+      const retryTarget = list.find((p) => p.id === target.id) ?? list[0]
+      if (retryTarget) project = await fetchProject(retryTarget.id)
+    }
+
+    if (project) {
+      loadProject(project.id, project.name, project.slug, project.config)
+      toast.success(`Welcome to Sites`, { description: `Loaded “${project.name}” — drag, edit, deploy.` })
+    } else {
+      const fromBackup = fallbackToLocal(loadProject)
+      toast.warning("Could not reach the project store", {
+        description: fromBackup
+          ? "Loaded your latest local copy — edits are mirrored in this browser."
+          : "Loaded the demo page locally — edits are mirrored in this browser.",
+      })
+    }
   } catch (e) {
-    toast.error("Startup failed", { description: e instanceof Error ? e.message : undefined })
+    const fromBackup = fallbackToLocal(loadProject)
+    toast.error("Startup hiccup", {
+      description: fromBackup
+        ? "Opened your latest local copy — the server was unreachable."
+        : e instanceof Error ? e.message : "The server was unreachable; opened a local page.",
+    })
   } finally {
     setBooting(false)
   }
@@ -127,6 +191,25 @@ export function SitesApp() {
     }, 3000)
     return () => clearTimeout(timer)
   }, [dirty, saving, save, projectId])
+
+  // ── Local crash-recovery mirror ───────────────────────────────────────
+  // Continuously mirrors the live config to localStorage ~1.5s after edits
+  // (well inside the 3s server-autosave window) so a tab crash or an
+  // unreachable serverless instance never costs more than a second of work.
+  // It always holds the newest state — the bootstrap falls back to it whenever
+  // the API is unreachable or returns a bad payload.
+  React.useEffect(() => {
+    if (booting) return
+    const timer = setTimeout(() => {
+      writeLocalBackup({
+        id: projectId,
+        name: useForge.getState().project.name,
+        slug: useForge.getState().project.slug,
+        config,
+      })
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [config, projectId, booting])
 
   // ── Warn on unsaved exit ─────────────────────────────────────────────────
   React.useEffect(() => {
@@ -229,11 +312,11 @@ export function SitesApp() {
           </div>
         </div>
       ) : (
-        <>
+        <SitesViewBoundary>
           {view === "studio" && <StudioShell />}
           {view === "analytics" && <DashboardView />}
           {view === "projects" && <ProjectsView onOpenProject={() => setView("studio")} />}
-        </>
+        </SitesViewBoundary>
       )}
 
       {/* Global dialogs (open state shared via uiStore — reachable from toolbar, ⌘K palette, hotkeys) */}

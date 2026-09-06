@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { useResolvedMode } from "./useThemeMode"
 import { CookieConsentBanner } from "./CookieConsent"
 import { SectionRenderer } from "./SectionRenderer"
+import { SectionErrorBoundary } from "../shared/ErrorBoundary"
 
 export interface LandingPreviewProps {
   config: LandingConfig
@@ -215,39 +216,24 @@ export function LandingPreview({
         return (
           <div key={section.id} className="relative">
             <div className="pointer-events-none">
-              <SectionRenderer
-                section={section}
-                brandName={config.brand.name}
-                brandLogo={config.brand.logoUrl}
-                legal={config.legal}
-                abOverride={overrideFor(section)}
-                onCtaClick={onCtaClick}
-                onFormSubmit={onFormSubmit}
-              />
+              <SectionErrorBoundary sectionId={section.id} sectionKind="navbar">
+                <SectionRenderer
+                  section={section}
+                  brandName={config.brand.name}
+                  brandLogo={config.brand.logoUrl}
+                  legal={config.legal}
+                  abOverride={overrideFor(section)}
+                  onCtaClick={onCtaClick}
+                  onFormSubmit={onFormSubmit}
+                />
+              </SectionErrorBoundary>
             </div>
             <SelectOverlay section={section} />
           </div>
         )
       }
       return (
-        <SectionRenderer
-          key={section.id}
-          section={section}
-          brandName={config.brand.name}
-          brandLogo={config.brand.logoUrl}
-          legal={config.legal}
-          abOverride={overrideFor(section)}
-          onCtaClick={onCtaClick}
-          onFormSubmit={onFormSubmit}
-        />
-      )
-    }
-    // band index = number of content (non-navbar) sections before this one
-    const band = visible.slice(0, i).filter((s) => s.type !== "navbar").length % 2
-    const bg = band === 0 ? "var(--lf-bg)" : "var(--lf-bg-alt)"
-    return (
-      <div key={section.id} id={anchor} style={{ background: bg }} className={cn(selectionMode ? "relative" : "scroll-mt-16")}>
-        <div className={selectionMode ? "pointer-events-none" : undefined}>
+        <SectionErrorBoundary key={section.id} sectionId={section.id} sectionKind="navbar">
           <SectionRenderer
             section={section}
             brandName={config.brand.name}
@@ -257,6 +243,26 @@ export function LandingPreview({
             onCtaClick={onCtaClick}
             onFormSubmit={onFormSubmit}
           />
+        </SectionErrorBoundary>
+      )
+    }
+    // band index = number of content (non-navbar) sections before this one
+    const band = visible.slice(0, i).filter((s) => s.type !== "navbar").length % 2
+    const bg = band === 0 ? "var(--lf-bg)" : "var(--lf-bg-alt)"
+    return (
+      <div key={section.id} id={anchor} style={{ background: bg }} className={cn(selectionMode ? "relative" : "scroll-mt-16")}>
+        <div className={selectionMode ? "pointer-events-none" : undefined}>
+          <SectionErrorBoundary sectionId={section.id} sectionKind={section.type}>
+            <SectionRenderer
+              section={section}
+              brandName={config.brand.name}
+              brandLogo={config.brand.logoUrl}
+              legal={config.legal}
+              abOverride={overrideFor(section)}
+              onCtaClick={onCtaClick}
+              onFormSubmit={onFormSubmit}
+            />
+          </SectionErrorBoundary>
         </div>
         {selectionMode && <SelectOverlay section={section} />}
       </div>

@@ -1,0 +1,16 @@
+import { readFileSync, writeFileSync } from "node:fs"
+import { yamlToConfig } from "../src/lib/landing/yaml"
+const yaml = readFileSync("scripts/gshock-ga-b2100.yaml", "utf8")
+const config = yamlToConfig(yaml)
+const types = config.sections.map(s => s.type)
+console.log("theme:", config.themeId, "| mode:", (config.brand as {mode?: string}).mode)
+console.log("sections (" + types.length + "):", types.join(", "))
+const hero = config.sections.find(s => s.type === "hero")
+console.log("hero image:", (hero as {image?: string}).image?.slice(0, 60))
+console.log("hero slides:", ((hero as {images?: string[]}).images ?? []).length, "carousel:", (hero as {carousel?: string}).carousel)
+const offer = config.sections.find(s => s.type === "offer")
+console.log("offer:", JSON.stringify({ price: (offer as {price?: string}).price, original: (offer as {originalPrice?: string}).originalPrice, deadline: (offer as {deadline?: string}).deadline }))
+const gallery = config.sections.find(s => s.type === "gallery")
+console.log("gallery imgs:", (gallery as {items?: {src?: string}[]}).items?.filter(i => i.src?.startsWith("http")).length)
+writeFileSync("/tmp/gshock-config.json", JSON.stringify(config))
+console.log("config JSON written — VALID")

@@ -322,6 +322,13 @@ describe("offer section (price / countdown / trust)", () => {
     expect(offer.deadline).toBe(new Date("2030-01-01T00:00:00Z").toISOString())
     expect(offer.features).toEqual(["All features", "Lifetime updates"])
     expect(offer.trust).toEqual([{ icon: "lock", label: "Secure checkout" }])
+    // regression: a 1-arg v.slice(90) once erased every short field under 90 chars
+    expect(offer.title).toBe("Flash sale")
+    expect(offer.subtitle).toBe("Half price, 48 hours")
+    expect(offer.badge).toBe("Ends tonight")
+    expect(offer.period).toBe("One-time payment")
+    expect(offer.savingsLabel).toBe("Save 50%")
+    expect(offer.countdownPrefix).toBe("Price doubles in")
   })
 
   it("coerces malformed offer fields to safe defaults", () => {

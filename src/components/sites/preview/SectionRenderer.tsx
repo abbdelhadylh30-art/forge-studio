@@ -46,6 +46,12 @@ export interface SectionRendererProps {
 export function SectionRenderer({ section, brandName, brandLogo, legal, abOverride, onCtaClick, onFormSubmit }: SectionRendererProps) {
   if (section.hidden) return null
 
+  // Dev-only crash trigger — lets E2E (and developers) verify the per-section
+  // error boundary without corrupting a real config. Never active in production.
+  if (process.env.NODE_ENV === "development" && section.id === "__lf_crash_test__") {
+    throw new Error("[dev] section crash test")
+  }
+
   return (
     <AnimWrap animation={section.animation}>
       {renderSection(section)}

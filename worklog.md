@@ -948,3 +948,20 @@ Stage Summary:
 - 3 releases this arc: v1.7 (offer/legal/social), v1.8 (15 style variants + theme tweaks), v1.9 (carousel + settings + snapshots).
 - Artifacts: download/v19-carousel-studio.png, download/v19-snapshots-dialog.png, scripts/e2e-v19-features.yaml.
 - Pending: push 4d5ea8a + 1c03459 to GitHub → Vercel deploy (needs the user's token — the previous one was chat-pasted and must be rotated).
+---
+Task ID: 21
+Agent: Super Z (main agent, sandbox)
+Task: Build a G-Shock product-launch landing page in Sites; discovered and repaired a sandbox snapshot rollback on the way.
+
+Work Log:
+- DISASTER FOUND MID-TASK: the sandbox working tree had been rolled back to a v1.6-era snapshot — Offer.tsx gone, SECTION_TYPES pre-offer, DB wiped, dev server running old code, my uncommitted v1.9.1 crash-fix work (Task 20) lost, download/ artifacts empty. GitHub remote was INTACT at 4e189b4 (v1.9) — verified via fetch. The local branch also carried 6 garbage UUID auto-commits from the background process; diffed them (old worklog dupes + file-mode noise only) and discarded.
+- RECOVERY: hard-reset local main to origin/main (v1.9 restored); rebuilt v1.9.1 exactly from the conversation record: src/app/error.tsx, sites/shared/ErrorBoundary.tsx (section + view boundaries), LandingPreview boundary wrapping (3 branches), store.loadProject normalize-guard + id:null widening, localBackup.ts (+7 tests), SitesApp hardened bootstrap (fetchProject/fetchList/retry/fallbackToLocal) + 1.5s localStorage mirror, ProjectsView open guard, useSaveProject friendly failures, SectionRenderer dev crash trigger. Gates re-passed: tsc 0, ESLint clean, vitest 237/237.
+- REAL SHIPPED BUG FOUND via the demo: yaml.ts offer coercion used a 1-arg `v.slice(90)` — a substring FROM index 90 — which silently erased every offer title/subtitle (under 90 chars) and badge/period/savingsLabel/countdownPrefix (under 60) since v1.7. Round-trip tests never caught it (symmetric both directions; the assertions never checked those fields). Fixed to v.slice(0, N), added a regression assertion set to the offer round-trip test. All 237 tests still green.
+- G-SHOCK DEMO PAGE: searched real G-Shock imagery (image-search, VLM-verified 7 candidates), built an 18-section launch page as YAML (scripts/gshock-ga-b2100.yaml → also download/gshock-ga-b2100.yaml): ember-dark theme, announcement countdown + offer countdown (same 2026-09-08 deadline), hero with 3-slide zoom carousel, logos, problem/solution, stats (Triple-10), features grid, 1983 story (Kikuo Ibe), 6-image masonry gallery, comparison table, offer card ($99/$129, SAVE $30), testimonials, guarantee seals, FAQ, contact pre-order form, final CTA, footer with real social URLs. Created via POST /api/sites (slug g-shock-ga-b2100-noir), PATCHed once after the slice fix.
+- E2E VERIFIED (agent-browser): published page at /p/g-shock-ga-b2100-noir renders all 18 sections; both countdowns tick live; hero carousel works (zoom, arrows+dots); all 9 images load; contact form + footer socials present. VLM design QA across 4 full-height segments + hero + offer card: no defects, 8–9/10 ratings.
+- Artifacts: download/gshock-00-full.png (1440×10000 whole page), gshock-01…07 section shots, gshock-ga-b2100.yaml (portable — re-importable on any deployment).
+
+Stage Summary:
+- v1.9.1 crash-proofing fully rebuilt after the snapshot rollback; offer short-text slice bug fixed with regression tests (the first real user-visible bug found by dogfooding).
+- The G-SHOCK GA-B2100 NOIR launch page is live in the sandbox at /p/g-shock-ga-b2100-noir and openable in the studio (it is the only project in the fresh dev DB).
+- Not yet pushed (no GitHub credentials in session); user must push or provide a token. On Vercel the page needs a YAML re-import (per-instance SQLite).

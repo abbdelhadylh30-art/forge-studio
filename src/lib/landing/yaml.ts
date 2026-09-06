@@ -201,7 +201,9 @@ export function normalizeConfig(input: unknown): LandingConfig {
       // short text fields — trimmed, capped, dropped when empty
       for (const key of ["title", "subtitle", "badge", "period", "savingsLabel", "countdownPrefix"] as const) {
         const v = typeof rs[key] === "string" ? (rs[key] as string).trim() : ""
-        if (v) (merged as Record<string, unknown>)[key] = v.slice(key === "title" || key === "subtitle" ? 90 : 60)
+        // NOTE: two-arg slice — a 1-arg `v.slice(90)` would return a substring FROM
+        // index 90 (i.e. "" for anything shorter), silently erasing every short field.
+        if (v) (merged as Record<string, unknown>)[key] = v.slice(0, key === "title" || key === "subtitle" ? 90 : 60)
         else delete (merged as Record<string, unknown>)[key]
       }
       const op = typeof rs.originalPrice === "string" ? rs.originalPrice.trim() : ""

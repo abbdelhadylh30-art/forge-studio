@@ -55,12 +55,23 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
     setBusy(p.id)
     try {
       const res = await fetch(`/api/sites/${p.id}`)
-      const data = (await res.json()) as ProjectWithConfig
+      // Guard: a 404 body has no config — loading it would crash the studio.
+      const data = res.ok ? ((await res.json().catch(() => null)) as ProjectWithConfig | null) : null
+      if (!res.ok || !data || !data.config) {
+        toast.error("Could not open project", {
+          description:
+            res.status === 404
+              ? "The server instance no longer has it — try again in a moment (data is per-instance)."
+              : `Server error ${res.status}. Try again shortly.`,
+        })
+        await refresh()
+        return
+      }
       loadProject(data.id, data.name, data.slug, data.config)
       onOpenProject(data.id)
       toast.success(`Opened ${data.name}`, { description: `${data.sectionCount} sections · ${data.themeId} theme` })
     } catch {
-      toast.error("Could not open project")
+      toast.error("Could not open project", { description: "The request failed — check your connection and try again." })
     } finally {
       setBusy(null)
     }
