@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       // partial / AI JSON / full config — always normalized
       config = normalizeConfig(body.config)
     } else {
-      const templateId = str(body.templateId) ?? "saas"
+      const templateId = str(body.templateId) ?? TEMPLATES[0].id
       const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0]
       config = normalizeConfig(template.build())
       if (template.stampName === false) {

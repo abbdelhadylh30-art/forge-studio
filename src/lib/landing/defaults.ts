@@ -1,6 +1,9 @@
 import type { LandingConfig, Section, SectionType } from "./types"
-import { sectionAnchors } from "./anchors"
 import { buildGshockLaunch } from "./gshockTemplate"
+import { buildClothingLaunch } from "./clothingTemplate"
+import { buildPortfolioSite } from "./portfolioTemplate"
+import { buildRealEstateLaunch } from "./realestateTemplate"
+import { buildCoffeeLaunch } from "./coffeeTemplate"
 
 let counter = 0
 export function sid(prefix: string): string {
@@ -400,86 +403,20 @@ export interface TemplateDef {
 /** Re-point in-page #links that resolve to no section anchor toward the
  *  strongest existing conversion target — starter templates must never ship
  *  broken navigation (the readiness audit now enforces exactly this). */
-function relinkAnchors(config: LandingConfig): LandingConfig {
-  const anchors = new Set(sectionAnchors(config).values())
-  if (anchors.size === 0) return config
-  const fallback = ["cta", "pricing", "features", "faq", "contact", "top"].find((a) => anchors.has(a)) ?? [...anchors][0]
-  const fix = (href: string): string => {
-    const trimmed = href.trim()
-    if (!trimmed.startsWith("#")) return trimmed // external URL — untouched
-    const target = trimmed.slice(1)
-    if (!target || anchors.has(target)) return trimmed
-    return `#${fallback}`
-  }
-  for (const s of config.sections) {
-    if (s.type === "navbar") {
-      s.links.forEach((l) => (l.href = fix(l.href)))
-      if (s.cta) s.cta.href = fix(s.cta.href)
-    } else if (s.type === "hero") {
-      s.cta.href = fix(s.cta.href)
-      if (s.secondaryCta) s.secondaryCta.href = fix(s.secondaryCta.href)
-    } else if (s.type === "cta-final") {
-      s.cta.href = fix(s.cta.href)
-    } else if (s.type === "footer") {
-      s.linkGroups.forEach((g) => g.items.forEach((l) => (l.href = fix(l.href))))
-    }
-  }
-  return config
-}
-
-function assemble(brandName: string, themeId: LandingConfig["themeId"], types: SectionType[]): LandingConfig {
-  const sections = types.map((t) => createSection(t))
-  return relinkAnchors({
-    version: 1,
-    brand: { name: brandName, tagline: "Ship beautiful pages in minutes" },
-    themeId,
-    seo: {
-      title: `${brandName} — Ship faster`,
-      description: `${brandName} helps you launch production-ready landing pages from one config file.`,
-    },
-    sections,
-  })
-}
-
+/**
+ * The template gallery — five content-rich showcase pages, one per niche.
+ * All are stampName:false: creating a project keeps the demo brand and copy
+ * verbatim (the showcase IS the content). Every builder returns a fresh
+ * object graph safe to mutate.
+ */
 export const TEMPLATES: TemplateDef[] = [
   {
-    id: "saas",
-    name: "SaaS",
-    description: "Hero, features, pricing, FAQ — the classic B2B SaaS page.",
-    icon: "rocket",
-    build: () => assemble("Vertex", "nebula", ["navbar", "hero", "logos", "features", "stats", "testimonials", "pricing", "faq", "cta-final", "footer"]),
-  },
-  {
-    id: "narrative",
-    name: "Narrative",
-    description: "Announcement, problem → solution arc, video, comparison, guarantee — the full conversion story.",
-    icon: "flame",
-    build: () => assemble("Arc", "ember", ["announcement", "navbar", "hero", "problem", "solution", "features", "video", "testimonials", "comparison", "guarantee", "pricing", "faq", "cta-final", "footer"]),
-  },
-  {
-    id: "mobile-app",
-    name: "Mobile App",
-    description: "App showcase with screenshots, reviews and download CTAs.",
-    icon: "smartphone",
-    build: () => {
-      const c = assemble("Kite", "emerald", ["navbar", "hero", "logos", "features", "gallery", "testimonials", "faq", "cta-final", "footer"])
-      c.brand.tagline = "Your study companion, everywhere"
-      return c
-    },
-  },
-  {
-    id: "agency",
-    name: "Agency",
-    description: "Bold portfolio-style page for studios and freelancers.",
-    icon: "palette",
-    build: () => assemble("Studio Rosé", "rose", ["navbar", "hero", "features", "gallery", "stats", "contact", "footer"]),
-  },
-  {
-    id: "ecommerce",
-    name: "Commerce",
-    description: "Product launch page with social proof and offers.",
+    id: "clothing",
+    name: "Apparel Drop",
+    description: "NORTHFORM heavyweight hoodie launch — countdown bundle, lookbook, repair promise. 18 sections.",
     icon: "shopping-bag",
-    build: () => assemble("Ember Goods", "ember", ["announcement", "navbar", "hero", "logos", "features", "gallery", "testimonials", "pricing", "guarantee", "faq", "cta-final", "footer"]),
+    stampName: false,
+    build: () => buildClothingLaunch(),
   },
   {
     id: "product-launch",
@@ -490,18 +427,28 @@ export const TEMPLATES: TemplateDef[] = [
     build: () => buildGshockLaunch(),
   },
   {
-    id: "minimal",
-    name: "Minimal",
-    description: "One hero, one CTA. Nothing else.",
-    icon: "layers",
-    build: () => assemble("Mono", "mono", ["navbar", "hero", "cta-final", "footer"]),
+    id: "portfolio",
+    name: "Portfolio",
+    description: "Mara Osei design studio — work carousel, services, engagements, handoff promise. 14 sections.",
+    icon: "palette",
+    stampName: false,
+    build: () => buildPortfolioSite(),
   },
   {
-    id: "docsish",
-    name: "Paper Docs",
-    description: "Light, calm, readable — great for developer tools.",
-    icon: "file",
-    build: () => assemble("Lumen", "paper", ["navbar", "hero", "logos", "features", "faq", "contact", "footer"]),
+    id: "real-estate",
+    name: "Real Estate",
+    description: "The Alder House listing — photo tour, comparables, offer review countdown, tour booking. 15 sections.",
+    icon: "map",
+    stampName: false,
+    build: () => buildRealEstateLaunch(),
+  },
+  {
+    id: "coffee",
+    name: "Coffee Club",
+    description: "Meridian Roasters subscription — roast-to-door story, process gallery, freshness guarantee. 18 sections.",
+    icon: "flame",
+    stampName: false,
+    build: () => buildCoffeeLaunch(),
   },
 ]
 

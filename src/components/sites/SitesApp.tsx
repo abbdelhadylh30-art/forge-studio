@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { useForge } from "@/lib/landing/store"
 import { useUi } from "@/lib/landing/uiStore"
 import { auditConfig } from "@/lib/landing/readiness"
-import { TEMPLATES } from "@/lib/landing/defaults"
+import { buildGshockLaunch } from "@/lib/landing/gshockTemplate"
 import { useForge as useForgeStudio } from "@/lib/forge/store"
 import { StudioShell } from "@/components/sites/studio/StudioShell"
 import { DashboardView } from "@/components/sites/dashboard/DashboardView"
@@ -66,7 +66,7 @@ function fallbackToLocal(
     loadProject(backup.id, `${backup.name} (local)`, backup.slug, backup.config)
     return true
   }
-  loadProject(null, "Vertex (local)", "vertex-local", TEMPLATES[0].build())
+  loadProject(null, "G-SHOCK (local)", "g-shock-local", buildGshockLaunch())
   return false
 }
 
@@ -80,13 +80,13 @@ async function runBootstrap(
 
     if (!target) {
       // First run: create the demo site with A/B testing enabled
-      const config = TEMPLATES[0].build()
+      const config = buildGshockLaunch()
       const hero = config.sections.find((s) => s.type === "hero")
       if (hero && hero.type === "hero" && hero.ab) hero.ab = { ...hero.ab, enabled: true, sampleSize: 500 }
       const createRes = await fetch("/api/sites", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: "Vertex", config }),
+        body: JSON.stringify({ name: "G-SHOCK GA-B2100 NOIR", config }),
       }).catch(() => null)
       const created = createRes ? ((await createRes.json().catch(() => null)) as (ProjectWithConfig & { error?: string }) | null) : null
       if (!createRes?.ok || !created?.id) {
@@ -287,7 +287,7 @@ export function SitesApp() {
               <span className="text-zinc-600">/ 100</span>
             </button>
           )}
-          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v1.9.4</span>
+          <span className="hidden rounded-md border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500 md:inline">v2.0.0</span>
           <Link
             href="https://github.com/abbdelhadylh30-art/forge-studio"
             target="_blank"

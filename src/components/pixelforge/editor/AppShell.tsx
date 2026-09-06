@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { usePFStore, consumeAuditorAutosave } from "@/lib/pixelforge/store/pf-store";
-import { useForge } from "@/lib/forge/store";
 import { TopBar } from "./TopBar";
 import { DeviceBar } from "./DeviceBar";
 import { LayerPanel } from "./LayerPanel";
@@ -49,16 +48,10 @@ export function AppShell() {
   }, [undo, redo, setSelectedSelector]);
 
   // First mount: load something for the user to see.
-  // Priority: 1) pending builder→auditor transfer, 2) autosaved audit, 3) demo page.
+  // Priority: 1) autosaved audit, 2) demo page. (The builder→auditor
+  // transfer bridge was retired with the legacy Page Builder in v2.0.0.)
   useEffect(() => {
     if (usePFStore.getState().currentHTML) return; // already loaded
-    const { consumeTransfer } = useForge.getState();
-    const transfer = consumeTransfer();
-    if (transfer && transfer.source === "builder") {
-      setHTML(transfer.html, { resetHistory: true });
-      usePFStore.getState().setProjectName(transfer.name);
-      return;
-    }
     const saved = consumeAuditorAutosave();
     if (saved && saved.currentHTML) {
       setHTML(saved.currentHTML, { resetHistory: true });

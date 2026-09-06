@@ -65,15 +65,22 @@ describe("gshockTemplate", () => {
     expect(offer?.type === "offer" && offer.deadline).toBe(deadline)
   })
 
-  it("registers as a showcase template in TEMPLATES without touching defaults", () => {
+  it("registers as a showcase template in TEMPLATES with the full 5-template gallery", () => {
     const t = TEMPLATES.find((x) => x.id === "product-launch")
     expect(t).toBeDefined()
     expect(t?.name).toBe("Product Launch")
     expect(t?.icon).toBe("gauge")
     expect(t?.stampName).toBe(false)
     expect(t?.description).toContain("G-SHOCK")
-    // registry order / fallbacks unchanged
-    expect(TEMPLATES[0]?.id).toBe("saas")
-    expect(TEMPLATES.map((x) => x.id)).toContain("minimal")
+    // registry shape: five content-rich showcase templates, all verbatim
+    expect(TEMPLATES).toHaveLength(5)
+    expect(TEMPLATES.map((x) => x.id)).toEqual([
+      "clothing",
+      "product-launch",
+      "portfolio",
+      "real-estate",
+      "coffee",
+    ])
+    expect(TEMPLATES.every((x) => x.stampName === false)).toBe(true)
   })
 })

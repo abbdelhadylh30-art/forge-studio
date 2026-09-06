@@ -224,7 +224,7 @@ export function ProjectsView({ onOpenProject }: { onOpenProject: (id: string) =>
 
 function CreateProjectDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; onCreated: (p: ProjectSummary) => void }) {
   const [name, setName] = React.useState("")
-  const [templateId, setTemplateId] = React.useState("saas")
+  const [templateId, setTemplateId] = React.useState(TEMPLATES[0].id)
   const [creating, setCreating] = React.useState(false)
   const [aiMode, setAiMode] = React.useState(false)
   const [prompt, setPrompt] = React.useState("")

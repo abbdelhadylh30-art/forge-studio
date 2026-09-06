@@ -1,26 +1,20 @@
 "use client";
 
 import { useForge } from "@/lib/forge/store";
-import { useBuilder, peekBuilderAutosave, clearBuilderAutosave } from "@/lib/builder/store/builder-store";
-import { TEMPLATES, buildSiteFromTemplate } from "@/lib/builder/templates/templates";
-import { usePFStore } from "@/lib/pixelforge/store/pf-store";
+import { TEMPLATES, type TemplateDef } from "@/lib/landing/defaults";
+import { getTheme } from "@/lib/landing/themes";
 import { loadAuditHistory, clearAuditHistory, type AuditHistoryEntry } from "@/lib/pixelforge/audit-history";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  Plus, ShieldCheck, Sparkles, Layout, ArrowRight, Wand2, Megaphone,
-  CheckCircle2, Zap, Eye, MousePointerClick, Layers, History, X, TrendingUp, Trash2, ExternalLink, Hammer,
+  ShieldCheck, Sparkles, ArrowRight, Wand2,
+  CheckCircle2, History, Trash2, ExternalLink, TrendingUp, Hammer,
   type LucideIcon,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { Command, Moon, Sun } from "lucide-react";
-
-interface AutosaveInfo {
-  timestamp: number;
-  siteName: string;
-  pageCount: number;
-}
+import { Moon, Sun } from "lucide-react";
+import { toast } from "sonner";
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -34,13 +28,11 @@ function timeAgo(ts: number): string {
 }
 
 export function ForgeDashboard() {
-  const { setView, transferToAuditor } = useForge();
-  const { loadSite, newBlankSite, exportHTML, site: builderSite } = useBuilder();
-  const { setHTML: setAuditorHTML, projectName: auditorProjectName } = usePFStore();
+  const { setView } = useForge();
   const { resolvedTheme, setTheme } = useTheme();
-  const [hoveredTool, setHoveredTool] = useState<"builder" | "auditor" | "sites" | null>(null);
-  const [autosave, setAutosave] = useState<AutosaveInfo | null>(null);
+  const [hoveredTool, setHoveredTool] = useState<"sites" | "auditor" | null>(null);
   const [auditHistory, setAuditHistory] = useState<AuditHistoryEntry[]>([]);
+  const [creatingId, setCreatingId] = useState<string | null>(null);
 
   // next-themes hydration guard — theme is only known client-side. Deferred
   // via rAF so the setState lands in a callback (not synchronously in the
@@ -51,25 +43,38 @@ export function ForgeDashboard() {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Check for an autosaved project on mount (and when the dashboard re-gains focus)
   useEffect(() => {
-    const check = () => setAutosave(peekBuilderAutosave());
     const checkHistory = () => setAuditHistory(loadAuditHistory());
-    check();
     checkHistory();
     // Re-check when window regains focus (e.g., user came back from another tab)
-    window.addEventListener("focus", check);
     window.addEventListener("focus", checkHistory);
-    return () => {
-      window.removeEventListener("focus", check);
-      window.removeEventListener("focus", checkHistory);
-    };
+    return () => window.removeEventListener("focus", checkHistory);
   }, []);
 
-  const dismissAutosave = () => {
-    clearBuilderAutosave();
-    setAutosave(null);
-  };
+  /** Create a project from a showcase template and open it in the Sites studio. */
+  const createFromTemplate = async (t: TemplateDef, projectName: string) => {
+    if (creatingId) return;
+    setCreatingId(t.id);
+    try {
+      const res = await fetch("/api/sites", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: projectName, templateId: t.id }),
+      }).catch(() => null)
+      const data = res ? ((await res.json().catch(() => null)) as { id?: string; config?: unknown } | null) : null
+      if (!res?.ok || !data?.id) throw new Error("Could not reach the site server")
+      toast.success(`${projectName} is open in the studio`, {
+        description: `${t.name} template · edit anything, then publish.`,
+      })
+      setView("sites")
+    } catch (e) {
+      toast.error("Could not create the project", {
+        description: e instanceof Error ? e.message : "Try again in a moment.",
+      })
+    } finally {
+      setCreatingId(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0b1020] dark:text-slate-100 relative overflow-hidden transition-colors">
@@ -99,16 +104,7 @@ export function ForgeDashboard() {
               <a href="#workflow" className="px-3 py-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800/70 transition-colors">Workflow</a>
             </nav>
             <div className="flex items-center gap-2">
-              {/* Command palette hint — discoverable Ctrl/Cmd+K entry point */}
-              <button
-                onClick={() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, metaKey: true })); }}
-                className="hidden sm:flex items-center gap-2 h-8 px-2.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 text-xs text-slate-400 dark:text-slate-500 hover:border-violet-300 dark:hover:border-violet-600 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                title="Open command palette (Ctrl/Cmd+K)"
-              >
-                <Command className="h-3 w-3" />
-                <span className="font-medium">K</span>
-              </button>
-              {/* Theme toggle (Tier 4) */}
+              {/* Theme toggle */}
               {mounted && (
                 <button
                   onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
@@ -119,55 +115,17 @@ export function ForgeDashboard() {
                   {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
               )}
-              <Button variant="outline" size="sm" onClick={() => setView("builder")} className="gap-1.5 h-8">
-                <Layout className="h-3.5 w-3.5" /> Builder
+              <Button variant="outline" size="sm" onClick={() => setView("sites")} className="gap-1.5 h-8">
+                <Hammer className="h-3.5 w-3.5" /> Sites
               </Button>
               <Button variant="outline" size="sm" onClick={() => setView("auditor")} className="gap-1.5 h-8">
                 <ShieldCheck className="h-3.5 w-3.5" /> Auditor
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setView("sites")} className="gap-1.5 h-8">
-                <Hammer className="h-3.5 w-3.5" /> Sites
               </Button>
             </div>
           </div>
         </header>
 
         <main className="mx-auto max-w-6xl px-6 pb-24">
-          {/* Autosave recovery banner */}
-          {autosave && (
-            <div
-              className="mt-6 flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-3 backdrop-blur"
-              style={{ animation: "pfFadeInUp 0.3s ease both" }}
-            >
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
-                <History className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-slate-900">
-                  Welcome back — pick up where you left off
-                </div>
-                <div className="text-xs text-slate-600 truncate">
-                  &ldquo;{autosave.siteName}&rdquo; · {autosave.pageCount} page{autosave.pageCount === 1 ? "" : "s"} · saved {timeAgo(autosave.timestamp)}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => setView("builder")}
-                className="h-8 gap-1.5 bg-gradient-to-br from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600"
-              >
-                Resume <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-              <button
-                onClick={dismissAutosave}
-                className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-white/60 hover:text-slate-700 transition-colors"
-                aria-label="Dismiss saved project"
-                title="Discard the saved project"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
           {/* Hero */}
           <section className="pt-16 pb-12 text-center" style={{ animation: "pfFadeInUp 0.5s ease both" }}>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50/80 dark:border-violet-800 dark:bg-violet-950/50 px-3 py-1 text-xs font-medium text-violet-700 dark:text-violet-300 mb-5">
@@ -185,13 +143,12 @@ export function ForgeDashboard() {
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-              Drag-drop builder. Five-category auditor. One-click fixes.
-              Ship a landing page you'd be proud to share — without code, plugins, or a freelancer.
+              The Sites studio builds the page — pick a niche template or prompt the AI, edit every section live, and publish with analytics and A/B tests baked in. Then run it through the five-category Auditor and ship at full score.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <Button
                 size="lg"
-                onClick={() => { newBlankSite("Untitled page"); setView("builder"); }}
+                onClick={() => setView("sites")}
                 className="h-11 gap-2 px-6 bg-gradient-to-br from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 shadow-md shadow-violet-500/25"
               >
                 Start building <ArrowRight className="h-4 w-4" />
@@ -207,34 +164,35 @@ export function ForgeDashboard() {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => setView("sites")}
+                onClick={() => document.getElementById("templates")?.scrollIntoView({ behavior: "smooth" })}
                 className="h-11 gap-2 px-6 bg-white/70 backdrop-blur"
               >
-                <Hammer className="h-4 w-4" /> Publish a live site
+                <Sparkles className="h-4 w-4" /> Browse templates
               </Button>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> No sign-up, no install</span>
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> 5 launch-ready templates</span>
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Publish live at /p/your-slug</span>
               <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Export clean HTML</span>
-              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> 38 one-click fixes</span>
             </div>
           </section>
 
           {/* Two big tool cards */}
           <section id="tools" className="mb-14 grid gap-5 md:grid-cols-2">
             <ToolCard
-              icon={Layout}
-              title="Page Builder"
-              tagline="Drag-drop sections, swap themes, edit copy inline, and export clean HTML in minutes. No code, no plugins, no setup."
-              accent="from-violet-500 to-fuchsia-500"
-              glow="shadow-violet-500/20"
-              features={["20 section types", "Drag & drop reorder", "8 theme presets", "Multi-page sites", "HTML/ZIP export"]}
-              onPrimary={() => { newBlankSite("Untitled page"); setView("builder"); }}
-              onSecondary={() => setView("templates")}
-              primaryLabel="Start blank page"
-              secondaryLabel="Browse templates"
-              isHovered={hoveredTool === "builder"}
-              onHover={(v) => setHoveredTool(v ? "builder" : null)}
+              icon={Hammer}
+              title="Sites Studio"
+              tagline="Build a full landing page from a niche template, a YAML file, or a one-line AI prompt — then edit every section live and publish it with analytics, A/B tests, countdown offers and a leads inbox."
+              accent="from-emerald-500 to-teal-500"
+              glow="shadow-emerald-500/20"
+              features={["5 niche templates", "AI prompt → full page", "Live countdowns & offers", "Analytics + A/B tests", "Publish at /p/slug", "YAML import / export"]}
+              onPrimary={() => setView("sites")}
+              onSecondary={() => setView("sites")}
+              primaryLabel="Open Sites studio"
+              secondaryLabel="View analytics"
+              isHovered={hoveredTool === "sites"}
+              onHover={(v) => setHoveredTool(v ? "sites" : null)}
+              className="md:col-span-2"
             />
             <ToolCard
               icon={ShieldCheck}
@@ -244,38 +202,23 @@ export function ForgeDashboard() {
               glow="shadow-cyan-500/20"
               features={["5-category scoring", "43 audit checks", "38 quick-fixes", "Fix All Safe button", "Mobile + desktop split"]}
               onPrimary={() => setView("auditor")}
-              onSecondary={() => transferToAuditor(exportHTML(), builderSite.name)}
+              onSecondary={() => setView("auditor")}
               primaryLabel="Open auditor"
-              secondaryLabel="Audit my builder page"
+              secondaryLabel="Audit any URL"
               isHovered={hoveredTool === "auditor"}
               onHover={(v) => setHoveredTool(v ? "auditor" : null)}
-            />
-            <ToolCard
-              icon={Hammer}
-              title="Landing Sites"
-              tagline="Forge Studio Sites (from landing-forge): build a page from YAML or an AI prompt, publish it live with built-in privacy-friendly analytics, section-level A/B testing, a leads inbox, and deploy simulation."
-              accent="from-emerald-500 to-teal-500"
-              glow="shadow-emerald-500/20"
-              features={["AI prompt → full page", "YAML import/export", "Live analytics + A/B tests", "Published pages with tracking", "Leads inbox + CSV export"]}
-              onPrimary={() => setView("sites")}
-              onSecondary={() => setView("sites")}
-              primaryLabel="Open Sites studio"
-              secondaryLabel="View analytics"
-              isHovered={hoveredTool === "sites"}
-              onHover={(v) => setHoveredTool(v ? "sites" : null)}
-              className="md:col-span-2"
             />
           </section>
 
           {/* Quick stats */}
           <section className="mb-14 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard label="Section types" value="20" sub="Mix and match" icon={Layout} color="text-violet-500" bg="bg-violet-50" />
+            <StatCard label="Section types" value="20" sub="Mix and match" icon={Sparkles} color="text-emerald-500" bg="bg-emerald-50" />
             <StatCard label="Audit checks" value="43" sub="Across 5 categories" icon={ShieldCheck} color="text-cyan-500" bg="bg-cyan-50" />
-            <StatCard label="One-click fixes" value="38" sub="Apply individually or all at once" icon={Wand2} color="text-emerald-500" bg="bg-emerald-50" />
-            <StatCard label="Templates" value="5" sub="Fully editable starting points" icon={Megaphone} color="text-amber-500" bg="bg-amber-50" />
+            <StatCard label="One-click fixes" value="38" sub="Apply individually or all at once" icon={Wand2} color="text-blue-500" bg="bg-blue-50" />
+            <StatCard label="Templates" value="5" sub="One per niche, fully editable" icon={Hammer} color="text-amber-500" bg="bg-amber-50" />
           </section>
 
-          {/* Recent audits (Tier 2 — audit history) */}
+          {/* Recent audits */}
           {auditHistory.length > 0 && (
             <section className="mb-14" style={{ animation: "pfFadeInUp 0.4s ease both" }}>
               <div className="mb-5 flex items-end justify-between">
@@ -304,31 +247,27 @@ export function ForgeDashboard() {
             </section>
           )}
 
-          {/* Template quick-start */}
+          {/* Template showcase — creates a real Sites project per card */}
           <section id="templates" className="mb-14">
             <div className="mb-5 flex items-end justify-between">
               <div>
                 <h2 className="text-xl font-semibold tracking-tight">Start from a template</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Each template is fully editable — swap the copy, colors, and sections to make it yours.</p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Five content-rich launch pages, one per niche — clicking one creates the project and opens it in the studio. Every section stays editable.</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setView("templates")} className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200 hover:bg-violet-50 dark:hover:bg-violet-950/50">
-                See all <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              <Button variant="ghost" size="sm" onClick={() => setView("sites")} className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200 hover:bg-violet-50 dark:hover:bg-violet-950/50">
+                Open studio <ArrowRight className="ml-1 h-3.5 w-3.5" />
               </Button>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => { newBlankSite("Untitled page"); setView("builder"); }}
-                className="group flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/50 p-6 text-center transition-all hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50/40 dark:hover:bg-violet-950/30 hover:shadow-md"
-              >
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors group-hover:bg-violet-100 dark:group-hover:bg-violet-900/60 group-hover:text-violet-600 dark:group-hover:text-violet-300">
-                  <Plus className="h-5 w-5" />
-                </div>
-                <div className="text-sm font-semibold">Blank page</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Start from scratch</div>
-              </button>
-              {TEMPLATES.slice(0, 5).map((tpl, idx) => (
-                <TemplateCard key={tpl.slug} tpl={tpl} index={idx} onClick={() => { loadSite(buildSiteFromTemplate(tpl)); setView("builder"); }} />
+              {TEMPLATES.map((tpl, idx) => (
+                <SiteTemplateCard
+                  key={tpl.id}
+                  tpl={tpl}
+                  index={idx}
+                  busy={creatingId === tpl.id}
+                  disabled={creatingId !== null}
+                  onUse={(name) => void createFromTemplate(tpl, name)}
+                />
               ))}
             </div>
           </section>
@@ -342,10 +281,10 @@ export function ForgeDashboard() {
             </div>
             <div className="grid gap-6 md:grid-cols-3 relative">
               {/* Connecting line on md+ */}
-              <div className="hidden md:block absolute top-7 left-[16.66%] right-[16.66%] h-px bg-gradient-to-r from-violet-200 via-fuchsia-200 to-cyan-200 dark:from-violet-800 dark:via-fuchsia-800 dark:to-cyan-800" />
-              <WorkflowStep num={1} title="Build" desc="Drag sections onto the canvas, edit copy inline, pick a theme, preview at any device width." icon={Layout} accent="from-violet-500 to-fuchsia-500" />
-              <WorkflowStep num={2} title="Audit" desc="Hit 'Audit this page' to send your work to the auditor. Get a score in under a second." icon={ShieldCheck} accent="from-cyan-500 to-blue-600" />
-              <WorkflowStep num={3} title="Fix & ship" desc="Apply safe fixes with one click, then export the improved HTML. Or send it back to the builder for another round." icon={Sparkles} accent="from-emerald-500 to-teal-600" />
+              <div className="hidden md:block absolute top-7 left-[16.66%] right-[16.66%] h-px bg-gradient-to-r from-emerald-200 via-teal-200 to-cyan-200 dark:from-emerald-800 dark:via-teal-800 dark:to-cyan-800" />
+              <WorkflowStep num={1} title="Build" desc="Pick a niche template or describe the page. Edit sections, themes, countdowns and offers live in the Sites studio." icon={Hammer} accent="from-emerald-500 to-teal-500" />
+              <WorkflowStep num={2} title="Audit" desc="Run any URL — or your published page — through the auditor. Get a 0–100 score across five categories in under a second." icon={ShieldCheck} accent="from-cyan-500 to-blue-600" />
+              <WorkflowStep num={3} title="Fix & ship" desc="Apply safe fixes with one click, publish live with analytics and A/B tests, or export a standalone HTML file." icon={Sparkles} accent="from-violet-500 to-fuchsia-600" />
             </div>
           </section>
 
@@ -416,34 +355,51 @@ function StatCard({ label, value, sub, icon: Icon, color, bg }: { label: string;
   );
 }
 
-function TemplateCard({ tpl, index, onClick }: { tpl: typeof TEMPLATES[number]; index: number; onClick: () => void }) {
-  const hero = tpl.buildPages()[0]?.sections.find((s) => s.kind === "hero");
-  const headline = (hero?.config?.headline as string) ?? tpl.name;
-  const subhead = (hero?.config?.subhead as string) ?? tpl.description;
+/** One showcase card per Sites template. Renders a miniature of the template's
+ *  hero using the theme's real swatch colors; clicking creates the project. */
+function SiteTemplateCard({ tpl, index, busy, disabled, onUse }: {
+  tpl: TemplateDef;
+  index: number;
+  busy: boolean;
+  disabled: boolean;
+  onUse: (projectName: string) => void;
+}) {
+  // One build per card, memoized — gives the card its headline + brand + count.
+  const preview = useMemo(() => tpl.build(), [tpl])
+  const hero = preview.sections.find((s) => s.type === "hero")
+  const headline = hero?.type === "hero" ? hero.headline : tpl.name
+  const subhead = hero?.type === "hero" ? hero.sub : tpl.description
+  const [bg, bgAlt, accent] = getTheme(preview.themeId).swatch
+
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="group overflow-hidden rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
+      disabled={disabled}
+      onClick={() => onUse(preview.brand.name)}
+      className="group overflow-hidden rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none"
       style={{ animation: `pfFadeInUp 0.4s ease ${0.05 * index}s both` }}
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden" style={{ background: `linear-gradient(135deg, ${tpl.theme.primary}, ${tpl.theme.accent})` }}>
-        {/* Mock UI inside thumbnail */}
-        <div className="absolute inset-0 flex flex-col p-4 text-white">
+      <div className="relative aspect-[16/10] w-full overflow-hidden" style={{ background: `linear-gradient(135deg, ${bg} 0%, ${bgAlt} 60%, ${accent}22 100%)` }}>
+        {/* Mock page inside thumbnail */}
+        <div className="absolute inset-0 flex flex-col p-4" style={{ color: getTheme(preview.themeId).mode === "dark" ? "#e7e5e4" : "#1c1917" }}>
           <div className="flex items-center gap-2">
-            <div className="grid h-5 w-5 place-items-center rounded bg-white/25 text-[10px] font-bold backdrop-blur">{tpl.name[0]}</div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-90">{tpl.name.split(" ")[0]}</span>
+            <div className="grid h-5 w-5 place-items-center rounded text-[10px] font-bold" style={{ background: accent, color: "#fff" }}>
+              {preview.brand.name[0]}
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-90">{preview.brand.name}</span>
           </div>
           <div className="mt-auto space-y-1.5">
             <div className="text-base font-bold leading-tight line-clamp-2 drop-shadow-sm">{headline}</div>
-            <div className="text-[10px] opacity-80 line-clamp-1">{subhead}</div>
-            <div className="inline-flex rounded bg-white/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider backdrop-blur">{tpl.category}</div>
+            <div className="text-[10px] opacity-70 line-clamp-1">{subhead}</div>
+            <div className="inline-flex rounded px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider" style={{ background: `${accent}33` }}>
+              {tpl.name} · {preview.sections.length} sections
+            </div>
           </div>
         </div>
         {/* Hover overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
           <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-md">
-            <Sparkles className="h-3.5 w-3.5 text-violet-600" /> Use template
+            <Sparkles className="h-3.5 w-3.5 text-violet-600" /> {busy ? "Creating…" : "Use template"}
           </span>
         </div>
       </div>
@@ -451,8 +407,9 @@ function TemplateCard({ tpl, index, onClick }: { tpl: typeof TEMPLATES[number]; 
         <div className="flex items-center justify-between">
           <div className="text-sm font-semibold">{tpl.name}</div>
           <div className="flex gap-0.5">
-            <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/5" style={{ background: tpl.theme.primary }} />
-            <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/5" style={{ background: tpl.theme.accent }} />
+            <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/5" style={{ background: bg }} />
+            <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/5" style={{ background: bgAlt }} />
+            <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/5" style={{ background: accent }} />
           </div>
         </div>
         <div className="mt-1 line-clamp-2 text-[11px] text-slate-500 dark:text-slate-400">{tpl.description}</div>
@@ -470,7 +427,7 @@ function WorkflowStep({ num, title, desc, icon: Icon, accent }: { num: number; t
       </div>
       <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">Step {num}</div>
       <h4 className="mt-1 text-base font-semibold">{title}</h4>
-      <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{desc}</p>
+      <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{desc}</p>
     </div>
   );
 }
