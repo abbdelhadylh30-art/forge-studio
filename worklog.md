@@ -1098,3 +1098,19 @@ Stage Summary:
 - v2.1.1-ready commit 4cd6d1f sits on main locally: every button cluster across Dashboard / app bar / studio toolbar / project cards is deduplicated, grouped, and style-consistent.
 - NOT pushed / NOT deployed yet — needs the user's (rotated) GitHub token to run: git push origin main. Vercel auto-deploys on push.
 - Before/after screenshots: download/before-{dashboard,toolbar,projects}.png vs after-{dashboard,toolbar,projects}.png.
+
+---
+Task ID: 28
+Agent: main
+Task: Push the local v2.1.x commits (Forge Studio button-organization pass) to GitHub origin/main.
+
+Work Log:
+- User provided a GitHub PAT to complete the push left pending at the end of Task 27.
+- Verified repo state: local main ahead of origin/main by 2 commits (4cd6d1f UI polish, 6b79314 worklog), working tree clean.
+- Pushed via transient Authorization header (git -c http.extraheader=...) so the token was NOT persisted to .git/config or any file on disk.
+- Push succeeded: cf16df1..6b79314 main -> main. Branch now up to date with origin/main.
+- Advised user to rotate/revoke the token afterwards since it was shared in chat.
+
+Stage Summary:
+- origin/main now contains the full Forge Studio button-organization pass (toolbar 13->4 zones, dashboard CTA de-duplication, project card 5-button row -> Open + overflow + Delete).
+- Vercel auto-deploy should pick up 4cd6d1f/6b79314 on push. Token used once, never stored locally.
