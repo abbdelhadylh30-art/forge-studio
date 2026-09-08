@@ -1114,3 +1114,17 @@ Work Log:
 Stage Summary:
 - origin/main now contains the full Forge Studio button-organization pass (toolbar 13->4 zones, dashboard CTA de-duplication, project card 5-button row -> Open + overflow + Delete).
 - Vercel auto-deploy should pick up 4cd6d1f/6b79314 on push. Token used once, never stored locally.
+
+---
+Task ID: 29
+Agent: main
+Task: Deployment-readiness audit — user feels Forge Studio is "not completely ready for deployment" but can't articulate why.
+
+Work Log:
+- Audited package.json, prisma/schema.prisma (SQLite), vercel.json (DATABASE_URL=file:/tmp/prod.db), .env, db.ts + db-schema.ts (runtime DDL bootstrap), localProjects.ts, livesocket.ts, uploads.ts, AI routes, deploy/send-report routes, downloads page, layout metadata.
+- Root cause found: production data layer is intentionally ephemeral (per-instance /tmp SQLite, re-seeded on cold start). Published /p/<slug> links 404 on cold instances for visitors; analytics/leads/feedback scatter across instances and vanish; user projects survive only via localStorage registry (30-day TTL, 24-project cap).
+- Secondary gaps: z-ai-web-dev-sdk loads a local .z-ai config file (no env fallback) so all 4 AI routes 500 on Vercel; uploads go to /tmp/uploads (ephemeral); socket.io live relay (mini-services/analytics-live via Caddy) is local-only; no auth/passcode on studio routes; no custom 404; /downloads page lists gitignored files (404 on Vercel); send-report is queue-only.
+- Recommended free fix path: Turso libSQL (schema stays sqlite, DDL bootstrap compatible) + passcode gate + AI env-var config + inline/Blob images + env-gate WS relay.
+
+Stage Summary:
+- Diagnosis delivered to user as a prioritized punch list (P0 data ephemerality, P1 AI credentials + access control, P2 uploads + relay, P3 polish) with a free-tier remediation plan. Awaiting user decision to implement + Turso credentials.
