@@ -1149,3 +1149,23 @@ Work Log:
 
 Stage Summary:
 - App is deployment-ready pending env vars: DATABASE_URL (libsql://…), DATABASE_AUTH_TOKEN, STUDIO_PASSCODE, optional ZAI_BASE_URL/ZAI_API_KEY. Awaiting Turso DB URL from user to run the hosted smoke test; then user sets vars in Vercel dashboard.
+
+---
+Task ID: 30 (cont.)
+Agent: main
+Task: Hosted Turso verification — user delivered the DB URL + Turso token; run production smoke + dual-instance E2E against the REAL database.
+
+Work Log:
+- User supplied DATABASE_URL (libsql://forge-stufio-abbdelhadylh31.aws-us-east-1.turso.io) + a Turso token.
+- First connection 401: the supplied token is an ORG API token (JWT jti + org_id 1000239084) — a management-API credential, NOT a libsql auth token. Verified it against api.turso.tech (DB exists: "forge-stufio", not sleeping), then minted a database-scoped read-write token via POST /v1/databases/forge-stufio/auth/tokens (org token used inline only, never stored).
+- scripts/test-turso.ts: hosted adapter smoke — 30 idempotent DDL statements provisioned the production schema (7.6s), CRUD / @updatedAt / relations (view+event+lead) / cascade delete all pass over the network; DB left clean (rows cascade-removed, only schema persists).
+- scripts/run-turso-e2e.sh + scripts/e2e-turso.sh: two INDEPENDENT standalone production instances (A:3001, B:3002) sharing the hosted DB — the Vercel serverless topology in miniature. Sandbox reaps processes that outlive their spawning command (setsid insufficient), so launch→test→teardown runs inside a single command.
+- E2E 18/18 GREEN: passcode gate (307→/unlock, wrong passcode 401, correct sets cookie, studio APIs 401 without cookie), create-on-A → GET-on-B 200 (the v2.0 "instance B 404" bug is DEAD), B list contains the site, anonymous /p/<slug> renders on B, visitor pageview + lead POSTed via B, read-back on A (analytics stats.pageviews=1, lead visible — cross-instance write→read), delete-on-A → 404-on-B, G-SHOCK showcase demo seeded in the hosted DB.
+- G-SHOCK demo page renders from Turso (19.6KB HTML, title "G-SHOCK GA-B2100 NOIR — Tough. Solar. Connected."); unknown slug → proper 404 (local mode; serverless mode keeps the retry-then-honest-notfound path).
+- scripts/check-turso-state.ts: final hosted DB audit — sites=1 (G-SHOCK showcase only), views=0, events=0, leads=0. Production baseline in place, zero test residue.
+- Two E2E assertion bugs fixed during the run (pageviews live in stats.pageviews, not a "pageview" literal; demo seeder plants exactly 1 G-SHOCK site, not 5). ZERO app-code changes required — 042f351's implementation is verified as-is against the real database.
+- Committed the 4 verification scripts + this log; pushed to origin/main (PAT used inline via http.extraheader, not persisted).
+
+Stage Summary:
+- Turso production path fully verified end-to-end against the hosted database: schema provisioned, dual-instance topology proven, gate + public surface proven, DB left in clean production baseline.
+- Remaining step is USER-SIDE only: set DATABASE_URL / DATABASE_AUTH_TOKEN / STUDIO_PASSCODE (+ optional ZAI_BASE_URL/ZAI_API_KEY) in the Vercel dashboard, then Redeploy. The DATABASE_AUTH_TOKEN must be the database-scoped token minted above (the org token 401s as a libsql credential).
