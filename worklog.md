@@ -1169,3 +1169,25 @@ Work Log:
 Stage Summary:
 - Turso production path fully verified end-to-end against the hosted database: schema provisioned, dual-instance topology proven, gate + public surface proven, DB left in clean production baseline.
 - Remaining step is USER-SIDE only: set DATABASE_URL / DATABASE_AUTH_TOKEN / STUDIO_PASSCODE (+ optional ZAI_BASE_URL/ZAI_API_KEY) in the Vercel dashboard, then Redeploy. The DATABASE_AUTH_TOKEN must be the database-scoped token minted above (the org token 401s as a libsql credential).
+
+---
+Task ID: 30 (cont. 2)
+Agent: main
+Task: User provided a Vercel access token ("go ahead and do whatever you want") — set the production env vars via API, redeploy, and verify the live site end-to-end.
+
+Work Log:
+- Verified the token (user abbdelhadylh30-8252, default team_xPWmD62y89sofU1NwUAfVVph, hobby plan); located project forge-studio (prj_flRe9ioEjynOV7SlbE8H5xOy0sPL) linked to GitHub abbdelhadylh30-art/forge-studio @ main, production alias forge-studio-green.vercel.app, ZERO pre-existing env vars (clean slate).
+- Created 3 encrypted production env vars via POST /v10/projects/forge-studio/env: DATABASE_URL (libsql://forge-stufio-…turso.io), DATABASE_AUTH_TOKEN (the database-scoped token minted in cont.), STUDIO_PASSCODE (randomly generated — value delivered to the user in chat ONLY, never committed; this repo is public). First run had a response-parsing false alarm (v10 nests results under {"created":…}); the ENV_CONFLICT on retry confirmed all three were actually created. One diagnostic TEST_PROBE var was deleted by id.
+- Triggered production redeploy: POST /v13/deployments with gitSource {type: github, repoId 1306055773, ref: main} (repoId fetched via GitHub API with the PAT — the unauthenticated call was rate-limited) → dpl_BRQPfYrPydkC2ZXefPcv2GgZDGM7 building commit 302405a → READY in ~90s, alias shifted, zero build errors.
+- LIVE verification on https://forge-studio-green.vercel.app:
+  - /api/health 200; / → 307 → /unlock?from=%2F (the gate is LIVE — proves STUDIO_PASSCODE landed);
+  - wrong passcode 401, correct passcode 200 + httpOnly cookie, root with cookie 200, studio API without cookie 401;
+  - GET /api/sites (public) lists the G-SHOCK demo FROM TURSO — proves DATABASE_URL + DATABASE_AUTH_TOKEN landed;
+  - /p/g-shock-ga-b2100-noir renders 200 (19.9KB, correct title) for anonymous visitors;
+  - live write cycle: created "Prod Health Check" (slug prod-health-check) → anonymous /p/prod-health-check 200 → pageview tracked → analytics stats.pageviews=1 → DELETE 200 → GET 404. Full CRUD + analytics persistence confirmed IN PRODUCTION.
+- All credentials (Vercel token, GitHub PAT, Turso org token) used inline only, never written to disk or committed.
+
+Stage Summary:
+- PRODUCTION IS LIVE AND DURABLE on https://forge-studio-green.vercel.app: Turso-backed data layer, passcode-locked studio with public /p/* pages, persistent analytics/leads/projects. Every P0/P1 item from the Task 29 audit is now closed and verified live.
+- User-facing credential delivered in chat only: the STUDIO_PASSCODE (change anytime via Vercel env var + redeploy). User should rotate the three secrets they pasted in chat (GitHub PAT, Turso org token, Vercel token).
+- Intentionally not configured: ZAI_BASE_URL/ZAI_API_KEY — the 4 AI routes return a clear 503 setup hint until the user adds their own credentials.
