@@ -11,7 +11,7 @@
 // flat { dotted-path → text } map. Structure validation, storage and RTL
 // direction are handled client-side (see src/lib/landing/i18n.ts).
 // ─────────────────────────────────────────────────────────────────────────────
-import ZAI from "z-ai-web-dev-sdk"
+import { getZAI } from "@/lib/ai/zai"
 import { NextRequest, NextResponse } from "next/server"
 import { guard, HttpError, readJsonBody, str } from "@/lib/landing/server"
 
@@ -24,7 +24,8 @@ const MAX_VALUE_CHARS = 600
 const SYSTEM_PROMPT = `You are a professional marketing copy translator for landing pages. You receive a JSON object whose VALUES are source-language marketing copy and whose KEYS are opaque field paths. Translate every VALUE into the requested target locale, keeping keys EXACTLY unchanged. Rules: preserve tone, punch and marketing intent; keep numbers, prices, product names and URLs untranslated; keep emoji and placeholders intact; adapt idioms naturally rather than literally. Respond with ONLY a valid JSON object with the exact same keys.`
 
 async function callLLM(locale: string, label: string, fields: Record<string, string>): Promise<Record<string, string> | null> {
-  const zai = await ZAI.create()
+  const zai = await getZAI()
+  if (!zai) throw new HttpError(503, "AI is not configured on this deployment — set ZAI_BASE_URL and ZAI_API_KEY")
   const userContent = `Target locale: ${locale} (${label}).\nTranslate the values of this JSON object:\n${JSON.stringify(fields)}`
   for (let attempt = 0; attempt < 2; attempt++) {
     const completion = await zai.chat.completions.create({

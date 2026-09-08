@@ -7,7 +7,7 @@
 //      model trimmed some — acceptable, never throws on weird input)
 // → 400 missing config | 500 { error } if the model fails
 // ─────────────────────────────────────────────────────────────────────────────
-import ZAI from "z-ai-web-dev-sdk"
+import { getZAI } from "@/lib/ai/zai"
 import { NextRequest, NextResponse } from "next/server"
 import { extractJson, normalizeConfig } from "@/lib/landing/yaml"
 import { guard, HttpError, readJsonBody, str } from "@/lib/landing/server"
@@ -19,7 +19,8 @@ export const dynamic = "force-dynamic"
 const SYSTEM_PROMPT = `You are landing-forge's copy editor. You receive a landing page config JSON. Improve the MARKETING COPY ONLY — make headlines punchier, subs clearer, feature bodies more concrete and benefit-driven, testimonial quotes more specific, FAQ answers crisper. DO NOT change: section types, ids, counts, structure, layout/style values, themeId, hrefs, weights. Keep the same language. Respond with ONLY the improved JSON config, complete and valid, same shape as input.`
 
 async function callLLM(userContent: string): Promise<string> {
-  const zai = await ZAI.create()
+  const zai = await getZAI()
+  if (!zai) throw new HttpError(503, "AI is not configured on this deployment — set ZAI_BASE_URL and ZAI_API_KEY")
   const completion = await zai.chat.completions.create({
     messages: [
       { role: "assistant", content: SYSTEM_PROMPT },

@@ -8,7 +8,7 @@
 //        "1344x768" | "1152x864" | "1440x768" | "768x1440" (default 1344x768) }
 // → 200 { url: "/uploads/lf-<hex>.png" } | 400 | 500
 // ─────────────────────────────────────────────────────────────────────────────
-import ZAI from "z-ai-web-dev-sdk"
+import { getZAI } from "@/lib/ai/zai"
 import { NextRequest, NextResponse } from "next/server"
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
     const size = str(body.size) as ImgSize
     if (size && !SIZES.includes(size)) throw new HttpError(400, `Invalid 'size' — must be one of: ${SIZES.join(", ")}`)
 
-    const zai = await ZAI.create()
+    const zai = await getZAI()
+    if (!zai) throw new HttpError(503, "AI is not configured on this deployment — set ZAI_BASE_URL and ZAI_API_KEY")
     // transient SDK hiccups happen — one automatic retry
     let base64: string | undefined
     let lastError = "unknown error"

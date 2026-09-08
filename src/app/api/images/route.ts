@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { readdir, stat, unlink, writeFile, mkdir } from "node:fs/promises"
 import path from "node:path"
+import sharp from "sharp"
 import { db } from "@/lib/db"
 import { guard, HttpError } from "@/lib/landing/server"
 import { bundledDir, isServerless, publicUrl, uploadDir } from "@/lib/landing/uploads"
@@ -91,6 +92,29 @@ export async function POST(req: NextRequest) {
     if (file.size > MAX_UPLOAD_BYTES) throw new HttpError(400, "File too large — max 2MB")
 
     const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg"
+
+    if (isServerless()) {
+      // Durable by construction: the image rides inside the site config JSON
+      // (stored in the DB), so it survives instance recycling without any blob
+      // store. Compress first so configs stay light — the browser's local
+      // project mirror caps entries at ~500 KB. Data URLs render in the studio
+      // preview, published pages and exported HTML alike. (They intentionally
+      // do not appear in the GET library listing — that scans the filesystem.)
+      let buf: Buffer = Buffer.from(await file.arrayBuffer())
+      let mime = file.type
+      try {
+        buf = await sharp(buf)
+          .rotate()
+          .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+          .webp({ quality: 82 })
+          .toBuffer()
+        mime = "image/webp"
+      } catch {
+        // sharp couldn't process it — embed the original bytes as-is
+      }
+      return NextResponse.json({ ok: true, url: `data:${mime};base64,${buf.toString("base64")}` })
+    }
+
     const name = `lf-${crypto.randomUUID().slice(0, 12)}.${ext}`
     const dir = uploadDir()
     await mkdir(dir, { recursive: true })

@@ -4,7 +4,7 @@
   "buildCommand": "next build",
   "installCommand": "bun install",
   "env": {
-    "DATABASE_URL": "file:/tmp/prod.db",
-    "NEXT_TELEMETRY_DISABLED": "1"
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NEXT_PUBLIC_DISABLE_LIVE_RELAY": "1"
   }
 }

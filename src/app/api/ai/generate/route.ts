@@ -7,7 +7,7 @@
 // → 400 missing prompt | 500 { error } if the model output can't be parsed
 //      (one automatic retry with a "raw JSON only" nudge is attempted)
 // ─────────────────────────────────────────────────────────────────────────────
-import ZAI from "z-ai-web-dev-sdk"
+import { getZAI } from "@/lib/ai/zai"
 import { NextRequest, NextResponse } from "next/server"
 import { extractJson, normalizeConfig } from "@/lib/landing/yaml"
 import { guard, HttpError, readJsonBody, str } from "@/lib/landing/server"
@@ -48,7 +48,8 @@ Section is a tagged union — every section object carries a "type" field with o
 Rules: navbar first (announcement may precede it), hero right after, footer last; 6-12 sections total; when the product solves a real pain, prefer the narrative arc problem → solution → features/proof → comparison → guarantee → cta-final; 3-6 items per list; copy must be specific, punchy, marketing-grade (short headlines <=8 words); if the user writes in another language, write ALL copy in that language; pick themeId that matches the vibe; href "#" or "#features" etc.}`
 
 async function callLLM(userContent: string): Promise<string> {
-  const zai = await ZAI.create()
+  const zai = await getZAI()
+  if (!zai) throw new HttpError(503, "AI is not configured on this deployment — set ZAI_BASE_URL and ZAI_API_KEY")
   const completion = await zai.chat.completions.create({
     messages: [
       { role: "assistant", content: SYSTEM_PROMPT },

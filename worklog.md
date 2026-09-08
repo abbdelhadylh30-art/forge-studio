@@ -1128,3 +1128,24 @@ Work Log:
 
 Stage Summary:
 - Diagnosis delivered to user as a prioritized punch list (P0 data ephemerality, P1 AI credentials + access control, P2 uploads + relay, P3 polish) with a free-tier remediation plan. Awaiting user decision to implement + Turso credentials.
+
+---
+Task ID: 30
+Agent: main
+Task: Free-tier production readiness — durable DB (Turso-ready), passcode gate, env-configured AI, durable uploads, relay gating, 404 page.
+
+Work Log:
+- Installed @prisma/adapter-libsql@6.19.2 + @libsql/client 0.18 (aligned to resolved Prisma 6.19.2).
+- Rewrote src/lib/db.ts: libsql:// DATABASE_URL → PrismaLibSQL adapter (DATABASE_AUTH_TOKEN), else file mode with file:/tmp/prod.db fallback so removing the vercel.json pin stays safe.
+- scripts/test-libsql.ts: smoke-tested the adapter path locally (DDL bootstrap, CRUD, @updatedAt, relations, cascade) — PASS.
+- src/proxy.ts (Next 16 middleware): passcode gate on studio routes; published pages + their APIs (/p/*, GET /api/sites, POST /api/leads, /api/analytics/track, /api/og, /api/uploads, /api/feedback, static assets) stay public. Inert when STUDIO_PASSCODE unset.
+- /unlock page + /api/unlock route (rate-limited, timing-safe compare, httpOnly cookie = sha256(passcode), matches proxy contract).
+- src/lib/ai/zai.ts getZAI(): env-config (ZAI_BASE_URL/ZAI_API_KEY, /v1 normalized, private-constructor cast) with .z-ai-config file fallback; all 4 AI routes 503 with setup hint when unconfigured.
+- /api/images POST: serverless branch embeds uploads as compressed webp data URLs (sharp, ≤1600px) inside site config — durable via DB, no blob store; local flow unchanged.
+- livesocket.ts: NEXT_PUBLIC_DISABLE_LIVE_RELAY=1 (set in vercel.json) stops WS reconnect storms; REST polling fallback stands.
+- Added src/app/not-found.tsx; vercel.json: removed ephemeral DATABASE_URL pin, added relay kill-switch.
+- Gates: tsc clean, eslint 1 pre-existing warning, vitest 232/232, next build OK (Proxy registered).
+- Runtime tests vs next start: locked mode (307→/unlock, 401 on studio APIs, wrong passcode 401, correct passcode sets cookie, root 200), public surface (GET /api/sites 200, /p/x 404-not-redirect, POST /api/leads reaches route, icon 200), inert mode (root 200 without passcode), VERCEL=1 upload returns webp data URL.
+
+Stage Summary:
+- App is deployment-ready pending env vars: DATABASE_URL (libsql://…), DATABASE_AUTH_TOKEN, STUDIO_PASSCODE, optional ZAI_BASE_URL/ZAI_API_KEY. Awaiting Turso DB URL from user to run the hosted smoke test; then user sets vars in Vercel dashboard.

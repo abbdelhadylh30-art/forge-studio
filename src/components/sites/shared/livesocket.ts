@@ -22,6 +22,12 @@ import type { LiveVisit } from "@/lib/landing/types"
 // DO NOT change the path — Caddy forwards /?XTransformPort=3003 to the relay
 const RELAY_URL = "/?XTransformPort=3003"
 
+// Production (Vercel) has no relay service behind the gateway — the sockets
+// would reconnect forever for nothing. Set NEXT_PUBLIC_DISABLE_LIVE_RELAY=1
+// (see vercel.json) to skip connecting entirely; both hooks degrade to their
+// REST fallbacks, which the dashboards already merge with (mergeLiveVisits).
+const RELAY_DISABLED = process.env.NEXT_PUBLIC_DISABLE_LIVE_RELAY === "1"
+
 export interface WireVisit {
   id: string
   projectId: string
@@ -90,7 +96,7 @@ export function useVisitorRelay(params: {
 
   // connect as soon as the project is known
   React.useEffect(() => {
-    if (!params.projectId) return
+    if (RELAY_DISABLED || !params.projectId) return
     const socket = connect()
     socketRef.current = socket
     const onConnect = () => {
@@ -222,7 +228,7 @@ export function useDashboardRelay(projectId: string | null, enabled: boolean): D
   }, [])
 
   React.useEffect(() => {
-    if (!projectId || !enabled) {
+    if (RELAY_DISABLED || !projectId || !enabled) {
       setConnected(false)
       setVisits([])
       return
