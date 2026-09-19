@@ -13,6 +13,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://forge.abdelhadygabriel.me"),
+  alternates: { canonical: "/" },
   title: { default: "Forge Studio — Build. Audit. Ship.", template: "%s · Forge Studio" },
   description: "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes. Build, audit, and ship landing pages in one place.",
   keywords: ["landing page", "page builder", "audit", "SEO", "accessibility", "no-code", "Forge Studio"],
