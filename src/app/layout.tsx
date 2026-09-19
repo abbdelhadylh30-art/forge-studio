@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   keywords: ["landing page", "page builder", "audit", "SEO", "accessibility", "no-code", "Forge Studio"],
   authors: [{ name: "Forge Studio" }],
   applicationName: "Forge Studio",
-  openGraph: { title: "Forge Studio — Build. Audit. Ship.", description: "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes.", type: "website", siteName: "Forge Studio" },
-  twitter: { card: "summary_large_image", title: "Forge Studio", description: "Build. Audit. Ship. The all-in-one landing page studio." },
+  openGraph: { title: "Forge Studio — Build. Audit. Ship.", description: "The all-in-one landing page studio. Drag-drop builder + 5-category auditor with one-click fixes.", type: "website", siteName: "Forge Studio", images: [{ url: "/og.png", width: 1200, height: 630, alt: "Forge Studio — Build. Audit. Ship." }] },
+  twitter: { card: "summary_large_image", title: "Forge Studio", description: "Build. Audit. Ship. The all-in-one landing page studio.", images: ["/og.png"] },
   icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icons/icon-192.png" },
   manifest: "/manifest.webmanifest",
 };
