@@ -1,11 +1,30 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
 import { db, ensureSchema } from "@/lib/db";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://forge-studio-green.vercel.app";
+const FALLBACK_SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://forge-studio-green.vercel.app";
 
 export const dynamic = "force-dynamic";
 
+// Derive the canonical base URL from the incoming request so the sitemap
+// always emits the custom domain (forge.abdelhadygabriel.me) regardless of
+// which deployment URL served the request. Falls back to env/vercel URL.
+async function getBaseUrl(): Promise<string> {
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    if (host) return `${proto}://${host}`;
+  } catch {
+    // headers() unavailable in this runtime — use fallback below
+  }
+  return FALLBACK_SITE_URL;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const SITE_URL = await getBaseUrl();
+
   const entries: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
